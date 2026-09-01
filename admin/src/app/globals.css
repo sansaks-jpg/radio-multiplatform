@@ -1,0 +1,216 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Gaul FM Admin — Sonic Pulse (studio broadcast system) */
+:root {
+  /* Surfaces — deep charcoal spectrum */
+  --background: #050505;
+  --foreground: #e2e2e6;
+  --card: #121417;
+  --card-foreground: #e2e2e6;
+  --muted: #1a1c1e;
+  --muted-foreground: #889488;
+  --border: #2a2d31;
+  --input: #1a1c1e;
+  --ring: #ffb787;
+
+  /* Brand */
+  --brand: #78db94;
+  --brand-foreground: #00391a;
+  --brand-container: #007a3e;
+
+  /* Accents */
+  --orange: #ffb787;
+  --orange-foreground: #512400;
+  --orange-container: #dc7521;
+  --live: #ff5252;
+  --live-foreground: #ffffff;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #ffb4ab;
+  --danger-container: #93000a;
+
+  /* Sidebar / shell */
+  --sidebar: #0c0e11;
+  --sidebar-foreground: #e2e2e6;
+  --sidebar-muted: #889488;
+  --sidebar-active: #78db94;
+  --sidebar-border: #1a1c1e;
+
+  /* Typography */
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* Radius — Sonic Pulse scale */
+  --radius: 0.5rem;
+
+  /* Elevation hints (tonal layers, not heavy shadows) */
+  --surface-0: #050505;
+  --surface-1: #121417;
+  --surface-2: #1e2023;
+  --surface-3: #282a2d;
+}
+
+.dark {
+  /* Same palette — admin is dark-first per Sonic Pulse spec */
+  --background: #050505;
+  --foreground: #e2e2e6;
+  --card: #121417;
+  --card-foreground: #e2e2e6;
+  --muted: #1a1c1e;
+  --muted-foreground: #889488;
+  --border: #2a2d31;
+  --input: #1a1c1e;
+  --ring: #ffb787;
+  --brand: #78db94;
+  --brand-foreground: #00391a;
+  --brand-container: #007a3e;
+  --orange: #ffb787;
+  --orange-foreground: #512400;
+  --orange-container: #dc7521;
+  --live: #ff5252;
+  --live-foreground: #ffffff;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #ffb4ab;
+  --danger-container: #93000a;
+  --sidebar: #0c0e11;
+  --sidebar-foreground: #e2e2e6;
+  --sidebar-muted: #889488;
+  --sidebar-active: #78db94;
+  --sidebar-border: #1a1c1e;
+  --surface-0: #050505;
+  --surface-1: #121417;
+  --surface-2: #1e2023;
+  --surface-3: #282a2d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-container: var(--brand-container);
+  --color-orange: var(--orange);
+  --color-orange-foreground: var(--orange-foreground);
+  --color-orange-container: var(--orange-container);
+  --color-live: var(--live);
+  --color-live-foreground: var(--live-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-danger-container: var(--danger-container);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle studio grid texture on background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 999px;
+  border: 2px solid var(--background);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Focus ring — On-Air Orange glow per spec */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Live pulse animation */
+@keyframes live-pulse {
+ 0%,
+ 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+ 50% {
+    opacity: 0.55;
+    transform: scale(1.4);
+  }
+}
+.live-pulse {
+  animation: live-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* On-air glow for hero modules */
+.on-air-glow {
+  box-shadow:
+    0 0 0 1px rgba(255, 82, 82, 0.18),
+    0 0 32px rgba(255, 82, 82, 0.07);
+}
+
+/* Card gradient — Deep Grey to Black per spec */
+.card-gradient {
+  background-image: linear-gradient(145deg, #1e2023 0%, #121417 60%, #0c0e11 100%);
+}
+
+/* Backdrop blur surfaces */
+.glass {
+  background-color: rgba(18, 20, 23, 0.82);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
