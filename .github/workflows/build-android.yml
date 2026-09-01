@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-apk:
-    name: Build Android Release APK
+    name: Build Android APK (Testing Build)
     runs-on: ubuntu-latest
 
     steps:
@@ -48,17 +48,18 @@ jobs:
       - name: 📦 Install Mobile Dependencies & Apply Patches
         working-directory: mobile
         run: |
-          npm ci
+          npm install
+          npx patch-package
 
-      - name: 🔨 Build Android Release APK
+      - name: 🔨 Build Android Test APK
         working-directory: mobile/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: 📤 Upload Release APK Artifact
+      - name: 📤 Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gaulfm-android-release-apk
-          path: mobile/android/app/build/outputs/apk/release/*.apk
+          name: gaulfm-android-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
           retention-days: 14
