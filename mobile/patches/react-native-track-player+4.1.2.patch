@@ -1,9 +1,31 @@
+diff --git a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
+index 8e4587a..8ea2050 100644
+--- a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
++++ b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/module/MusicModule.kt
+@@ -545,7 +545,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+             val index = musicService.tracks.indexOfFirst { it.id == id }
+ 
+             if (index != -1) {
+-                callback.resolve(Arguments.fromBundle(musicService.tracks[index].originalItem))
++                callback.resolve(Arguments.fromBundle(musicService.tracks[index].originalItem ?: Bundle()))
+             } else {
+                 callback.resolve(null)
+             }
+@@ -585,7 +585,7 @@ class MusicModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
+         scope.launch {
+             if (musicService.tracks.isEmpty()) return@launch callback.resolve(null)
+ 
+-            val track = Arguments.fromBundle(musicService.tracks[musicService.getCurrentTrackIndex()].originalItem)
++            val track = Arguments.fromBundle(musicService.tracks[musicService.getCurrentTrackIndex()].originalItem ?: Bundle())
+             callback.resolve(track)
+         }
+     }
 diff --git a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt
 index 9e80efb..a7f9b3c 100644
 --- a/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt
 +++ b/node_modules/react-native-track-player/android/src/main/java/com/doublesymmetry/trackplayer/service/MusicService.kt
 @@ -141,7 +141,7 @@ class MusicService : HeadlessJsTaskService() {
-
+ 
          val cacheConfig = CacheConfig(playerOptions?.getDouble(MAX_CACHE_SIZE_KEY)?.toLong())
          val playerConfig = PlayerConfig(
 -            interceptPlayerActionsTriggeredExternally = true,
