@@ -20,7 +20,7 @@ Panduan panduan teknis dan operasional untuk agen AI / pengembang pada repositor
 
 | Layer | Pilihan Teknologi | Keterangan |
 |---|---|---|
-| Runtime | Expo SDK 54, TypeScript 5.9 | `newArchEnabled: false` (Bridge Mode untuk RNTP compatibility) |
+| Runtime | Expo SDK 54, TypeScript 5.9 | `newArchEnabled: true` (New Architecture + Patched RNTP 4.1.2) |
 | Styling | NativeWind v4 (Tailwind 3.4) + CSS class-based | Tema "Gaul Neon Night" / Dark Theme Studio |
 | Navigation | React Navigation 7 | RootNavigator → AuthStack / MainTabs |
 | State Management | Zustand 5 | `playerStore`, `authStore`, `reminderStore`, `themeStore` |

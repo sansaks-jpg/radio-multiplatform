@@ -19,8 +19,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: "gaulfm",
   userInterfaceStyle: "light",
   backgroundColor: "#F8FAF9",
-  // react-native-track-player 4.1.2 requires newArchEnabled: false (Bridge mode)
-  newArchEnabled: false,
+  // Enable New Architecture for Expo SDK 54 / Reanimated 4 / Worklets compatibility
+  newArchEnabled: true,
   ios: {
     supportsTablet: false,
     bundleIdentifier: "com.gaulfm.app",
