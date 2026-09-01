@@ -25,10 +25,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 🟢 Setup Node.js 20
+      - name: 🟢 Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: mobile/package-lock.json
 
@@ -41,7 +41,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('mobile/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -51,7 +51,12 @@ jobs:
           npm install
           npx patch-package
 
-      - name: 🔨 Build Android Test APK
+      - name: ⚙️ Generate Android Native Project (Expo Prebuild)
+        working-directory: mobile
+        run: |
+          npx expo prebuild --platform android --no-install
+
+      - name: 🔨 Build Android Test APK (Debug)
         working-directory: mobile/android
         run: |
           chmod +x gradlew
