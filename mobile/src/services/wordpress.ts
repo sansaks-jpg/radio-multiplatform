@@ -80,7 +80,7 @@ async function loadCategoryCache(): Promise<Map<number, string>> {
         `${WP_API}/categories?per_page=100&hide_empty=true`,
       );
       if (!res.ok) return new Map();
-      const cats = (await res.json()) as Array<{ id: number; name: string }>;
+      const cats = (await res.json()) as { id: number; name: string }[];
       categoryCache = new Map(cats.map((c) => [c.id, c.name]));
       return categoryCache;
     } catch {
@@ -143,6 +143,7 @@ function mapPost(
     image_url: resolveImage(p, opts.includeContent),
     category: resolveCategory(p, catMap),
     published_at,
+    url: p.link ?? null,
   };
 }
 
@@ -163,6 +164,7 @@ export async function fetchWpNewsPage(pageParam: number): Promise<WpNewsPage> {
     "date",
     "date_gmt",
     "title",
+    "link",
     "categories",
     "featured_media",
     "_links",

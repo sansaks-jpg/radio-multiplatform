@@ -24,7 +24,7 @@ Panduan panduan teknis dan operasional untuk agen AI / pengembang pada repositor
 | Styling | NativeWind v4 (Tailwind 3.4) + CSS class-based | Tema "Gaul Neon Night" / Dark Theme Studio |
 | Navigation | React Navigation 7 | RootNavigator → AuthStack / MainTabs |
 | State Management | Zustand 5 | `playerStore`, `authStore`, `reminderStore`, `themeStore` |
-| Data Caching | TanStack Query v5 + AsyncStorage persister | Offline caching berita (≥15 artikel) |
+| Data Caching | TanStack Query v5 + AsyncStorage persister | Direct WordPress REST API (`radiogaulfmsmg.com`) + Offline cache |
 | Audio Engine | `react-native-track-player` 4.1.2 (Native) | Support background playback & lockscreen controls |
 | Audio Fallback | `expo-audio` / `HTMLAudioElement` | Fallback otomatis untuk Expo Go / Web |
 | Visual Radio | MediaMTX WebRTC (WHEP) & HLS Fallback | Latensi ultra-rendah (<0.3s) via `react-native-webview` |
