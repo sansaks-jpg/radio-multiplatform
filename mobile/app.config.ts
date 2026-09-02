@@ -14,7 +14,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: "Gaul FM",
   slug: "gaulfm-mobile",
   version: "0.1.0",
-  icon: "./assets/logo.png",
+  icon: "./assets/icon.png",
   orientation: "portrait",
   scheme: "gaulfm",
   userInterfaceStyle: "light",
@@ -24,7 +24,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: false,
     bundleIdentifier: "com.gaulfm.app",
-    icon: "./assets/logo.png",
+    icon: "./assets/icon.png",
     infoPlist: {
       // Background audio keeps the live stream playing with the screen locked.
       UIBackgroundModes: ["audio"],
@@ -33,8 +33,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: "com.gaulfm.app",
     adaptiveIcon: {
-      foregroundImage: "./assets/logo.png",
-      backgroundColor: "#050505",
+      foregroundImage: "./assets/adaptive-icon.png",
+      backgroundColor: "#FFFFFF",
     },
     // resize: window shrinks with keyboard (forms + live chat composer).
     // Requires rebuild of native app after change (not just Metro reload).
@@ -50,7 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   web: {
     bundler: "metro",
-    favicon: "./assets/logo.png",
+    favicon: "./assets/favicon.png",
   },
   plugins: [
     // The Icecast stream is plain HTTP (http://27.50.19.173:9000) — allow
