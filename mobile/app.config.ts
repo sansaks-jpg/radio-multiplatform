@@ -17,14 +17,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: "./assets/icon.png",
   orientation: "portrait",
   scheme: "gaulfm",
-  userInterfaceStyle: "light",
-  backgroundColor: "#F8FAF9",
+  userInterfaceStyle: "automatic",
+  backgroundColor: "#050505",
   // Enable New Architecture for Expo SDK 54 / Reanimated 4 / Worklets compatibility
   newArchEnabled: true,
   ios: {
     supportsTablet: false,
     bundleIdentifier: "com.gaulfm.app",
     icon: "./assets/icon.png",
+    userInterfaceStyle: "automatic",
     infoPlist: {
       // Background audio keeps the live stream playing with the screen locked.
       UIBackgroundModes: ["audio"],
@@ -32,6 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: "com.gaulfm.app",
+    userInterfaceStyle: "automatic",
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#FFFFFF",
@@ -63,9 +65,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "expo-splash-screen",
       {
         backgroundColor: "#F3F6F4",
-        image: "./assets/logo.png",
+        image: "./assets/icon.png",
         imageWidth: 200,
         resizeMode: "contain",
+        dark: {
+          backgroundColor: "#050505",
+          image: "./assets/icon.png",
+        },
       },
     ],
     ["expo-notifications", { color: "#FF3B30" }],
