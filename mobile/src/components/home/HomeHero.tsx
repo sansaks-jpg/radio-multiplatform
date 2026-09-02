@@ -144,14 +144,14 @@ export function HomeHero({ matchedProgram = null, onOpenDetail }: HomeHeroProps)
             {streamHealthy ? "Sedang mengudara" : "Siaran off"}
           </Text>
           <Text
-            className="mt-1 text-xl font-extrabold leading-6 text-white"
+            className="mt-1 text-xl font-extrabold leading-6 text-text"
             numberOfLines={2}
             style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
           >
             {title}
           </Text>
           <Text
-            className="mt-0.5 text-sm text-white/80"
+            className="mt-0.5 text-sm text-text-dim"
             numberOfLines={1}
             style={{ fontFamily: "PlusJakartaSans_400Regular" }}
           >

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Appearance, type ColorSchemeName } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { colorScheme } from "nativewind";
 import {
   darkChannels,
   darkColors,
@@ -21,7 +22,7 @@ function resolveMode(
 ): ThemeMode {
   if (preference === "light") return "light";
   if (preference === "dark") return "dark";
-  return system === "light" ? "light" : "dark";
+  return system === "dark" ? "dark" : "light";
 }
 
 function paletteFor(mode: ThemeMode): ColorPalette {
@@ -50,13 +51,21 @@ function applyResolved(
 ) {
   const mode = resolveMode(preference, systemScheme);
   const colors = paletteFor(mode);
+  try {
+    colorScheme.set(mode);
+  } catch {
+    // safe fallback in test / non-dom environments
+  }
   return { mode, colors, glow: makeGlow(colors) };
 }
 
+const initialSystemScheme = Appearance.getColorScheme();
+const initialPreference: ThemePreference = "system";
+
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  preference: "light",
-  systemScheme: Appearance.getColorScheme(),
-  ...applyResolved("light", Appearance.getColorScheme()),
+  preference: initialPreference,
+  systemScheme: initialSystemScheme,
+  ...applyResolved(initialPreference, initialSystemScheme),
   hydrated: false,
 
   hydrate: async () => {
@@ -65,7 +74,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       const preference: ThemePreference =
         raw === "light" || raw === "dark" || raw === "system"
           ? raw
-          : "light";
+          : "system";
       const systemScheme = Appearance.getColorScheme();
       set({
         preference,

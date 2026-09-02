@@ -6,6 +6,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   Text,
   TextInput,
   View,
@@ -275,6 +276,11 @@ export function LiveDetailSheet({
       presentationStyle="fullScreen"
       statusBarTranslucent
     >
+      <StatusBar
+        barStyle={mode === "light" ? "dark-content" : "light-content"}
+        backgroundColor="transparent"
+        translucent
+      />
       <View
         className="flex-1 bg-bg"
         style={{
@@ -333,9 +339,9 @@ export function LiveDetailSheet({
                   accessibilityLabel="Beralih ke Visual Radio"
                   className="absolute right-2.5 top-2.5 flex-row items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 active:opacity-85"
                 >
-                  <Ionicons name="videocam" size={14} color="#000000" />
+                  <Ionicons name="videocam" size={14} color={colors.onBrand} />
                   <Text
-                    className="text-xs font-bold text-black"
+                    className="text-xs font-bold text-onbrand"
                     style={{ fontFamily: "PlusJakartaSans_700Bold" }}
                   >
                     Visual Radio
