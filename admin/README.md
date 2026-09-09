@@ -31,14 +31,24 @@ npm run lint     # Pemeriksaan ESLint Next.js
 
 Web Admin di-hosting di VM Azure menggunakan **PM2**:
 
-- Nama Proses PM2: `radio-admin`
-- Port: `3001`
-- Akses Publik: `http://40.81.231.250:3001/`
+- **Host**: `40.81.231.250`
+- **User**: `azureuser`
+- **SSH Key Path**: `C:\Users\WORKPLUS\Downloads\icecast-server_key.pem`
+- **PM2 Process**: `radio-admin` (Port `3001`)
+- **Akses Publik**: `http://40.81.231.250:3001/`
+
+### Cara Push / Deploy Update ke Server SSH
+
+Jalankan perintah ini langsung dari terminal lokal (PowerShell/Bash):
+
+```powershell
+ssh -i "C:\Users\WORKPLUS\Downloads\icecast-server_key.pem" -o StrictHostKeyChecking=no azureuser@40.81.231.250 "cd /home/azureuser/radio-multiplatform && git pull origin master && cd admin && npm run build && pm2 restart radio-admin"
+```
 
 ### Perintah PM2 di Server
 
 ```bash
 pm2 status                  # Cek status proses
 pm2 restart radio-admin     # Restart dashboard Next.js
-pm2 logs radio-admin        # Pantau log dashboard
+pm2 logs radio-admin        # Pantau log live dashboard
 ```

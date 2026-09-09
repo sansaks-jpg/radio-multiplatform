@@ -138,7 +138,70 @@ npm run lint             # Validasi ESLint Next.js
 
 ## 3. Server Infrastructure & Hosting Azure (`40.81.231.250`)
 
-Server produksi cloud berbasis Ubuntu VM di Azure:
+Server produksi cloud berbasis Ubuntu VM di Azure yang meng-hosting MediaMTX, Transcoder, dan Web Admin.
+
+### Matriks Komponen: Mana yang Wajib Dideploy ke Server SSH?
+
+| Komponen / Folder | Target Deployment | Status di Server SSH | Cara Deploy / Eksekusi |
+|---|---|---|---|
+| **`admin/`** | Server Azure VM (`40.81.231.250`) | **WAJIB** | Pull repo, `npm run build`, `pm2 restart radio-admin` (Port 3001) |
+| **`streaming/`** | Server Azure VM (`40.81.231.250`) | **WAJIB** | Script Python `engine_visual.py` (hook auto-transcode MediaMTX) |
+| **`mobile/`** | Perangkat Pengguna / Android APK | **JANGAN dideploy ke server** | Dikompilasi via CI/CD GitHub Actions / EAS, bukan dijalankan di VM |
+| **`supabase/`** | Cloud Supabase Managed Cluster | **TIDAK di server SSH** | Migrasi skema & Edge Functions di-push langsung ke dashboard/CLI Supabase |
+
+---
+
+### SOP / Prosedur Push & Deploy ke Server SSH
+
+Informasi Kredensial & Akses Server:
+- **Host**: `40.81.231.250`
+- **User**: `azureuser`
+- **SSH Key Path (Lokal)**: `C:\Users\WORKPLUS\Downloads\icecast-server_key.pem`
+- **Remote Repository Path**: `/home/azureuser/radio-multiplatform`
+- **PM2 Service Name**: `radio-admin` (Next.js), `mediamtx` (MediaMTX)
+
+#### 1. Perintah 1-Baris Cepat dari Terminal Lokal (Direkomendasikan untuk AI & Developer)
+Jalankan perintah ini langsung dari PowerShell atau terminal lokal untuk memperbarui kodingan, me-rebuild, dan me-restart servis di server:
+
+```powershell
+ssh -i "C:\Users\WORKPLUS\Downloads\icecast-server_key.pem" -o StrictHostKeyChecking=no azureuser@40.81.231.250 "cd /home/azureuser/radio-multiplatform && git pull origin master && cd admin && npm run build && pm2 restart radio-admin"
+```
+
+#### 2. Prosedur Manual Step-by-Step via SSH
+Jika perlu masuk ke sesi terminal server untuk debugging atau pengecekan mendalam:
+
+```bash
+# 1. Masuk ke server
+ssh -i "C:\Users\WORKPLUS\Downloads\icecast-server_key.pem" azureuser@40.81.231.250
+
+# 2. Masuk ke direktori repositori
+cd /home/azureuser/radio-multiplatform
+
+# 3. Tarik commit terbaru dari GitHub
+git pull origin master
+
+# 4. Masuk ke folder admin & build Next.js produksi
+cd admin
+npm install # Jalankan hanya jika ada perubahan dependencies
+npm run build
+
+# 5. Restart proses PM2
+pm2 restart radio-admin
+
+# 6. Verifikasi status
+pm2 status
+pm2 logs radio-admin --lines 20
+```
+
+#### 3. Jika Memperbarui Skrip Transcoder (`streaming/engine_visual.py`)
+Skrip Python transcoder dijalankan otomatis oleh hook `runOnReady` MediaMTX setiap kali vMix melakukan RTMP streaming. Jika ada perbaikan pada `engine_visual.py`:
+```powershell
+ssh -i "C:\Users\WORKPLUS\Downloads\icecast-server_key.pem" -o StrictHostKeyChecking=no azureuser@40.81.231.250 "cd /home/azureuser/radio-multiplatform && git pull origin master && chmod +x streaming/engine_visual.py && pm2 restart mediamtx"
+```
+
+---
+
+### Konfigurasi Servis & Port Server
 
 - **Web Admin Dashboard**:
   - Dijalankan menggunakan PM2: `radio-admin` (Port `3001`, URL: `http://40.81.231.250:3001/`).
