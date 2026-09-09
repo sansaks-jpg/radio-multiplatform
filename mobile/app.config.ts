@@ -84,6 +84,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
   ],
   extra: {
+    adminApiUrl:
+      process.env.EXPO_PUBLIC_API_URL ?? "http://40.81.231.250:3001",
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "",
     // Stream integration contract (MOBILE_FRONTEND_PLAN.md §0)

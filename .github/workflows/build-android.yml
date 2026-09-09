@@ -32,6 +32,12 @@ jobs:
   build-apk:
     name: Build Android APK (Release Standalone)
     runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_API_URL: http://40.81.231.250:3001
+      EXPO_PUBLIC_STREAM_URL: http://27.50.19.173:9000/gaulfm.m3u
+      EXPO_PUBLIC_VISUAL_STREAM_RTMP_URL: rtmp://40.81.231.250:1935/gaulfm_webrtc
+      EXPO_PUBLIC_VISUAL_STREAM_WHEP_URL: http://40.81.231.250:8889/gaulfm_webrtc/whep
+      EXPO_PUBLIC_VISUAL_STREAM_HLS_URL: http://40.81.231.250:8888/gaulfm_webrtc/index.m3u8
 
     steps:
       - name: 📥 Checkout Repository
@@ -125,6 +131,7 @@ jobs:
               - **Target Host Live Streaming**:
                 - Audio: Icecast Progressive Stream (\`http://27.50.19.173:9000/gaulfm.m3u\`)
                 - Visual Radio: MediaMTX WebRTC/WHEP (\`http://40.81.231.250:8889/gaulfm_webrtc/whep\`)
+                - Live Chat & Studio Moderasi: REST & SSE (\`http://40.81.231.250:3001/api/comments\`)
               
               #### Petunjuk Penginstalan:
               1. Unduh \`GaulFM-v0.0.1-development.apk\` di bawah.

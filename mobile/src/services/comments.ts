@@ -1,20 +1,40 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 import { mockComments } from "../mocks/comments";
 import type { LiveComment } from "../types";
+
+const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, unknown>;
+
+export const DEFAULT_ADMIN_API_URL = "http://40.81.231.250:3001";
 
 export function getAdminApiUrl(): string {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
-  if (Platform.OS === "web") {
-    return "http://localhost:3000";
+  if (
+    typeof extra.adminApiUrl === "string" &&
+    extra.adminApiUrl.startsWith("http")
+  ) {
+    return extra.adminApiUrl;
   }
-  // USB ADB reverse maps port 3000 to localhost / 127.0.0.1 on Android device
-  return "http://127.0.0.1:3000";
+  return DEFAULT_ADMIN_API_URL;
 }
 
 export const MAX_LIVE_COMMENTS = 50;
+
+function getTargetUrls(): string[] {
+  const primary = getAdminApiUrl();
+  const urls = [primary];
+  if (
+    __DEV__ &&
+    Platform.OS === "android" &&
+    (primary.includes("localhost") || primary.includes("127.0.0.1"))
+  ) {
+    urls.push("http://10.0.2.2:3000");
+  }
+  return urls;
+}
 
 /**
  * Mengambil daftar komentar terbaru dari Supabase atau Next.js API.
@@ -43,10 +63,7 @@ export async function fetchRecentComments(
   }
 
   // Coba REST endpoint dari admin
-  const urls = [getAdminApiUrl()];
-  if (Platform.OS === "android") {
-    urls.push("http://10.0.2.2:3000");
-  }
+  const urls = getTargetUrls();
 
   for (const baseUrl of urls) {
     try {
@@ -90,14 +107,11 @@ export async function fetchDeltaComments(
   }
 
   // Coba Next.js API
-  const deltaUrls = [getAdminApiUrl()];
-  if (Platform.OS === "android") {
-    deltaUrls.push("http://10.0.2.2:3000");
-  }
+  const deltaUrls = getTargetUrls();
 
   for (const baseUrl of deltaUrls) {
     try {
-      const res = await fetch(`${baseUrl}/api/comments?limit=20`);
+      const res = await fetch(`${baseUrl}/api/comments?limit=50`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.comments)) {
@@ -149,10 +163,7 @@ export async function sendLiveComment(payload: {
   }
 
   // Coba kirim via Next.js REST API
-  const sendUrls = [getAdminApiUrl()];
-  if (Platform.OS === "android") {
-    sendUrls.push("http://10.0.2.2:3000");
-  }
+  const sendUrls = getTargetUrls();
 
   for (const baseUrl of sendUrls) {
     try {
