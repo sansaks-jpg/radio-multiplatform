@@ -48,7 +48,9 @@ To ensure a successful initial launch within the academic deadline, development 
 | User Tracking & Device Info | **Required (In-Scope)** | Automatic capture of GPS location, phone model, OS, and active login status. |
 | Marketing Integration | **Required (In-Scope)** | Automatic user-data sync to Google Sheets & Excel export (`.xlsx`). |
 | Web Admin Panel | **Required (In-Scope)** | Dashboard for schedule management, “Now Playing” control, and user monitoring. |
-| Interactive Shoutbox / Chat | **Phase 2 (Out-of-Scope)** | Live chat room between listeners during on-air broadcasts. |
+| Interactive Live Chat & Moderation | **Required (In-Scope)** | Real-time live comments synchronized between mobile listeners and broadcaster studio panel, hard-capped at 50 comments, uniform left-aligned layout, on-air pinning and moderation. |
+| Low-Latency Visual Radio (WebRTC WHEP) | **Required (In-Scope)** | Real-time studio camera broadcast (<0.3s latency) from vMix via MediaMTX, HLS fallback, edge-to-edge 16:9 layout, auto-landscape rotation on fullscreen, clean minimal UI with browser controls suppressed. |
+| Cloud Streaming Orchestrator | **Required (In-Scope)** | Centralized ingest hub in Web Admin (`/streams`) for vMix RTMP, RadioBOSS Icecast, and YouTube Live restreaming hosted on Azure VM (`40.81.231.250`). |
 | Song Request System | **Phase 2 (Out-of-Scope)** | Interactive form to submit song requests directly to the broadcast system. |
 | Gameshow & GPS Checkpoint | **Later phase (Out-of-Scope)** | Timed quizzes, GPS coordinate tracking for scavenger hunts. |
 
@@ -216,6 +218,18 @@ Personalization screen where users manage how the app interacts with their devic
 
 - Links for “About Gaul FM” (studio address, phone number, commercial email) and a Logout button.
 
+#### E. Visual Radio & Live Stream Sheet (`LiveDetailSheet`)
+
+Full-screen live broadcast modal providing visual radio streaming, live listener comments, and program details.
+
+| Item | Specification |
+|---|---|
+| Streaming protocol | MediaMTX WebRTC (WHEP) for ultra-low latency (<0.3s) with automated HLS fallback (`hls.js`). |
+| Audio orchestration | Automatic mutual exclusion: activating Visual Radio calls `stopLive()` to prevent dual audio; closing Visual Radio resumes Icecast audio if active. |
+| Edge-to-edge layout | 16:9 full-width video container (`w-full aspect-[16/9]`) sitting flush above live chat without side-margins or vertical clipping. |
+| Auto-landscape rotation | Fullscreen button or double-tap automatically triggers `ScreenOrientation.lockAsync(LANDSCAPE)`; exiting restores `PORTRAIT_UP`. |
+| Clean broadcast UI | Fullscreen requested on container element with CSS suppression for all vendor media controls (`::-webkit-media-controls*`). No native scrubber timeline, pause button, or duration text; single floating fullscreen button auto-hides after 2.5s. |
+
 ### 3.2 Native phone notification integration
 
 The app must actively interact with the listener device OS through three types of native notifications:
@@ -247,8 +261,11 @@ Internal management dashboard designed as a **desktop-oriented responsive web pa
 [Sidebar Navigation]
 ├── Dashboard Overview & Analytics
 ├── Active Broadcast Control (Now Playing Switcher)
+├── Streaming Orchestrator (vMix & RadioBOSS Ingest)
+├── Live Chat Moderation Dashboard
 ├── Broadcast Schedule Management (Schedule Editor)
 ├── News Center (News & Sync Center)
+├── Promotional Banners Manager
 └── User & Marketing Management (User & Marketing Data)
 ```
 
@@ -285,6 +302,24 @@ Primary page for the marketing division to monitor listener demographics.
 | User data table | Full name, email, WhatsApp number, device OS, phone type, location coordinates, and detected city for all registered listeners. |
 | Excel export | A dedicated **“Export Listener Data (.xlsx)”** button that renders and downloads a raw spreadsheet using the `xlsx` (SheetJS) library directly in the admin browser. |
 | Google Sheets sync status | Shows the status indicator for automatic real-time sync to the marketing division’s main Google Spreadsheet. |
+
+#### E. Live chat moderation & studio broadcast (Live Chat Room)
+
+| Item | Specification |
+|---|---|
+| Real-time stream | Server-Sent Events (SSE) `/api/comments/stream` and REST polling for instantaneous comment feeds. |
+| Moderation actions | Broadcaster can toggle **"On Air"** highlight status (`is_highlighted`) or hide inappropriate messages (`is_hidden`). |
+| Studio broadcast | Broadcaster composer allowing studio team to send comments marked as official **Studio** (`is_broadcaster: true`). |
+| Bandwidth & memory cap | In-memory and API buffer hard-capped to 50 items (`MAX_HISTORY_COMMENTS = 50`) for serverless safety. |
+
+#### F. Streaming Orchestrator (`/streams`)
+
+| Item | Specification |
+|---|---|
+| Primary function | Independent ingest control center for Audio (RadioBOSS) and Visual (vMix) studio hardware, as well as Cloud Restreaming. |
+| Ingest endpoints | Tabbed setup interface for vMix (RTMP `rtmp://40.81.231.250:1935/gaulfm`), RadioBOSS (Icecast Port 8000, Mount `/gaulfm`), and YouTube Live Direct Copy Engine. |
+| Security & utilities | One-click copy buttons with fallback for non-secure HTTP contexts (`document.execCommand('copy')`). |
+| Cloud engine status | Real-time status indicators for MediaMTX (1935, 8888, 8889), Icecast (8000), and Next.js Web Admin (3001) hosted on Azure VM (`40.81.231.250`). |
 
 ---
 
@@ -333,6 +368,20 @@ PostgreSQL table design on Supabase to meet all MVP functional needs and the use
                        │ location_lat     │
                        │ location_lng     │
                        │ last_login       │
+                       │ created_at       │
+                       └──────────────────┘
+
+
+                       ┌──────────────────┐
+                       │  live_comments   │
+                       ├──────────────────┤
+                       │ id (PK)          │
+                       │ user_name        │
+                       │ avatar_seed      │
+                       │ message          │
+                       │ is_highlighted   │
+                       │ is_hidden        │
+                       │ is_broadcaster   │
                        │ created_at       │
                        └──────────────────┘
 ```
@@ -400,6 +449,21 @@ CREATE TABLE profiles (
 -- Indexes to speed up marketing data lookups
 CREATE INDEX idx_profiles_location_city ON profiles(location_city);
 CREATE INDEX idx_profiles_email ON profiles(email);
+
+-- 5. Live comments table (serverless synced live chat, capped at 50)
+CREATE TABLE live_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_name VARCHAR(100) NOT NULL,
+    avatar_seed VARCHAR(100) DEFAULT 'listener',
+    message VARCHAR(500) NOT NULL,
+    is_highlighted BOOLEAN DEFAULT FALSE,
+    is_hidden BOOLEAN DEFAULT FALSE,
+    is_broadcaster BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index to speed up live chat polling and ordering
+CREATE INDEX idx_live_comments_active ON live_comments(is_hidden, created_at DESC);
 ```
 
 ---

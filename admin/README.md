@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gaul FM Semarang — Web Admin Dashboard
 
-## Getting Started
+Dashboard admin & broadcaster Gaul FM Semarang berbasis **Next.js 16.2 App Router** (Turbopack, React 19, TypeScript strict, Tailwind CSS v4).
 
-First, run the development server:
+## Fitur Utama
+
+- **Overview Dashboard (`/`)**: Monitoring instan lagu aktif, DJ on-air, status listener, dan jadwal siaran hari ini.
+- **Streaming Orchestrator (`/streams`)**: Pusat kendali ingest studio terpusat:
+  - Tab vMix (Visual Studio): RTMP Ingest URL, Stream Key `gaulfm`, resolusi rekomendasi, dan status WHEP WebRTC.
+  - Tab RadioBOSS / SAM Broadcaster: Icecast Server IP `40.81.231.250`, Port `8000`, Mount `/gaulfm`, Bitrate `128 kbps`.
+  - Tab YouTube Live: Direct Copy Engine untuk restream cloud otomatis tanpa membebani bandwidth studio lokal.
+  - Fitur Salin Satu Klik dengan fallback aman untuk konteks HTTP (`document.execCommand('copy')`).
+- **Live Chat Moderation (`/chat`)**: Moderasi pesan live pendengar, pin komentar ke *On Air*, sembunyikan pesan (*Hide*), dan broadcast pesan resmi *Studio*.
+- **Now Playing Manager (`/now-playing`)**: Panel kendali penyiar untuk mengupdate judul lagu, cover album, dan penyiar aktif secara real-time.
+- **Master Jadwal Siaran (`/schedule`)**: Manajemen CRUD jadwal siaran mingguan 7 hari (Senin–Minggu).
+- **Sinkronisasi Berita (`/news`)**: Sinkronisasi artikel berita WordPress dan editor berita.
+- **Banner Promosi (`/banners`)**: Manajemen karusel banner promo mobile app.
+- **Database Pendengar (`/users`)**: Tabel data pendengar terdaftar dan ekspor Excel spreadsheet (`.xlsx`) via SheetJS.
+
+## Menjalankan di Lokal
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd admin
+npm install
+npm run dev      # Berjalan di http://localhost:3000
+npm run build    # Build produksi Next.js
+npm run lint     # Pemeriksaan ESLint Next.js
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deployment Server Azure Cloud (`40.81.231.250`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Web Admin di-hosting di VM Azure menggunakan **PM2**:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Nama Proses PM2: `radio-admin`
+- Port: `3001`
+- Akses Publik: `http://40.81.231.250:3001/`
 
-## Learn More
+### Perintah PM2 di Server
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pm2 status                  # Cek status proses
+pm2 restart radio-admin     # Restart dashboard Next.js
+pm2 logs radio-admin        # Pantau log dashboard
+```
