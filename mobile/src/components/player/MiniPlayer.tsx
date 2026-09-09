@@ -52,9 +52,7 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
   const displayTitle = matchedProgram?.name ?? nowPlaying.current_program;
   const displayHost = liveHost || "87.8 FM";
   const displayCover =
-    liveHost && nowPlaying.current_cover_url
-      ? nowPlaying.current_cover_url
-      : matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
+    matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
   const listeners = stats.isLive
     ? stats.listeners.toLocaleString("id-ID")
     : "—";

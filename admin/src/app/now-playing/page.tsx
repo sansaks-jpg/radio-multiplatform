@@ -123,10 +123,7 @@ export default function NowPlayingPage() {
     const hostToUse = isCustomHostActive
       ? nowPlaying.current_host
       : "";
-    const coverToUse =
-      isCustomHostActive && nowPlaying.current_cover_url
-        ? nowPlaying.current_cover_url
-        : p.cover_url || null;
+    const coverToUse = p.cover_url || null;
 
     updateNowPlaying({
       current_program: p.name,

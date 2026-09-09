@@ -297,13 +297,13 @@ export function setBroadcasterOnAir(announcer: Announcer | null): NowPlaying {
     return updateNowPlaying({
       current_program: snapshot.nowPlaying.current_program,
       current_host: announcer.name,
-      current_cover_url: announcer.photo_url,
+      current_cover_url: snapshot.nowPlaying.current_cover_url,
     });
   } else {
     return updateNowPlaying({
       current_program: snapshot.nowPlaying.current_program,
       current_host: "",
-      current_cover_url: null,
+      current_cover_url: snapshot.nowPlaying.current_cover_url,
     });
   }
 }

@@ -31,6 +31,7 @@ function mergeWithOnAir(
 ): NowPlaying {
   const liveHost = getOfficialLiveHost(base.current_host);
   const programName = onAir?.name || base.current_program || "Gaul FM Semarang";
+  const defaultCover = onAir?.cover_url || base.current_cover_url || null;
 
   // Aturan Gaul FM: Penyiar on-air kosong KECUALI admin telah memilih penyiar di panel admin.
   if (liveHost) {
@@ -38,7 +39,7 @@ function mergeWithOnAir(
       ...base,
       current_program: programName,
       current_host: liveHost,
-      current_cover_url: base.current_cover_url || onAir?.cover_url || null,
+      current_cover_url: defaultCover,
     };
   }
 
@@ -47,7 +48,7 @@ function mergeWithOnAir(
     ...base,
     current_program: programName,
     current_host: "",
-    current_cover_url: onAir?.cover_url || base.current_cover_url || null,
+    current_cover_url: defaultCover,
   };
 }
 

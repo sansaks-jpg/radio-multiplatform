@@ -48,10 +48,7 @@ export function ProgramCard({
 
   const liveHost = isLive ? getOfficialLiveHost(nowPlaying.current_host) : "";
   const displayHost = liveHost;
-  const displayCover =
-    isLive && liveHost && nowPlaying.current_cover_url
-      ? nowPlaying.current_cover_url
-      : program.cover_url;
+  const displayCover = program.cover_url;
 
   const body = (
     <View

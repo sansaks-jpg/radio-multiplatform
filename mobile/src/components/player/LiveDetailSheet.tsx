@@ -234,9 +234,7 @@ export function LiveDetailSheet({
   const displayName = profile?.full_name?.trim() || "Kamu";
   const liveHost = getOfficialLiveHost(nowPlaying.current_host);
   const cover =
-    liveHost && nowPlaying.current_cover_url
-      ? nowPlaying.current_cover_url
-      : matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
+    matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
   const title = matchedProgram?.name ?? nowPlaying.current_program;
   const host = liveHost || "87.8 FM Semarang";
   const keyboardOpen = keyboardHeight > 0;

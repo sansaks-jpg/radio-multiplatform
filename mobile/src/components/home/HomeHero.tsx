@@ -36,10 +36,7 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
 
   const liveHost = getOfficialLiveHost(nowPlaying.current_host);
   const title = matchedProgram?.name ?? nowPlaying.current_program;
-  const cover =
-    liveHost && nowPlaying.current_cover_url
-      ? nowPlaying.current_cover_url
-      : matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
+  const cover = matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
   const listeners = stats.isLive ? stats.listeners.toLocaleString("id-ID") : null;
   const timeRange = matchedProgram
     ? `${matchedProgram.start_time}–${matchedProgram.end_time} WIB`
