@@ -1,10 +1,11 @@
 import React from "react";
-import { FlatList, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "../../stores/themeStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { SectionHeader } from "../ui/SectionHeader";
+import { isHostOnAir } from "../../utils/announcer";
 import type { Announcer } from "../../types";
 
 interface HomeAnnouncersProps {
@@ -28,23 +29,21 @@ export function HomeAnnouncers({ announcers }: HomeAnnouncersProps) {
         actionLabel="87.8 FM"
       />
 
-      <FlatList
+      <ScrollView
         horizontal
-        data={announcers}
-        keyExtractor={(item) => item.id}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 4, paddingVertical: 12, gap: 14 }}
-        renderItem={({ item }) => {
-          const isOnAir =
-            nowPlaying.current_host &&
-            nowPlaying.current_host.toLowerCase().includes(item.name.toLowerCase());
+      >
+        {announcers.map((item) => {
+          const isOnAir = Boolean(isHostOnAir(item.name, nowPlaying.current_host));
 
           return (
-            <View className="items-center" style={{ width: 72 }}>
+            <View key={item.id} className="items-center" style={{ width: 72 }}>
               <View
                 className={`relative h-16 w-16 items-center justify-center rounded-full p-0.5 ${
-                  isOnAir ? "bg-live shadow-md shadow-live/40" : "bg-line/40"
+                  isOnAir ? "bg-live" : "bg-line/40"
                 }`}
+                style={isOnAir ? { elevation: 4 } : undefined}
               >
                 <View className="h-full w-full overflow-hidden rounded-full bg-surface-3">
                   {item.photo_url ? (
@@ -61,8 +60,8 @@ export function HomeAnnouncers({ announcers }: HomeAnnouncersProps) {
                   )}
                 </View>
 
-                {isOnAir && (
-                  <View className="absolute -bottom-1 rounded-full bg-live px-1.5 py-0.5 shadow-sm">
+                {isOnAir ? (
+                  <View className="absolute -bottom-1 rounded-full bg-live px-1.5 py-0.5">
                     <Text
                       className="text-[8px] font-extrabold uppercase text-white"
                       style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
@@ -70,7 +69,7 @@ export function HomeAnnouncers({ announcers }: HomeAnnouncersProps) {
                       LIVE
                     </Text>
                   </View>
-                )}
+                ) : null}
               </View>
 
               <Text
@@ -89,8 +88,8 @@ export function HomeAnnouncers({ announcers }: HomeAnnouncersProps) {
               </Text>
             </View>
           );
-        }}
-      />
+        })}
+      </ScrollView>
     </View>
   );
 }

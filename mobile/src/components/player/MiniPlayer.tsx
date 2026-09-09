@@ -8,6 +8,7 @@ import { usePlayerControls } from "../../hooks/usePlayerControls";
 import { useIcecastStats } from "../../hooks/useIcecastStats";
 import { usePrograms } from "../../hooks/usePrograms";
 import { isOnAirNow, todayDow } from "../../utils/datetime";
+import { getOfficialLiveHost } from "../../utils/announcer";
 import { MarqueeText } from "../ui/MarqueeText";
 import type { MainTabParamList } from "../../types";
 
@@ -47,18 +48,13 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
   // Callers: MainTabs. User: "now playing di beranda samakan dengan jadwal".
   const matchedProgram =
     todayPrograms.data?.find((p) => isOnAirNow(p)) ?? null;
-  const isCustomHost =
-    nowPlaying.current_host &&
-    nowPlaying.current_host !== "Gaul FM" &&
-    nowPlaying.current_host !== "Gaul Squad";
+  const liveHost = getOfficialLiveHost(nowPlaying.current_host);
   const displayTitle = matchedProgram?.name ?? nowPlaying.current_program;
-  const displayHost = isCustomHost
-    ? nowPlaying.current_host
-    : nowPlaying.current_host || matchedProgram?.host || "Gaul Squad";
+  const displayHost = liveHost || "87.8 FM";
   const displayCover =
-    isCustomHost && nowPlaying.current_cover_url
+    liveHost && nowPlaying.current_cover_url
       ? nowPlaying.current_cover_url
-      : nowPlaying.current_cover_url ?? matchedProgram?.cover_url ?? null;
+      : matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
   const listeners = stats.isLive
     ? stats.listeners.toLocaleString("id-ID")
     : "—";

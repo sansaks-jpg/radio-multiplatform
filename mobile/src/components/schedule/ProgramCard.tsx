@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "../../stores/themeStore";
 import { usePlayerStore } from "../../stores/playerStore";
+import { getOfficialLiveHost } from "../../utils/announcer";
 import type { Program } from "../../types";
 
 export type ProgramCardStatus = "live" | "upNext" | "upcoming" | "done";
@@ -45,11 +46,10 @@ export function ProgramCard({
   const isDone = status === "done";
   const isUpNext = status === "upNext";
 
-  const displayHost = isLive
-    ? nowPlaying.current_host || program.host || "Gaul Squad"
-    : program.host || "Gaul Squad";
+  const liveHost = isLive ? getOfficialLiveHost(nowPlaying.current_host) : "";
+  const displayHost = liveHost;
   const displayCover =
-    isLive && nowPlaying.current_cover_url
+    isLive && liveHost && nowPlaying.current_cover_url
       ? nowPlaying.current_cover_url
       : program.cover_url;
 
@@ -154,13 +154,15 @@ export function ProgramCard({
           >
             {program.name}
           </Text>
-          <Text
-            className="mt-0.5 text-[13px] font-semibold text-text-dim"
-            numberOfLines={1}
-            style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-          >
-            {displayHost}
-          </Text>
+          {displayHost ? (
+            <Text
+              className="mt-0.5 text-[13px] font-semibold text-text-dim"
+              numberOfLines={1}
+              style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+            >
+              {displayHost}
+            </Text>
+          ) : null}
         </View>
 
         {/* Action */}

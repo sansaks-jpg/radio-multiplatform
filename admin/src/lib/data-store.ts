@@ -291,7 +291,7 @@ export function updateNowPlaying(
   return nextNowPlaying;
 }
 
-/** 1-Klik ganti penyiar on-air dari Gaul Squad atau reset ke default */
+/** 1-Klik ganti penyiar on-air atau reset ke kosong */
 export function setBroadcasterOnAir(announcer: Announcer | null): NowPlaying {
   if (announcer) {
     return updateNowPlaying({
@@ -302,7 +302,7 @@ export function setBroadcasterOnAir(announcer: Announcer | null): NowPlaying {
   } else {
     return updateNowPlaying({
       current_program: snapshot.nowPlaying.current_program,
-      current_host: "Gaul Squad",
+      current_host: "",
       current_cover_url: null,
     });
   }

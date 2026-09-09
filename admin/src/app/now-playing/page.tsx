@@ -107,22 +107,22 @@ export default function NowPlayingPage() {
     toast.push(`🎙️ ${announcer.name} kini sedang on-air mengudara!`);
   };
 
-  // 1-Klik reset penyiar ke generic Gaul Squad
+  // 1-Klik reset penyiar ke kosong
   const handleResetAnnouncer = () => {
     setBroadcasterOnAir(null);
-    toast.push("📻 Host direset ke default Gaul Squad");
+    toast.push("📻 Penyiar on-air direset (kosong di aplikasi)");
   };
 
   // Aksi 1-klik aktifkan program dari jadwal
   const handleActivateProgram = (p: Program) => {
-    // Pertahankan penyiar on-air yang sudah dipilih (jika bukan default/generic)
+    // Pertahankan penyiar on-air yang sudah dipilih (jika ada)
     const isCustomHostActive =
       nowPlaying.current_host &&
       nowPlaying.current_host !== "Gaul FM" &&
       nowPlaying.current_host !== "Gaul Squad";
     const hostToUse = isCustomHostActive
       ? nowPlaying.current_host
-      : p.host || "Gaul Squad";
+      : "";
     const coverToUse =
       isCustomHostActive && nowPlaying.current_cover_url
         ? nowPlaying.current_cover_url
@@ -212,7 +212,7 @@ export default function NowPlayingPage() {
         <StatCard
           label="Sedang mengudara"
           value={nowPlaying.current_program}
-          hint={`Penyiar: ${nowPlaying.current_host}`}
+          hint={`Penyiar: ${nowPlaying.current_host || "Kosong (Belum Dipilih)"}`}
           tone="live"
           icon={<Radio className="h-4.5 w-4.5" />}
         />
@@ -263,10 +263,10 @@ export default function NowPlayingPage() {
                 variant="outline"
                 onClick={handleResetAnnouncer}
                 className="shrink-0 text-xs gap-1.5 border-border/80 hover:bg-muted"
-                title="Kembalikan host ke default Gaul Squad"
+                title="Kosongkan penyiar yang bertugas (tanpa host)"
               >
                 <RotateCcw className="h-3 w-3" />
-                <span>Reset Gaul Squad</span>
+                <span>Reset (Kosongkan)</span>
               </Button>
             </CardHeader>
 
@@ -274,7 +274,10 @@ export default function NowPlayingPage() {
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
                 {announcers.map((ann) => {
                   const isOnAir =
-                    nowPlaying.current_host.toLowerCase().includes(ann.name.toLowerCase());
+                    Boolean(
+                      nowPlaying.current_host &&
+                      nowPlaying.current_host.toLowerCase().includes(ann.name.toLowerCase())
+                    );
                   return (
                     <button
                       key={ann.id}
@@ -593,7 +596,7 @@ export default function NowPlayingPage() {
                   {nowPlaying.current_program}
                 </p>
                 <p className="text-xs font-medium text-accent">
-                  Host: {nowPlaying.current_host}
+                  Host: {nowPlaying.current_host || "Belum dipilih (Kosong)"}
                 </p>
               </div>
             </div>
@@ -650,7 +653,7 @@ export default function NowPlayingPage() {
                     {nowPlaying.current_program}
                   </p>
                   <p className="truncate text-[11px] text-muted-foreground">
-                    {nowPlaying.current_host} · 87.8 FM
+                    {nowPlaying.current_host ? `${nowPlaying.current_host} · ` : ""}87.8 FM
                   </p>
                 </div>
 

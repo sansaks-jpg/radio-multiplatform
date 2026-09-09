@@ -18,6 +18,8 @@ import {
   useProgramById,
   useProgramWeekSlots,
 } from "../../hooks/usePrograms";
+import { useAnnouncers } from "../../hooks/useAnnouncers";
+import { isHostOnAir } from "../../utils/announcer";
 import {
   DAY_FULL_ID,
   DAY_SHORT_ID,
@@ -42,23 +44,7 @@ function formatCountdown(mins: number): string {
   return d === 1 ? "Besok" : `${d} hari lagi`;
 }
 
-/** Split "Reno & Dita" / "Bara, Nadia" into individual host names. */
-function parseHosts(host: string): string[] {
-  return host
-    .split(/[&,]/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-}
 
-/** Deterministic dummy avatar per host name (placeholder until CMS ships). */
-function hostAvatarUrl(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  const id = (hash % 70) + 1; // pravatar has 1..70
-  return `https://i.pravatar.cc/160?img=${id}`;
-}
 
 /**
  * Full program page (show-first): hero, host, description, weekly slots, CTA.
@@ -75,6 +61,8 @@ export function ProgramDetailScreen() {
   const program = remote.data;
   const weekSlots = useProgramWeekSlots(program?.name);
   const playerStatus = usePlayerStore((s) => s.status);
+  const nowPlaying = usePlayerStore((s) => s.nowPlaying);
+  const announcersQuery = useAnnouncers();
   const { toggle } = usePlayerControls();
   const reminders = useReminderStore((s) => s.reminders);
   const addReminder = useReminderStore((s) => s.addReminder);
@@ -273,34 +261,76 @@ export function ProgramDetailScreen() {
             </View>
           </View>
 
-          {/* Hosts — one avatar per penyiar (dummy photos for now) */}
+          {/* Hosts — Gaul Squad (7 Penyiar Gaul FM 87.8 Semarang) */}
           <View className="px-5 pt-4">
-            <Text
-              className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
-              style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-            >
-              Penyiar
-            </Text>
+            <View className="flex-row items-center justify-between">
+              <Text
+                className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
+                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+              >
+                Penyiar Gaul FM
+              </Text>
+              <Text
+                className="text-[11px] font-bold text-brand"
+                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+              >
+                Gaul Squad
+              </Text>
+            </View>
+
             <View className="mt-3 flex-row flex-wrap gap-3">
-              {parseHosts(program.host).map((name) => (
-                <View key={name} className="w-16 items-center">
-                  <View className="h-14 w-14 overflow-hidden rounded-full border-2 border-brand/40 bg-surface-3">
-                    <Image
-                      source={{ uri: hostAvatarUrl(name) }}
-                      style={{ width: "100%", height: "100%" }}
-                      contentFit="cover"
-                      transition={200}
-                    />
+              {(announcersQuery.data && announcersQuery.data.length > 0
+                ? announcersQuery.data
+                : []
+              ).map((item) => {
+                const isOnAirNow =
+                  onAir && Boolean(isHostOnAir(item.name, nowPlaying.current_host));
+
+                return (
+                  <View key={item.id} className="w-16 items-center">
+                    <View
+                      className={`relative h-14 w-14 items-center justify-center rounded-full p-0.5 ${
+                        isOnAirNow ? "bg-live" : "border-2 border-brand/40"
+                      }`}
+                      style={isOnAirNow ? { elevation: 3 } : undefined}
+                    >
+                      <View className="h-full w-full overflow-hidden rounded-full bg-surface-3">
+                        {item.photo_url ? (
+                          <Image
+                            source={{ uri: item.photo_url }}
+                            style={{ width: "100%", height: "100%" }}
+                            contentFit="cover"
+                            transition={200}
+                          />
+                        ) : (
+                          <View className="h-full w-full items-center justify-center">
+                            <Ionicons name="mic" size={18} color={colors.brand} />
+                          </View>
+                        )}
+                      </View>
+
+                      {isOnAirNow ? (
+                        <View className="absolute -bottom-1 rounded-full bg-live px-1 py-0.2">
+                          <Text
+                            className="text-[7px] font-extrabold uppercase text-white"
+                            style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                          >
+                            LIVE
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    <Text
+                      className="mt-1.5 text-center text-[11px] font-semibold text-text"
+                      numberOfLines={1}
+                      style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                    >
+                      {item.name}
+                    </Text>
                   </View>
-                  <Text
-                    className="mt-1.5 text-center text-[11px] font-semibold text-text"
-                    numberOfLines={2}
-                    style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-                  >
-                    {name}
-                  </Text>
-                </View>
-              ))}
+                );
+              })}
             </View>
 
             <View className="mt-4 flex-row gap-2">

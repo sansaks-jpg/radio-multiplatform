@@ -6,6 +6,7 @@ import { usePlayerStore } from "../stores/playerStore";
 import { updateLiveMetadata } from "../services/audio/trackPlayerService";
 import { useAllPrograms } from "./usePrograms";
 import { isOnAirNow } from "../utils/datetime";
+import { getOfficialLiveHost } from "../utils/announcer";
 import type { NowPlaying, Program } from "../types";
 
 const REFETCH_MS = 30_000;
@@ -28,24 +29,25 @@ function mergeWithOnAir(
   base: NowPlaying,
   onAir: Program | null | undefined,
 ): NowPlaying {
-  if (!onAir) return base;
-  // Di Gaul FM, penyiar tidak tetap per program.
-  // Prioritaskan penyiar yang sedang on-air di now_playing (base.current_host & base.current_cover_url).
-  const isCustomHost =
-    base.current_host &&
-    base.current_host !== "Gaul FM" &&
-    base.current_host !== "Gaul Squad";
+  const liveHost = getOfficialLiveHost(base.current_host);
+  const programName = onAir?.name || base.current_program || "Gaul FM Semarang";
 
+  // Aturan Gaul FM: Penyiar on-air kosong KECUALI admin telah memilih penyiar di panel admin.
+  if (liveHost) {
+    return {
+      ...base,
+      current_program: programName,
+      current_host: liveHost,
+      current_cover_url: base.current_cover_url || onAir?.cover_url || null,
+    };
+  }
+
+  // Jika belum ada penyiar yang dipilih di admin, kosongkan host (jangan fallback ke Gaul Squad).
   return {
     ...base,
-    current_program: base.current_program || onAir.name,
-    current_host: isCustomHost
-      ? base.current_host
-      : onAir.host || base.current_host || "Gaul Squad",
-    current_cover_url:
-      isCustomHost && base.current_cover_url
-        ? base.current_cover_url
-        : base.current_cover_url || onAir.cover_url,
+    current_program: programName,
+    current_host: "",
+    current_cover_url: onAir?.cover_url || base.current_cover_url || null,
   };
 }
 
@@ -73,7 +75,9 @@ export function useNowPlaying() {
     const onAir = allPrograms.data?.find((p) => isOnAirNow(p)) ?? null;
     const merged = mergeWithOnAir(base, onAir);
     setNowPlaying(merged);
-    if (hasStarted) void updateLiveMetadata(merged);
+    if (hasStarted) {
+      void updateLiveMetadata(merged);
+    }
   }, [query.data, allPrograms.data, setNowPlaying, hasStarted, tick]);
 
   return query;

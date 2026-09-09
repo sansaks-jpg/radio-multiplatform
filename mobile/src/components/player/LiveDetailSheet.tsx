@@ -26,6 +26,7 @@ import { useLiveComments } from "../../hooks/useLiveComments";
 import { LiveBadge } from "./LiveBadge";
 import { MediaMtxVisualPlayer } from "./MediaMtxVisualPlayer";
 import { DAY_FULL_ID, formatDistanceToNow } from "../../utils/datetime";
+import { getOfficialLiveHost } from "../../utils/announcer";
 
 interface LiveDetailSheetProps {
   visible: boolean;
@@ -231,18 +232,13 @@ export function LiveDetailSheet({
   const isDark = mode === "dark";
   const canSend = draftMessage.trim().length > 0;
   const displayName = profile?.full_name?.trim() || "Kamu";
-  const isCustomHost =
-    nowPlaying.current_host &&
-    nowPlaying.current_host !== "Gaul FM" &&
-    nowPlaying.current_host !== "Gaul Squad";
+  const liveHost = getOfficialLiveHost(nowPlaying.current_host);
   const cover =
-    isCustomHost && nowPlaying.current_cover_url
+    liveHost && nowPlaying.current_cover_url
       ? nowPlaying.current_cover_url
-      : nowPlaying.current_cover_url ?? matchedProgram?.cover_url ?? null;
+      : matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
   const title = matchedProgram?.name ?? nowPlaying.current_program;
-  const host = isCustomHost
-    ? nowPlaying.current_host
-    : nowPlaying.current_host || matchedProgram?.host || "Gaul Squad";
+  const host = liveHost || "87.8 FM Semarang";
   const keyboardOpen = keyboardHeight > 0;
 
   const bottomLift = keyboardHeight;
@@ -712,25 +708,37 @@ export function LiveDetailSheet({
                   </View>
                 ) : null}
 
-                {(matchedProgram?.description || host) && (
+                {matchedProgram?.description ? (
                   <View className="mt-3 rounded-card bg-surface p-4">
                     <Text
                       className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
                       style={{ fontFamily: "PlusJakartaSans_700Bold" }}
                     >
-                      {matchedProgram?.description
-                        ? "Tentang program"
-                        : "Penyiar"}
+                      Tentang program
                     </Text>
                     <Text
                       className="mt-2 text-sm leading-6 text-text"
                       style={{ fontFamily: "PlusJakartaSans_400Regular" }}
                     >
-                      {matchedProgram?.description ??
-                        `${host} sedang mengudara di Gaul FM Semarang.`}
+                      {matchedProgram.description}
                     </Text>
                   </View>
-                )}
+                ) : liveHost ? (
+                  <View className="mt-3 rounded-card bg-surface p-4">
+                    <Text
+                      className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
+                      style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                    >
+                      Penyiar
+                    </Text>
+                    <Text
+                      className="mt-2 text-sm leading-6 text-text"
+                      style={{ fontFamily: "PlusJakartaSans_400Regular" }}
+                    >
+                      {`${liveHost} sedang mengudara di Gaul FM Semarang.`}
+                    </Text>
+                  </View>
+                ) : null}
               </ScrollView>
             </View>
           </View>

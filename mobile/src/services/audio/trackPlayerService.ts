@@ -93,11 +93,15 @@ export async function retryLive(): Promise<void> {
 
 /** Push Now Playing changes to the lock screen / media notification. */
 export async function updateLiveMetadata(nowPlaying: NowPlaying): Promise<void> {
-  await ensureSetup();
-  await engine.updateMetadata({
-    title: nowPlaying.current_program,
-    artist: nowPlaying.current_host,
-    artwork: nowPlaying.current_cover_url,
-  });
+  try {
+    await ensureSetup();
+    await engine.updateMetadata({
+      title: nowPlaying.current_program || "Gaul FM Semarang",
+      artist: nowPlaying.current_host || "87.8 FM",
+      artwork: nowPlaying.current_cover_url ?? null,
+    });
+  } catch (err) {
+    console.warn("[GaulFM] Non-fatal error updating live metadata:", err);
+  }
 }
 

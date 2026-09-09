@@ -7,6 +7,7 @@ import { usePlayerStore } from "../../stores/playerStore";
 import { usePlayerControls } from "../../hooks/usePlayerControls";
 import { useIcecastStats } from "../../hooks/useIcecastStats";
 import { formatDurationMinutes, getProgramProgress } from "../../utils/datetime";
+import { getOfficialLiveHost } from "../../utils/announcer";
 import type { Program } from "../../types";
 
 interface HomeHeroProps {
@@ -33,18 +34,12 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
   const streamHealthy = playing || buffering;
   const hasError = status === "error";
 
-  const isCustomHost =
-    nowPlaying.current_host &&
-    nowPlaying.current_host !== "Gaul FM" &&
-    nowPlaying.current_host !== "Gaul Squad";
+  const liveHost = getOfficialLiveHost(nowPlaying.current_host);
   const title = matchedProgram?.name ?? nowPlaying.current_program;
-  const host = isCustomHost
-    ? nowPlaying.current_host
-    : nowPlaying.current_host || matchedProgram?.host || "Gaul Squad";
   const cover =
-    isCustomHost && nowPlaying.current_cover_url
+    liveHost && nowPlaying.current_cover_url
       ? nowPlaying.current_cover_url
-      : nowPlaying.current_cover_url ?? matchedProgram?.cover_url ?? null;
+      : matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
   const listeners = stats.isLive ? stats.listeners.toLocaleString("id-ID") : null;
   const timeRange = matchedProgram
     ? `${matchedProgram.start_time}–${matchedProgram.end_time} WIB`
@@ -169,23 +164,27 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
           </Text>
           
           <View className="mt-1.5 flex-row items-center flex-wrap gap-x-2 gap-y-1">
-            <Text
-              className="text-[13px] font-medium text-text-dim"
-              style={{ fontFamily: "PlusJakartaSans_500Medium" }}
-            >
-              {host}
-            </Text>
-            
-            {timeRange ? (
+            {liveHost ? (
               <>
-                <View className="h-1 w-1 rounded-full bg-line" />
                 <Text
-                  className="text-[12px] font-medium text-text-dim"
+                  className="text-[13px] font-medium text-text-dim"
                   style={{ fontFamily: "PlusJakartaSans_500Medium" }}
                 >
-                  {timeRange}
+                  {liveHost}
                 </Text>
+                {timeRange ? (
+                  <View className="h-1 w-1 rounded-full bg-line" />
+                ) : null}
               </>
+            ) : null}
+
+            {timeRange ? (
+              <Text
+                className="text-[12px] font-medium text-text-dim"
+                style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+              >
+                {timeRange}
+              </Text>
             ) : null}
           </View>
 
