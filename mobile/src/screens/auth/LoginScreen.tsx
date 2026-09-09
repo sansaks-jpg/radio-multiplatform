@@ -151,6 +151,27 @@ export function LoginScreen() {
               loading={loading}
             />
           </View>
+
+          {__DEV__ && (
+            <Pressable
+              onPress={() => {
+                setEmail("dev@gaulfm.com");
+                setPassword("devpassword123");
+                setErrors({});
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Isi otomatis akun developer"
+              className="mt-2 py-1.5 px-3 rounded-full bg-surface-2 border border-brand/30 self-center flex-row items-center gap-1.5 active:opacity-80"
+            >
+              <Ionicons name="flash" size={13} color="#00C7BE" />
+              <Text 
+                className="text-xs font-bold text-brand"
+                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+              >
+                Isi Cepat Akun Dev
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         <View className="mt-10 flex-row items-center justify-center gap-1 pb-4">
