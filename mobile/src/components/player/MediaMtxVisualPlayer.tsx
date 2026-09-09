@@ -84,7 +84,13 @@ export function MediaMtxVisualPlayer({
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border: none !important;
+      outline: none !important;
+    }
     html, body {
       width: 100%;
       height: 100%;
@@ -92,6 +98,7 @@ export function MediaMtxVisualPlayer({
       background: #000000;
       user-select: none;
       -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
     #player-container {
       position: relative;
@@ -102,14 +109,56 @@ export function MediaMtxVisualPlayer({
       display: flex;
       justify-content: center;
       align-items: center;
+      border: none !important;
+      outline: none !important;
     }
     video {
       width: 100%;
       height: 100%;
       object-fit: contain;
       background: #000000;
+      border: none !important;
+      outline: none !important;
     }
-    /* Sleek YouTube-style Bottom Scrim Controls */
+    /* Sembunyikan TOTAL seluruh UI bawaan browser (durasi, pause, timeline bar, garis scrubber) */
+    video::-webkit-media-controls,
+    video::-webkit-media-controls-panel,
+    video::-webkit-media-controls-play-button,
+    video::-webkit-media-controls-start-playback-button,
+    video::-webkit-media-controls-timeline,
+    video::-webkit-media-controls-timeline-container,
+    video::-webkit-media-controls-current-time-display,
+    video::-webkit-media-controls-time-remaining-display,
+    video::-webkit-media-controls-seek-back-button,
+    video::-webkit-media-controls-seek-forward-button,
+    video::-webkit-media-controls-fullscreen-button,
+    video::-webkit-media-controls-rewind-button,
+    video::-webkit-media-controls-return-to-realtime-button,
+    video::-webkit-media-controls-toggle-closed-captions-button,
+    video::-webkit-media-controls-volume-control-container,
+    video::-webkit-media-controls-volume-slider,
+    video::-webkit-media-controls-mute-button,
+    video::-webkit-media-controls-overflow-button,
+    video::-webkit-media-controls-overflow-menu-list,
+    video::-webkit-media-controls-overlay-enclosure,
+    video::-webkit-media-controls-enclosure {
+      display: none !important;
+      -webkit-appearance: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      max-height: 0 !important;
+    }
+    video::-moz-media-controls {
+      display: none !important;
+    }
+    *::-webkit-media-controls-panel {
+      display: none !important;
+      -webkit-appearance: none !important;
+    }
+    /* Sleek Bottom Gradient Scrim dengan Tombol Fullscreen Saja */
     .controls-overlay {
       position: absolute;
       left: 0;
@@ -120,7 +169,7 @@ export function MediaMtxVisualPlayer({
       align-items: flex-end;
       justify-content: flex-end;
       padding: 0 14px 12px 14px;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 100%);
       pointer-events: none;
       z-index: 20;
       transition: opacity 0.2s ease;
@@ -130,8 +179,8 @@ export function MediaMtxVisualPlayer({
       pointer-events: none;
     }
     .ctrl-btn {
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       background: rgba(0, 0, 0, 0.55);
       backdrop-filter: blur(8px);
@@ -155,9 +204,20 @@ export function MediaMtxVisualPlayer({
 </head>
 <body>
   <div id="player-container">
-    <video id="video" autoplay playsinline></video>
+    <video
+      id="video"
+      autoplay
+      playsinline
+      webkit-playsinline="true"
+      x5-playsinline="true"
+      x5-video-player-type="h5"
+      x5-video-player-fullscreen="true"
+      disablePictureInPicture
+      disableremoteplayback
+      controlslist="nodownload nofullscreen noremoteplayback noplaybackrate"
+    ></video>
 
-    <!-- Sleek Minimalist Fullscreen Toggle Only -->
+    <!-- Hanya Tombol Fullscreen Saja -->
     <div id="controls-overlay" class="controls-overlay">
       <button id="fs-btn" class="ctrl-btn" onclick="toggleFullscreen(event)" aria-label="Layar Penuh">
         <svg id="icon-fs" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -209,30 +269,28 @@ export function MediaMtxVisualPlayer({
       const isFs = isCurrentlyFullscreen();
 
       if (!isFs) {
-        // Otomatis lock ke landscape jika didukung oleh browser API
         if (screen.orientation && screen.orientation.lock) {
           screen.orientation.lock('landscape').catch(function() {});
         }
 
-        if (video && video.requestFullscreen) {
-          video.requestFullscreen().catch(function() {
-            var container = document.getElementById('player-container') || document.documentElement;
-            if (container.requestFullscreen) container.requestFullscreen();
+        // Request fullscreen pada container (BUKAN video tag) agar tidak memicu UI default media player
+        const container = document.getElementById('player-container') || document.documentElement;
+        if (container.requestFullscreen) {
+          container.requestFullscreen().catch(function() {
+            if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen();
+            } else if (video && video.webkitEnterFullscreen) {
+              video.webkitEnterFullscreen();
+            }
           });
+        } else if (container.webkitRequestFullscreen) {
+          container.webkitRequestFullscreen();
+        } else if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen();
         } else if (video && video.webkitEnterFullscreen) {
           video.webkitEnterFullscreen();
-        } else if (video && video.webkitRequestFullscreen) {
-          video.webkitRequestFullscreen();
-        } else {
-          var container = document.getElementById('player-container') || document.documentElement;
-          if (container.requestFullscreen) {
-            container.requestFullscreen();
-          } else if (container.webkitRequestFullscreen) {
-            container.webkitRequestFullscreen();
-          }
         }
       } else {
-        // Kembalikan orientasi
         if (screen.orientation && screen.orientation.unlock) {
           try { screen.orientation.unlock(); } catch(err) {}
         }
@@ -297,7 +355,6 @@ export function MediaMtxVisualPlayer({
     if (container) {
       container.addEventListener('click', function(e) {
         if (e.target.closest && e.target.closest('.ctrl-btn')) return;
-        // Unmute otomatis saat user tap di mana saja jika sebelumnya ter-mute oleh browser
         if (video && video.muted) {
           video.muted = false;
           video.volume = 1.0;
@@ -310,7 +367,6 @@ export function MediaMtxVisualPlayer({
         }
       });
 
-      // Double tap to toggle fullscreen
       let lastTap = 0;
       container.addEventListener('touchend', function(e) {
         if (e.target.closest && e.target.closest('.ctrl-btn')) return;
@@ -590,6 +646,8 @@ export function MediaMtxVisualPlayer({
         setSupportMultipleWindows={false}
         originWhitelist={["*"]}
         scrollEnabled={false}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never"
         onMessage={handleMessage}
