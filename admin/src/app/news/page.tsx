@@ -29,46 +29,50 @@ export default function NewsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
       <PageHeader
-        title="News Center"
-        description="Monitor sync WordPress → Supabase news. Tombol Sync Now memicu edge function (demo: local store)."
+        title="Portal Berita"
+        badge={<Badge tone="brand">WordPress REST</Badge>}
+        description="Sinkronisasi dan kelola artikel berita dari portal radiogaulfmsmg.com ke aplikasi mobile pendengar."
         actions={
-          <Button onClick={() => void onSync()} disabled={syncing} variant="orange">
-            <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing…" : "Sync Now"}
+          <Button onClick={() => void onSync()} disabled={syncing} variant="accent" size="sm">
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+            <span>{syncing ? "Menyinkronkan…" : "Sinkronkan Sekarang"}</span>
           </Button>
         }
       />
 
-      <div className="mb-6 flex-wrap items-center gap-3 rounded-lg border-border bg-card p-4">
-        <Badge tone="success">WordPress REST</Badge>
-        <span className="text-sm text-muted-foreground">
-          Last sync:{" "}
-          <strong className="text-foreground">
-            {lastNewsSyncAt
-              ? `${formatDateTime(lastNewsSyncAt)} (${formatRelative(lastNewsSyncAt)})`
-              : "Belum pernah"}
-          </strong>
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center gap-2.5">
+          <Badge tone="success">Terhubung</Badge>
+          <span className="text-sm text-muted-foreground">
+            Sinkronisasi terakhir:{" "}
+            <strong className="text-foreground">
+              {lastNewsSyncAt
+                ? `${formatDateTime(lastNewsSyncAt)} (${formatRelative(lastNewsSyncAt)})`
+                : "Belum pernah"}
+            </strong>
+          </span>
+        </div>
         <a
           href="https://radiogaulfmsmg.com"
           target="_blank"
           rel="noreferrer"
-          className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline"
         >
-          radiogaulfmsmg.com
-          <ExternalLink className="h-3 w-3" />
+          <span>Buka radiogaulfmsmg.com</span>
+          <ExternalLink className="h-3.5 w-3.5" />
         </a>
       </div>
 
       {news.length === 0 ? (
         <EmptyState
           title="Belum ada berita"
-          description="Jalankan Sync Now untuk menarik artikel dari WordPress."
+          description="Jalankan sinkronisasi untuk menarik artikel terbaru dari portal WordPress."
           action={
-            <Button size="sm" onClick={() => void onSync()}>
-              Sync Now
+            <Button size="sm" variant="accent" onClick={() => void onSync()}>
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Sinkronkan Sekarang</span>
             </Button>
           }
         />
@@ -76,8 +80,8 @@ export default function NewsPage() {
         <div className="space-y-3">
           {news.map((n) => (
             <Card key={n.id}>
-              <CardContent className="flex gap-4 p-4">
-                <div className="h-20 w-28 shrink-0 overflow-hidden rounded-md bg-muted">
+              <CardContent className="flex flex-col sm:flex-row sm:items-center gap-4 p-4">
+                <div className="h-20 w-28 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
                   {n.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -88,33 +92,33 @@ export default function NewsPage() {
                   ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex-wrap items-center gap-2">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
                     {n.category ? <Badge tone="brand">{n.category}</Badge> : null}
                     {n.wp_post_id ? (
                       <span className="text-[11px] text-muted-foreground">
-                        WP #{n.wp_post_id}
+                        ID #{n.wp_post_id}
                       </span>
                     ) : null}
                   </div>
-                  <p className="font-bold leading-snug tracking-tight">{n.title}</p>
+                  <p className="font-semibold leading-snug tracking-tight text-foreground">{n.title}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Publish {formatDateTime(n.published_at)} · synced{" "}
+                    Tayang {formatDateTime(n.published_at)} · sync{" "}
                     {formatRelative(n.synced_at)}
                   </p>
                 </div>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-danger hover:bg-danger/10"
+                  size="sm"
+                  className="shrink-0 text-danger hover:bg-danger-soft"
                   onClick={() => {
                     if (confirm("Hapus berita dari cache admin?")) {
                       deleteNews(n.id);
                       toast.push("Berita dihapus", "info");
                     }
                   }}
-                  aria-label="Hapus"
+                  aria-label="Hapus berita"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </CardContent>
             </Card>

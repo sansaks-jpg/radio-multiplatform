@@ -120,20 +120,21 @@ export default function SchedulePage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
       <PageHeader
-        title="Schedule"
-        description="CRUD jadwal mingguan. Validasi overlap waktu di hari yang sama (PRD §4.1 B)."
+        title="Jadwal Siaran Mingguan"
+        badge={<Badge tone="brand">{programs.length} Slot Siaran</Badge>}
+        description="Kelola agenda program siaran 7 hari studio Gaul FM. Terhubung langsung ke jadwal aplikasi mobile pendengar."
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Tambah program
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+            <span>Tambah Program</span>
           </Button>
         }
       />
 
       {/* Day pills */}
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         {DAY_SHORT.map((label, i) => {
           const count = programs.filter((p) => p.day_of_week === i).length;
           const active = day === i;
@@ -171,8 +172,8 @@ export default function SchedulePage() {
         })}
       </div>
 
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-bold tracking-tight">{DAY_NAMES[day]}</h2>
+      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+        <h2 className="text-base font-semibold tracking-tight text-foreground">Agenda {DAY_NAMES[day]}</h2>
         <Badge tone="muted">{dayPrograms.length} program</Badge>
       </div>
 
@@ -241,8 +242,8 @@ export default function SchedulePage() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={form.id ? "Edit program" : "Program baru"}
-        description="Data disimpan ke store demo (siap diganti Supabase)."
+        title={form.id ? "Edit Program Siaran" : "Tambah Program Siaran"}
+        description="Isi detail informasi program siaran studio dan jam tayang on-air."
         wide
       >
         <form onSubmit={onSave} className="space-y-4">

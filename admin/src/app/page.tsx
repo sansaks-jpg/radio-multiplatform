@@ -14,7 +14,7 @@ import {
 import * as XLSX from "xlsx";
 import { useAdminStore } from "@/hooks/useAdminStore";
 import { useToday } from "@/hooks/useToday";
-import { StatCard } from "@/components/ui/page-header";
+import { PageHeader, StatCard } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,39 +68,32 @@ export default function OverviewPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-12">
       {/* ── HEADER ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              Overview Studio
-            </h1>
-            <Badge tone="brand">87.8 FM</Badge>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Pusat kendali siaran, jadwal on-air, berita portal, dan data pendengar aktif Gaul FM.
-          </p>
-        </div>
+      <PageHeader
+        title="Overview Studio"
+        badge={<Badge tone="brand">87.8 FM</Badge>}
+        description="Pusat kendali siaran, jadwal on-air, berita portal, dan data pendengar aktif Gaul FM."
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={exportUsers}>
+              <Download className="h-3.5 w-3.5" />
+              <span>Export Listeners</span>
+            </Button>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportUsers}>
-            <Download className="h-3.5 w-3.5" />
-            <span>Export Listeners</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              resetDemoData();
-              toast.push("Data demo berhasil di-reset", "info");
-            }}
-            title="Reset data demo ke awal"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span>Reset Demo</span>
-          </Button>
-        </div>
-      </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                resetDemoData();
+                toast.push("Data demo berhasil di-reset", "info");
+              }}
+              title="Reset data demo ke awal"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Reset Demo</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* ── METRIK RINGKASAN ── */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

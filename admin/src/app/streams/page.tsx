@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Copy, Radio, Save, Tv, Video, Cast, Check, Volume2, VolumeX, ExternalLink, Play, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -159,35 +160,30 @@ export default function StreamsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-16 px-2 sm:px-4">
-      
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
       {/* ── HEADER RINGKAS & RAMAH ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Studio Siaran Multiplatform</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Hubungkan software studio radio Anda ke Aplikasi Mobile dan YouTube dengan mudah.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge tone="live" pulse>SERVER AKTIF</Badge>
-          <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1 rounded-md">
-            40.81.231.250
+      <PageHeader
+        title="Studio Siaran Multiplatform"
+        badge={<Badge tone="live" pulse>Server Aktif</Badge>}
+        description="Pusat konfigurasi dan panduan integrasi audio/video software studio (vMix, RadioBOSS) serta YouTube Live."
+        actions={
+          <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1.5 rounded-md border border-border">
+            Host: 40.81.231.250
           </span>
-        </div>
-      </div>
+        }
+      />
 
       {/* ── NAVIGASI TAB MENU BESAR & JELAS ── */}
-      <div className="grid grid-cols-3 gap-2 bg-muted/30 p-1.5 rounded-xl border border-border/70">
+      <div className="grid grid-cols-3 gap-2 bg-muted/40 p-1.5 rounded-xl border border-border/70">
         <button
           onClick={() => setActiveTab("visual")}
           className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all ${
             activeTab === "visual"
-              ? "bg-background text-foreground shadow-sm border border-border"
+              ? "bg-card text-foreground shadow-sm border border-border"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
-          <Tv className={`h-4 w-4 ${activeTab === "visual" ? "text-orange" : ""}`} />
+          <Tv className={`h-4 w-4 ${activeTab === "visual" ? "text-accent" : ""}`} />
           <span>1. Visual (vMix / OBS)</span>
         </button>
 
@@ -195,7 +191,7 @@ export default function StreamsPage() {
           onClick={() => setActiveTab("audio")}
           className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all ${
             activeTab === "audio"
-              ? "bg-background text-foreground shadow-sm border border-border"
+              ? "bg-card text-foreground shadow-sm border border-border"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
@@ -207,13 +203,13 @@ export default function StreamsPage() {
           onClick={() => setActiveTab("youtube")}
           className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all ${
             activeTab === "youtube"
-              ? "bg-background text-foreground shadow-sm border border-border"
+              ? "bg-card text-foreground shadow-sm border border-border"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
           }`}
         >
-          <Cast className={`h-4 w-4 ${activeTab === "youtube" ? "text-red-500" : ""}`} />
+          <Cast className={`h-4 w-4 ${activeTab === "youtube" ? "text-live" : ""}`} />
           <span>3. YouTube Live</span>
-          {ytEnabled && <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />}
+          {ytEnabled && <span className="h-2 w-2 rounded-full bg-live animate-pulse" />}
         </button>
       </div>
 
@@ -223,17 +219,17 @@ export default function StreamsPage() {
           
           {/* Kolom Kiri: Input Setup vMix */}
           <div className="lg:col-span-6 space-y-4">
-            <Card className="border border-border shadow-sm">
-              <CardHeader className="pb-4">
+            <Card className="border border-border">
+              <CardHeader className="border-b border-border/60 pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Video className="h-5 w-5 text-orange" />
+                  <Video className="h-5 w-5 text-accent" />
                   Pengaturan di Software vMix
                 </CardTitle>
                 <CardDescription>
                   Buka vMix $\to$ klik ikon gear pada menu <b>Stream</b> $\to$ pilih <b>Custom RTMP Server</b>, lalu isi data berikut:
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-4">
                 
                 {/* Parameter 1: URL */}
                 <div className="space-y-1.5">
@@ -262,7 +258,7 @@ export default function StreamsPage() {
                     Stream Name / Key
                   </label>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-orange/10 border border-orange/40 text-orange font-bold rounded-lg px-3.5 py-2.5 font-mono text-sm select-all">
+                    <div className="flex-1 bg-accent-soft border border-accent/40 text-accent font-bold rounded-lg px-3.5 py-2.5 font-mono text-sm select-all">
                       gaulfm
                     </div>
                     <Button
@@ -418,17 +414,17 @@ export default function StreamsPage() {
       {/* ── TAB 3: YOUTUBE LIVE RESTREAM ── */}
       {activeTab === "youtube" && (
         <div className="max-w-2xl mx-auto space-y-4 animate-in fade-in duration-200">
-          <Card className="border border-border shadow-sm">
-            <CardHeader className="pb-4">
+          <Card className="border border-border">
+            <CardHeader className="border-b border-border/60 pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Cast className="h-5 w-5 text-red-500" />
+                <Cast className="h-5 w-5 text-live" />
                 Siaran Ulang Otomatis ke YouTube Live
               </CardTitle>
               <CardDescription>
                 Server cloud akan meneruskan siaran vMix studio Anda ke YouTube tanpa membebani laptop atau kuota internet studio Anda.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-5 pt-4">
               
               {/* Sakelar ON/OFF */}
               <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border">

@@ -91,14 +91,15 @@ export default function BannersPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
       <PageHeader
-        title="Banners"
-        description="Carousel promo di home mobile (program / event / ad). Siap ke tabel Supabase `banners`."
+        title="Banner Promosi"
+        badge={<Badge tone="brand">{banners.length} Banner</Badge>}
+        description="Kelola banner promosi dan highlight program siaran yang tampil pada carousel beranda aplikasi mobile."
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Banner baru
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+            <span>Banner Baru</span>
           </Button>
         }
       />
@@ -106,9 +107,11 @@ export default function BannersPage() {
       {sorted.length === 0 ? (
         <EmptyState
           title="Belum ada banner"
+          description="Tambahkan banner untuk mengisi carousel promo beranda aplikasi mobile."
           action={
             <Button size="sm" onClick={openCreate}>
-              Tambah
+              <Plus className="h-3.5 w-3.5" />
+              <span>Tambah Banner</span>
             </Button>
           }
         />
@@ -117,7 +120,7 @@ export default function BannersPage() {
           {sorted.map((b) => (
             <Card key={b.id} className={!b.is_active ? "opacity-70" : undefined}>
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-                <div className="h-20 w-36 shrink-0 overflow-hidden rounded-md bg-muted">
+                <div className="h-20 w-36 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={b.image_url}
@@ -127,15 +130,17 @@ export default function BannersPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <Badge tone="brand">{b.type}</Badge>
+                    <Badge tone="brand">
+                      {b.type === "program" ? "Program" : b.type === "event" ? "Event" : "Iklan"}
+                    </Badge>
                     <Badge tone={b.is_active ? "success" : "muted"}>
-                      {b.is_active ? "Active" : "Off"}
+                      {b.is_active ? "Aktif" : "Nonaktif"}
                     </Badge>
                     <span className="text-[11px] text-muted-foreground">
-                      order {b.sort_order}
+                      Urutan #{b.sort_order}
                     </span>
                   </div>
-                  <p className="font-bold tracking-tight">{b.title}</p>
+                  <p className="font-semibold tracking-tight text-foreground">{b.title}</p>
                   {b.subtitle ? (
                     <p className="text-sm text-muted-foreground">{b.subtitle}</p>
                   ) : null}
@@ -143,7 +148,7 @@ export default function BannersPage() {
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEdit(b)}>
                     <Pencil className="h-3.5 w-3.5" />
-                    Edit
+                    <span>Edit</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -168,7 +173,8 @@ export default function BannersPage() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={form.id ? "Edit banner" : "Banner baru"}
+        title={form.id ? "Edit Banner Promosi" : "Tambah Banner Promosi"}
+        description="Lengkapi detail banner untuk tayang di carousel aplikasi mobile."
         wide
       >
         <form onSubmit={onSave} className="space-y-4">

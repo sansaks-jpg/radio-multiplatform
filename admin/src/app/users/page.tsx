@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, Search } from "lucide-react";
+import { Download, FileSpreadsheet, Search, Smartphone, Users } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useAdminStore } from "@/hooks/useAdminStore";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, StatCard } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,95 +45,79 @@ export default function UsersPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Listeners");
     XLSX.writeFile(wb, "gaulfm_listeners.xlsx");
-    toast.push(`Export ${rows.length} baris ke Excel`);
+    toast.push(`Export ${rows.length} baris ke Excel berhasil`);
   };
 
   const byOs = profiles.reduce<Record<string, number>>((acc, u) => {
-    const k = u.device_os || "Unknown";
+    const k = u.device_os || "Lainnya";
     acc[k] = (acc[k] || 0) + 1;
     return acc;
   }, {});
 
+  const deviceHint = Object.entries(byOs)
+    .map(([os, n]) => `${os} (${n})`)
+    .join(" · ") || "Belum ada data";
+
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
       <PageHeader
-        title="Listeners & Marketing"
-        description="Data pendengar terdaftar — export Excel & status sync Google Sheets (PRD §4.1 D)."
+        title="Data Pendengar"
+        badge={<Badge tone="brand">Marketing & CRM</Badge>}
+        description="Daftar pendengar terdaftar aplikasi mobile, analitik sebaran perangkat, dan ekspor spreadsheet."
         actions={
-          <Button onClick={exportToExcel} disabled={filtered.length === 0}>
-            <Download className="h-4 w-4" />
-            Export Listener Data (.xlsx)
+          <Button variant="outline" size="sm" onClick={exportToExcel} disabled={filtered.length === 0}>
+            <Download className="h-3.5 w-3.5" />
+            <span>Export Excel (.xlsx)</span>
           </Button>
         }
       />
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-              Total listeners
-            </p>
-            <p className="mt-1 text-2xl font-extrabold tracking-tight">
-              {profiles.length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-              Google Sheets
-            </p>
-            <div className="mt-2">
-              <Badge
-                tone={sheetsSyncStatus === "ok" ? "success" : "orange"}
-                pulse={sheetsSyncStatus === "ok"}
-              >
-                {sheetsSyncStatus === "ok" ? "Sync OK" : sheetsSyncStatus}
-              </Badge>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Webhook → /api/sync-sheets (nanti)
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-              Device mix
-            </p>
-            <div className="mt-2 flex-wrap gap-1.5">
-              {Object.entries(byOs).map(([os, n]) => (
-                <Badge key={os} tone="muted">
-                  {os} {n}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard
+          label="Total pendengar"
+          value={`${profiles.length} akun`}
+          hint="Terdaftar via aplikasi mobile"
+          tone="brand"
+          icon={<Users className="h-4.5 w-4.5" />}
+        />
+        <StatCard
+          label="Google Sheets"
+          value={sheetsSyncStatus === "ok" ? "Tersinkron" : "Standby"}
+          hint={sheetsSyncStatus === "ok" ? "Sync otomatis aktif" : "Mode lokal studio"}
+          tone="accent"
+          icon={<FileSpreadsheet className="h-4.5 w-4.5" />}
+        />
+        <StatCard
+          label="Sebaran perangkat"
+          value={`${Object.keys(byOs).length} platform`}
+          hint={deviceHint}
+          tone="default"
+          icon={<Smartphone className="h-4.5 w-4.5" />}
+        />
       </div>
 
       <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-          <CardTitle>Tabel pendengar</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
+          <CardTitle>Tabel Pendengar</CardTitle>
           <div className="relative w-full max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Cari nama, email, kota…"
-              className="pl-9"
+              className="pl-9 h-8 text-xs"
             />
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="border-y border-border bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+            <thead className="border-b border-border bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-semibold">Nama</th>
+                <th className="px-4 py-3 font-semibold">Nama & Waktu</th>
                 <th className="px-4 py-3 font-semibold">Kontak</th>
-                <th className="px-4 py-3 font-semibold">Device</th>
+                <th className="px-4 py-3 font-semibold">Perangkat</th>
                 <th className="px-4 py-3 font-semibold">Lokasi</th>
-                <th className="px-4 py-3 font-semibold">Last login</th>
+                <th className="px-4 py-3 font-semibold">Terakhir Aktif</th>
                 <th className="px-4 py-3 font-semibold">Push</th>
               </tr>
             </thead>
@@ -153,7 +137,7 @@ export default function UsersPage() {
                     <td className="px-4 py-3">
                       <p className="font-semibold">{u.full_name ?? "—"}</p>
                       <p className="text-xs text-muted-foreground">
-                        join {formatDateTime(u.created_at)}
+                        gabung {formatDateTime(u.created_at)}
                       </p>
                     </td>
                     <td className="px-4 py-3">
@@ -181,7 +165,7 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge tone={u.push_token ? "success" : "muted"}>
-                        {u.push_token ? "On" : "Off"}
+                        {u.push_token ? "Aktif" : "Nonaktif"}
                       </Badge>
                     </td>
                   </tr>

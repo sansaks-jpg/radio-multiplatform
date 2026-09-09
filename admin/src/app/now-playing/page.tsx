@@ -107,13 +107,13 @@ function NowPlayingForm({
         />
       </Field>
 
-      <Button type="submit" variant="orange" disabled={saving} className="w-full">
+      <Button type="submit" variant="accent" disabled={saving} className="w-full">
         <Save className="h-4 w-4" />
-        {saving ? "Menyimpan…" : "Update Now Playing"}
+        {saving ? "Menyimpan…" : "Perbarui Siaran Aktif"}
       </Button>
 
       {/* Live preview of draft */}
-      <div className="overflow-hidden rounded-lg border-border">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         <div className="relative h-36 bg-muted">
           {coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -124,13 +124,13 @@ function NowPlayingForm({
             />
           ) : null}
           <div className="absolute left-3 top-3">
-            <Badge tone="live" pulse>
-              Draft preview
+            <Badge tone="accent">
+              Pratinjau Draft
             </Badge>
           </div>
         </div>
         <div className="p-3">
-          <p className="font-extrabold tracking-tight">{program || "—"}</p>
+          <p className="font-semibold tracking-tight">{program || "—"}</p>
           <p className="text-sm text-muted-foreground">{host || "—"}</p>
         </div>
       </div>
@@ -166,33 +166,30 @@ export default function NowPlayingPage() {
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
       <PageHeader
-        title="Now Playing"
-        description="Kontrol info siaran aktif yang tampil di app mobile (home hero, mini player, lock screen)."
+        title="Now Playing Studio"
+        badge={<Badge tone="accent">On Air Studio</Badge>}
+        description="Kontrol informasi siaran aktif yang tampil secara langsung di seluruh aplikasi mobile pendengar."
         actions={
           <Link href="/chat">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 border-brand/40 text-brand hover:bg-brand/10"
-            >
-              <MessageSquare className="h-4 w-4" />
-              Buka Live Chat Studio
+            <Button variant="outline" size="sm">
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span>Buka Live Chat Studio</span>
             </Button>
           </Link>
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="card-gradient lg:col-span-3">
-          <CardHeader>
+      <div className="grid gap-6 lg:grid-cols-5 items-start">
+        <Card className="lg:col-span-3">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
             <div className="flex items-center gap-2">
-              <Radio className="h-5 w-5 text-orange" />
-              <CardTitle>Update siaran aktif</CardTitle>
+              <Radio className="h-4.5 w-4.5 text-accent" />
+              <CardTitle>Pembaruan Siaran Aktif</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <NowPlayingForm
               key={nowPlaying.updated_at}
               formKey={nowPlaying.updated_at}
@@ -217,49 +214,58 @@ export default function NowPlayingPage() {
               ) : null}
               <div className="absolute left-3 top-3">
                 <Badge tone="live" pulse>
-                  On air now
+                  Sedang Mengudara
                 </Badge>
               </div>
             </div>
             <CardContent className="pt-4">
-              <p className="text-lg font-extrabold tracking-tight">
+              <p className="text-lg font-semibold tracking-tight">
                 {nowPlaying.current_program}
               </p>
               <p className="text-sm text-muted-foreground">
                 {nowPlaying.current_host}
               </p>
               <p className="mt-3 text-xs text-muted-foreground">
-                Last updated: {formatDateTime(nowPlaying.updated_at)}
+                Diperbarui {formatDateTime(nowPlaying.updated_at)}
               </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
               <CardTitle className="text-sm">
-                Today&apos;s slots · {DAY_NAMES[today]}
+                Slot Hari Ini · {DAY_NAMES[today]}
               </CardTitle>
+              <Link href="/schedule" className="text-xs font-medium text-brand hover:underline">
+                Kelola
+              </Link>
             </CardHeader>
-            <CardContent className="max-h-56 space-y-1 overflow-y-auto">
-              {todaySlots.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    updateNowPlaying({
-                      current_program: p.name,
-                      current_host: p.host,
-                      current_cover_url: p.cover_url,
-                    });
-                  }}
-                  className="flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm transition hover:bg-muted"
-                >
-                  <span className="font-medium">{p.name}</span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {p.start_time}
-                  </span>
-                </button>
-              ))}
+            <CardContent className="max-h-56 space-y-1 overflow-y-auto pt-3">
+              {todaySlots.length === 0 ? (
+                <p className="py-4 text-center text-xs text-muted-foreground">
+                  Tidak ada slot siaran hari ini.
+                </p>
+              ) : (
+                todaySlots.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      updateNowPlaying({
+                        current_program: p.name,
+                        current_host: p.host,
+                        current_cover_url: p.cover_url,
+                      });
+                    }}
+                    className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted"
+                  >
+                    <span className="font-medium text-foreground">{p.name}</span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {p.start_time}
+                    </span>
+                  </button>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
