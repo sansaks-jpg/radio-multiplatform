@@ -2,41 +2,41 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Gaul FM Admin — Sonic Pulse (studio broadcast system) */
+/* Gaul FM Admin — Light Mode Studio */
 :root {
-  /* Surfaces — deep charcoal spectrum */
-  --background: #050505;
-  --foreground: #e2e2e6;
-  --card: #121417;
-  --card-foreground: #e2e2e6;
-  --muted: #1a1c1e;
-  --muted-foreground: #889488;
-  --border: #2a2d31;
-  --input: #1a1c1e;
-  --ring: #ffb787;
+  /* Surfaces — Clean Light Studio spectrum */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --input: #ffffff;
+  --ring: #ea580c;
 
-  /* Brand */
-  --brand: #78db94;
-  --brand-foreground: #00391a;
-  --brand-container: #007a3e;
+  /* Brand (Emerald Gaul FM) */
+  --brand: #059669;
+  --brand-foreground: #ffffff;
+  --brand-container: #d1fae5;
 
   /* Accents */
-  --orange: #ffb787;
-  --orange-foreground: #512400;
-  --orange-container: #dc7521;
-  --live: #ff5252;
+  --orange: #ea580c;
+  --orange-foreground: #ffffff;
+  --orange-container: #ffedd5;
+  --live: #dc2626;
   --live-foreground: #ffffff;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #ffb4ab;
-  --danger-container: #93000a;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --danger-container: #fee2e2;
 
   /* Sidebar / shell */
-  --sidebar: #0c0e11;
-  --sidebar-foreground: #e2e2e6;
-  --sidebar-muted: #889488;
-  --sidebar-active: #78db94;
-  --sidebar-border: #1a1c1e;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-muted: #64748b;
+  --sidebar-active: #059669;
+  --sidebar-border: #e2e8f0;
 
   /* Typography */
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -45,45 +45,45 @@
   /* Radius — Sonic Pulse scale */
   --radius: 0.5rem;
 
-  /* Elevation hints (tonal layers, not heavy shadows) */
-  --surface-0: #050505;
-  --surface-1: #121417;
-  --surface-2: #1e2023;
-  --surface-3: #282a2d;
+  /* Elevation hints */
+  --surface-0: #ffffff;
+  --surface-1: #f8fafc;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
 }
 
 .dark {
-  /* Same palette — admin is dark-first per Sonic Pulse spec */
-  --background: #050505;
-  --foreground: #e2e2e6;
-  --card: #121417;
-  --card-foreground: #e2e2e6;
-  --muted: #1a1c1e;
-  --muted-foreground: #889488;
-  --border: #2a2d31;
-  --input: #1a1c1e;
-  --ring: #ffb787;
-  --brand: #78db94;
-  --brand-foreground: #00391a;
-  --brand-container: #007a3e;
-  --orange: #ffb787;
-  --orange-foreground: #512400;
-  --orange-container: #dc7521;
-  --live: #ff5252;
+  /* Fallback konsisten light-first */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --input: #ffffff;
+  --ring: #ea580c;
+  --brand: #059669;
+  --brand-foreground: #ffffff;
+  --brand-container: #d1fae5;
+  --orange: #ea580c;
+  --orange-foreground: #ffffff;
+  --orange-container: #ffedd5;
+  --live: #dc2626;
   --live-foreground: #ffffff;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #ffb4ab;
-  --danger-container: #93000a;
-  --sidebar: #0c0e11;
-  --sidebar-foreground: #e2e2e6;
-  --sidebar-muted: #889488;
-  --sidebar-active: #78db94;
-  --sidebar-border: #1a1c1e;
-  --surface-0: #050505;
-  --surface-1: #121417;
-  --surface-2: #1e2023;
-  --surface-3: #282a2d;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --danger-container: #fee2e2;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-muted: #64748b;
+  --sidebar-active: #059669;
+  --sidebar-border: #e2e8f0;
+  --surface-0: #ffffff;
+  --surface-1: #f8fafc;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
 }
 
 @theme inline {
@@ -152,26 +152,26 @@ body::before {
   pointer-events: none;
   z-index: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--surface-3);
+  background: #cbd5e1;
   border-radius: 999px;
   border: 2px solid var(--background);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: #94a3b8;
 }
 
 /* Focus ring — On-Air Orange glow per spec */
@@ -199,18 +199,18 @@ body::before {
 /* On-air glow for hero modules */
 .on-air-glow {
   box-shadow:
-    0 0 0 1px rgba(255, 82, 82, 0.18),
-    0 0 32px rgba(255, 82, 82, 0.07);
+    0 0 0 1px rgba(220, 38, 38, 0.15),
+    0 0 24px rgba(220, 38, 38, 0.08);
 }
 
-/* Card gradient — Deep Grey to Black per spec */
+/* Card gradient — Clean Light gradient */
 .card-gradient {
-  background-image: linear-gradient(145deg, #1e2023 0%, #121417 60%, #0c0e11 100%);
+  background-image: linear-gradient(145deg, #ffffff 0%, #f8fafc 60%, #f1f5f9 100%);
 }
 
 /* Backdrop blur surfaces */
 .glass {
-  background-color: rgba(18, 20, 23, 0.82);
+  background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
 }

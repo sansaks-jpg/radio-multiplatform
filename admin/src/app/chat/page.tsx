@@ -404,7 +404,7 @@ export default function LiveChatStudioPage() {
               return (
                 <div
                   key={item.id}
-                  className={`group flex items-start gap-2.5 px-2 sm:px-3 py-2 transition-colors hover:bg-white/[0.03] ${
+                  className={`group flex items-start gap-2.5 px-2 sm:px-3 py-2 transition-colors hover:bg-slate-100/80 ${
                     isHighlighted
                       ? "bg-orange/10 border-l-2 border-orange"
                       : isStudio

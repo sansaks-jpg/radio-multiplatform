@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="dark">
+    <html lang="id" className="light">
       <body className={`${plusJakarta.variable} font-sans antialiased`}>
         <ThemeProvider>
           <AppShell>{children}</AppShell>
