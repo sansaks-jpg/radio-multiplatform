@@ -25,13 +25,33 @@ async function fetchNowPlaying(): Promise<NowPlaying> {
   return (data as NowPlaying | null) ?? mockNowPlaying;
 }
 
+const DEFAULT_PROGRAM_COVER =
+  "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg";
+
+function isPenyiarPhoto(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return (
+    url.includes("/penyiar/") ||
+    url.includes("attaya") ||
+    url.includes("ega-ratu") ||
+    url.includes("kara-ferina") ||
+    url.includes("nafa") ||
+    url.includes("nanda") ||
+    url.includes("rizky") ||
+    url.includes("tyas")
+  );
+}
+
 function mergeWithOnAir(
   base: NowPlaying,
   onAir: Program | null | undefined,
 ): NowPlaying {
   const liveHost = getOfficialLiveHost(base.current_host);
   const programName = onAir?.name || base.current_program || "Gaul FM Semarang";
-  const defaultCover = onAir?.cover_url || base.current_cover_url || null;
+  const safeBaseCover = isPenyiarPhoto(base.current_cover_url)
+    ? null
+    : base.current_cover_url;
+  const defaultCover = onAir?.cover_url || safeBaseCover || DEFAULT_PROGRAM_COVER;
 
   // Aturan Gaul FM: Penyiar on-air kosong KECUALI admin telah memilih penyiar di panel admin.
   if (liveHost) {

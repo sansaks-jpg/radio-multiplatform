@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DAY_NAMES, formatDateTime, formatRelative } from "@/lib/utils";
-import { resetDemoData } from "@/lib/data-store";
+import { resetDemoData, resolveProgramCover } from "@/lib/data-store";
 import { useToast } from "@/components/ui/toast";
 
 const AVATAR_COLORS = [
@@ -44,6 +44,13 @@ export default function OverviewPage() {
   const todayPrograms = data.programs
     .filter((p) => p.day_of_week === today)
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+  const onAirCover = resolveProgramCover(
+    data.nowPlaying.current_program,
+    data.nowPlaying.current_cover_url,
+    data.programs,
+    data.announcers
+  );
 
   const exportUsers = () => {
     const rows = data.profiles.map((u) => ({
@@ -165,10 +172,10 @@ export default function OverviewPage() {
           <CardContent className="pt-4">
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
-                {data.nowPlaying.current_cover_url ? (
+                {onAirCover ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={data.nowPlaying.current_cover_url}
+                    src={onAirCover}
                     alt={data.nowPlaying.current_program}
                     className="h-full w-full object-cover"
                   />

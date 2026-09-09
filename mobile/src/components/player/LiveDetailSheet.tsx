@@ -318,12 +318,8 @@ export function LiveDetailSheet({
           <View className="min-h-11 min-w-11" />
         </View>
 
-        {/* ── Banner: Full width edge-to-edge on visual radio, card on audio mode ── */}
-        <View
-          className={`${
-            isVisualActive ? "w-full" : "mx-4 rounded-card"
-          } overflow-hidden bg-surface`}
-        >
+        {/* ── Banner: Full width edge-to-edge 16:9 on both visual radio and audio mode ── */}
+        <View className="w-full overflow-hidden bg-surface">
           {isVisualActive ? (
             <MediaMtxVisualPlayer onCloseVisual={handleToggleVisual} />
           ) : !keyboardOpen ? (

@@ -13,13 +13,13 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release Tag (misal: v0.0.1)'
+        description: 'Release Tag (misal: v0.0.2)'
         required: false
-        default: 'v0.0.1'
+        default: 'v0.0.2'
       release_title:
         description: 'Release Title'
         required: false
-        default: 'Gaul FM v0.0.1 (Development Build)'
+        default: 'Gaul FM v0.0.2 (Development Build)'
       prerelease:
         description: 'Tandai sebagai Pre-release?'
         type: boolean
@@ -97,35 +97,35 @@ jobs:
             exit 1
           fi
           echo "Ditemukan APK: $APK_FILE"
-          cp "$APK_FILE" release-artifacts/GaulFM-v0.0.1-development.apk
+          cp "$APK_FILE" release-artifacts/GaulFM-v0.0.2-development.apk
           ls -lh release-artifacts/
 
       - name: 📤 Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: gaulfm-android-release-apk
-          path: release-artifacts/GaulFM-v0.0.1-development.apk
+          path: release-artifacts/GaulFM-v0.0.2-development.apk
           retention-days: 14
 
       - name: 🚀 Publish APK to GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.event.inputs.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.0.1' }}"
-          TITLE="${{ github.event.inputs.release_title || 'Gaul FM v0.0.1 (Development Build)' }}"
+          TAG="${{ github.event.inputs.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.0.2' }}"
+          TITLE="${{ github.event.inputs.release_title || 'Gaul FM v0.0.2 (Development Build)' }}"
           
           echo "Menyiapkan rilis GitHub untuk tag: $TAG..."
           
-          if gh release view "$TAG" >/dev/null 2>&1; then
+          if gh release view "$TAG" > /dev/null 2>&1; then
             echo "Release $TAG sudah ada. Mengunggah/memperbarui aset APK..."
-            gh release upload "$TAG" release-artifacts/GaulFM-v0.0.1-development.apk --clobber
+            gh release upload "$TAG" release-artifacts/GaulFM-v0.0.2-development.apk --clobber
           else
             echo "Membuat GitHub Release baru untuk tag $TAG..."
-            gh release create "$TAG" release-artifacts/GaulFM-v0.0.1-development.apk \
+            gh release create "$TAG" release-artifacts/GaulFM-v0.0.2-development.apk \
               --title "$TITLE" \
               --notes "### 📻 Gaul FM Semarang - Android Development Build ($TAG)
               
-              - **Versi**: 0.0.1 (Development Build)
+              - **Versi**: 0.0.2 (Development Build)
               - **Platform**: Android Standalone APK
               - **Arsitektur**: React Native New Architecture + Expo SDK 54
               - **Target Host Live Streaming**:
@@ -133,10 +133,15 @@ jobs:
                 - Visual Radio: MediaMTX WebRTC/WHEP (\`http://40.81.231.250:8889/gaulfm_webrtc/whep\`)
                 - Live Chat & Studio Moderasi: REST & SSE (\`http://40.81.231.250:3001/api/comments\`)
               
+              #### Perubahan v0.0.2:
+              - Fix cover program tidak berubah menjadi foto penyiar saat ganti penyiar on-air di admin
+              - Fix cover program tidak hilang saat penyiar direset di panel admin
+              - Penyatuan layout banner 16:9 edge-to-edge di LiveDetailSheet (audio & visual radio)
+              
               #### Petunjuk Penginstalan:
-              1. Unduh \`GaulFM-v0.0.1-development.apk\` di bawah.
+              1. Unduh \`GaulFM-v0.0.2-development.apk\` di bawah.
               2. Buka file APK pada smartphone Android Anda.
-              3. Jika muncul peringatan keamanan, pilih **Tetap Instal** / **Izinkan sumber ini** (karena APK ditandatangani untuk mode development/testing).
+              3. Jika muncul peringatan keamanan, pilih **Tetap Instal** / **Izinkan sumber ini**.
               4. Aplikasi siap digunakan untuk mendengarkan siaran live Gaul FM Semarang!" \
               --prerelease
           fi

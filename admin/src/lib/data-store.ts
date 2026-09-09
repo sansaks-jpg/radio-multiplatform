@@ -48,6 +48,36 @@ function persist() {
   }
 }
 
+export const DEFAULT_PROGRAM_COVER =
+  "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg";
+
+export function resolveProgramCover(
+  programName: string,
+  candidateCover: string | null | undefined,
+  programsList: Program[] = snapshot.programs,
+  announcersList: Announcer[] = snapshot.announcers
+): string {
+  // Jika candidateCover adalah foto profil salah satu penyiar, abaikan!
+  const isAnnouncerPhoto = announcersList.some(
+    (a) => a.photo_url && a.photo_url === candidateCover
+  );
+  if (candidateCover && !isAnnouncerPhoto) {
+    return candidateCover;
+  }
+
+  // Cari program dengan nama yang sama
+  const matched = programsList.find(
+    (p) => p.name.trim().toLowerCase() === (programName || "").trim().toLowerCase()
+  );
+  if (matched?.cover_url) {
+    return matched.cover_url;
+  }
+
+  // Jika tidak ditemukan kecocokan nama, cari program yang memiliki cover_url
+  const anyProgramWithCover = programsList.find((p) => Boolean(p.cover_url));
+  return anyProgramWithCover?.cover_url || DEFAULT_PROGRAM_COVER;
+}
+
 export async function syncFromSupabase() {
   if (!supabase) return;
   try {
@@ -97,16 +127,25 @@ export async function syncFromSupabase() {
       nextBanners = banRes.data as Banner[];
       changed = true;
     }
+    if (annRes.data && annRes.data.length > 0) {
+      nextAnnouncers = annRes.data as Announcer[];
+      changed = true;
+    }
     if (npRes.data) {
-      nextNowPlaying = npRes.data as NowPlaying;
+      const np = npRes.data as NowPlaying;
+      nextNowPlaying = {
+        ...np,
+        current_cover_url: resolveProgramCover(
+          np.current_program,
+          np.current_cover_url,
+          nextPrograms,
+          nextAnnouncers
+        ),
+      };
       changed = true;
     }
     if (newsRes.data && newsRes.data.length > 0) {
       nextNews = newsRes.data as NewsItem[];
-      changed = true;
-    }
-    if (annRes.data && annRes.data.length > 0) {
-      nextAnnouncers = annRes.data as Announcer[];
       changed = true;
     }
     if (profRes.data && profRes.data.length > 0) {
@@ -212,15 +251,26 @@ function hydrate() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as AdminSnapshot;
+      const parsedPrograms = parsed.programs ?? createSeedSnapshot().programs;
+      const parsedAnnouncers = parsed.announcers ?? createSeedSnapshot().announcers;
+      const parsedNowPlaying = parsed.nowPlaying ?? createSeedSnapshot().nowPlaying;
       snapshot = {
         ...createSeedSnapshot(),
         ...parsed,
-        programs: parsed.programs ?? createSeedSnapshot().programs,
-        announcers: parsed.announcers ?? createSeedSnapshot().announcers,
+        programs: parsedPrograms,
+        announcers: parsedAnnouncers,
         news: parsed.news ?? createSeedSnapshot().news,
         profiles: parsed.profiles ?? createSeedSnapshot().profiles,
         banners: parsed.banners ?? createSeedSnapshot().banners,
-        nowPlaying: parsed.nowPlaying ?? createSeedSnapshot().nowPlaying,
+        nowPlaying: {
+          ...parsedNowPlaying,
+          current_cover_url: resolveProgramCover(
+            parsedNowPlaying.current_program,
+            parsedNowPlaying.current_cover_url,
+            parsedPrograms,
+            parsedAnnouncers
+          ),
+        },
         streamSettings: parsed.streamSettings ?? createSeedSnapshot().streamSettings,
       };
     }
@@ -261,9 +311,17 @@ export function updateNowPlaying(
     "current_program" | "current_host" | "current_cover_url"
   >,
 ): NowPlaying {
+  const safeCover = resolveProgramCover(
+    patch.current_program,
+    patch.current_cover_url,
+    snapshot.programs,
+    snapshot.announcers
+  );
+
   const nextNowPlaying: NowPlaying = {
     ...snapshot.nowPlaying,
     ...patch,
+    current_cover_url: safeCover,
     updated_at: new Date().toISOString(),
   };
 
@@ -280,7 +338,7 @@ export function updateNowPlaying(
         id: "00000000-0000-0000-0000-000000000001",
         current_program: patch.current_program,
         current_host: patch.current_host,
-        current_cover_url: patch.current_cover_url,
+        current_cover_url: safeCover,
         updated_at: nextNowPlaying.updated_at,
       })
       .then(({ error }) => {
@@ -291,21 +349,21 @@ export function updateNowPlaying(
   return nextNowPlaying;
 }
 
-/** 1-Klik ganti penyiar on-air atau reset ke kosong */
+/** 1-Klik ganti penyiar on-air atau reset ke kosong (cover program tetap terjaga) */
 export function setBroadcasterOnAir(announcer: Announcer | null): NowPlaying {
-  if (announcer) {
-    return updateNowPlaying({
-      current_program: snapshot.nowPlaying.current_program,
-      current_host: announcer.name,
-      current_cover_url: snapshot.nowPlaying.current_cover_url,
-    });
-  } else {
-    return updateNowPlaying({
-      current_program: snapshot.nowPlaying.current_program,
-      current_host: "",
-      current_cover_url: snapshot.nowPlaying.current_cover_url,
-    });
-  }
+  const currentProgram = snapshot.nowPlaying.current_program;
+  const safeCover = resolveProgramCover(
+    currentProgram,
+    snapshot.nowPlaying.current_cover_url,
+    snapshot.programs,
+    snapshot.announcers
+  );
+
+  return updateNowPlaying({
+    current_program: currentProgram,
+    current_host: announcer ? announcer.name : "",
+    current_cover_url: safeCover,
+  });
 }
 
 /* ---------- Programs ---------- */

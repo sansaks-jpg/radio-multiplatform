@@ -101,6 +101,24 @@ export default function NowPlayingPage() {
     return todaySlots.find((p) => isSlotCurrentWib(p.start_time, p.end_time));
   }, [todaySlots]);
 
+  // Cover resmi program yang sedang mengudara (tidak boleh foto penyiar & tidak boleh kosong)
+  const activeCoverUrl = useMemo(() => {
+    const isAnnouncerPhoto = announcers.some(
+      (a) => a.photo_url && a.photo_url === nowPlaying.current_cover_url
+    );
+    if (nowPlaying.current_cover_url && !isAnnouncerPhoto) {
+      return nowPlaying.current_cover_url;
+    }
+    const matched = programs.find(
+      (p) => p.name.trim().toLowerCase() === nowPlaying.current_program.trim().toLowerCase()
+    );
+    return (
+      matched?.cover_url ||
+      scheduledNowProgram?.cover_url ||
+      "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg"
+    );
+  }, [announcers, nowPlaying, programs, scheduledNowProgram]);
+
   // 1-Klik aktifkan penyiar yang bertugas
   const handleSelectAnnouncer = (announcer: Announcer) => {
     setBroadcasterOnAir(announcer);
@@ -116,14 +134,10 @@ export default function NowPlayingPage() {
   // Aksi 1-klik aktifkan program dari jadwal
   const handleActivateProgram = (p: Program) => {
     // Pertahankan penyiar on-air yang sudah dipilih (jika ada)
-    const isCustomHostActive =
-      nowPlaying.current_host &&
-      nowPlaying.current_host !== "Gaul FM" &&
-      nowPlaying.current_host !== "Gaul Squad";
-    const hostToUse = isCustomHostActive
-      ? nowPlaying.current_host
-      : "";
-    const coverToUse = p.cover_url || null;
+    const hostToUse = nowPlaying.current_host || "";
+    const coverToUse =
+      p.cover_url ||
+      "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg";
 
     updateNowPlaying({
       current_program: p.name,
@@ -574,10 +588,10 @@ export default function NowPlayingPage() {
             </CardHeader>
 
             <div className="relative aspect-video w-full overflow-hidden bg-muted">
-              {nowPlaying.current_cover_url ? (
+              {activeCoverUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={nowPlaying.current_cover_url}
+                  src={activeCoverUrl}
                   alt={nowPlaying.current_program}
                   className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
                 />
@@ -631,10 +645,10 @@ export default function NowPlayingPage() {
               {/* Simulasi Kotak Mini Player Mobile */}
               <div className="rounded-lg border border-border bg-muted/40 p-2.5 flex items-center gap-3">
                 <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-card">
-                  {nowPlaying.current_cover_url ? (
+                  {activeCoverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={nowPlaying.current_cover_url}
+                      src={activeCoverUrl}
                       alt=""
                       className="h-full w-full object-cover"
                     />

@@ -13,7 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Gaul FM",
   slug: "gaulfm-mobile",
-  version: "0.0.1",
+  version: "0.0.2",
   icon: "./assets/icon.png",
   orientation: "portrait",
   scheme: "gaulfm",
