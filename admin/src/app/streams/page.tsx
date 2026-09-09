@@ -42,11 +42,45 @@ export default function StreamsPage() {
       .catch(() => toast.push("Gagal memuat status cloud engine", "error"));
   }, [toast]);
 
-  const copyText = (text: string, id: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    toast.push(`${label} berhasil disalin!`);
-    setTimeout(() => setCopiedId(null), 2000);
+  const copyText = async (text: string, id: string, label: string) => {
+    let success = false;
+
+    // 1. Coba Clipboard API modern jika di secure context
+    if (typeof window !== "undefined" && navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        success = true;
+      } catch {
+        success = false;
+      }
+    }
+
+    // 2. Fallback klasik untuk protokol HTTP non-secure (alamat IP publik)
+    if (!success && typeof document !== "undefined") {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "-9999px";
+        textArea.setAttribute("readonly", "");
+        document.body.appendChild(textArea);
+        textArea.select();
+        textArea.setSelectionRange(0, 99999);
+        success = document.execCommand("copy");
+        document.body.removeChild(textArea);
+      } catch {
+        success = false;
+      }
+    }
+
+    if (success) {
+      setCopiedId(id);
+      toast.push(`${label} berhasil disalin!`);
+      setTimeout(() => setCopiedId(null), 2000);
+    } else {
+      window.prompt("Salin manual dengan Ctrl+C:", text);
+    }
   };
 
   const handleSyncYoutube = async () => {
