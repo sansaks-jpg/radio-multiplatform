@@ -5,6 +5,9 @@ import {
   addComment,
 } from "@/lib/comments-bus";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -27,7 +30,14 @@ export async function GET(req: Request) {
 
     return NextResponse.json(
       { success: true, comments },
-      { headers: corsHeaders }
+      {
+        headers: {
+          ...corsHeaders,
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0",
+        },
+      }
     );
   } catch (error) {
     return NextResponse.json(

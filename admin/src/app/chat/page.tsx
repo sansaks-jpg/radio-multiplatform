@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import type { LiveComment } from "@/lib/comments-bus";
+import { supabase } from "@/lib/supabase";
 
 function formatTime(iso: string) {
   try {
@@ -125,10 +126,13 @@ export default function LiveChatPage() {
   const fetchComments = useCallback(async (isManual = false) => {
     try {
       if (isManual) setLoadingInitial(true);
-      const res = await fetch("/api/comments?limit=50");
+      const res = await fetch("/api/comments?forAdmin=true&limit=50", {
+        cache: "no-store",
+      });
       const data = await res.json();
       if (data.comments) {
         setComments(data.comments);
+        setConnected(true);
         if (isManual) {
           toast.push("Komentar diperbarui");
         }
@@ -144,15 +148,20 @@ export default function LiveChatPage() {
     }
   }, [scrollToBottom, toast]);
 
-  // Setup Server-Sent Events (SSE)
+  // Setup Multi-Layer Real-Time Engine (Supabase Realtime + SSE + Smart Fast Polling)
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch("/api/comments?limit=50", { signal: controller.signal })
+    // 1. Initial Fetch
+    fetch("/api/comments?forAdmin=true&limit=50", {
+      signal: controller.signal,
+      cache: "no-store",
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.comments) {
           setComments(data.comments);
+          setConnected(true);
           setLoadingInitial(false);
           setTimeout(() => scrollToBottom(true), 80);
         }
@@ -164,67 +173,185 @@ export default function LiveChatPage() {
         }
       });
 
-    const es = new EventSource("/api/comments/stream");
-    eventSourceRef.current = es;
+    // Helper untuk menangani pesan baru secara instan
+    const handleIncomingNew = (incoming: LiveComment) => {
+      setConnected(true);
+      setComments((prev) => {
+        if (prev.some((c) => c.id === incoming.id)) {
+          return prev.map((c) => (c.id === incoming.id ? incoming : c));
+        }
+        return [...prev, incoming].slice(-50);
+      });
 
-    es.onopen = () => setConnected(true);
-    es.onerror = () => setConnected(false);
+      if (chatScrollRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = chatScrollRef.current;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 120;
+        if (isNearBottom) {
+          setTimeout(() => scrollToBottom(true), 40);
+        } else {
+          setHasNewMessageBelow(true);
+        }
+      }
+    };
 
-    es.addEventListener("new", (e) => {
+    // Helper untuk update (pin / unpin / edit)
+    const handleIncomingUpdate = (updated: LiveComment) => {
+      setComments((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c))
+      );
+    };
+
+    // Helper untuk delete / hide
+    const handleIncomingDelete = (deletedId: string) => {
+      setComments((prev) => prev.filter((c) => c.id !== deletedId));
+    };
+
+    // 2. KANAL UTAMA: Supabase Realtime WebSocket (jika terkonfigurasi)
+    let supabaseChannel: ReturnType<NonNullable<typeof supabase>["channel"]> | null = null;
+    if (supabase) {
       try {
-        const payload = JSON.parse(e.data);
-        if (payload.comment) {
-          setComments((prev) => {
-            const exists = prev.some((c) => c.id === payload.comment.id);
-            if (exists) return prev;
-            return [...prev, payload.comment].slice(-50);
-          });
-
-          if (chatScrollRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = chatScrollRef.current;
-            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-            if (isNearBottom) {
-              setTimeout(() => scrollToBottom(true), 40);
-            } else {
-              setHasNewMessageBelow(true);
+        supabaseChannel = supabase
+          .channel("admin-chat-live")
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "live_comments" },
+            (payload) => {
+              if (payload.new) {
+                handleIncomingNew(payload.new as LiveComment);
+              }
             }
+          )
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "live_comments" },
+            (payload) => {
+              if (payload.new) {
+                handleIncomingUpdate(payload.new as LiveComment);
+              }
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "DELETE", schema: "public", table: "live_comments" },
+            (payload) => {
+              if (payload.old && payload.old.id) {
+                handleIncomingDelete(payload.old.id as string);
+              }
+            }
+          )
+          .subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+              setConnected(true);
+            }
+          });
+      } catch (err) {
+        console.warn("Supabase Realtime subscribe warning:", err);
+      }
+    }
+
+    // 3. KANAL KEDUA: Server-Sent Events (SSE) dari local bus
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource("/api/comments/stream");
+      eventSourceRef.current = es;
+
+      es.onopen = () => setConnected(true);
+      es.onerror = () => {
+        // Tetap terhubung melalui Supabase/Polling
+      };
+
+      es.addEventListener("new", (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.comment) {
+            handleIncomingNew(payload.comment);
           }
-        }
-      } catch (err) {
-        console.error("Error parsing SSE:", err);
-      }
-    });
+        } catch {}
+      });
 
-    es.addEventListener("update", (e) => {
-      try {
-        const payload = JSON.parse(e.data);
-        if (payload.comment) {
-          setComments((prev) =>
-            prev.map((c) => (c.id === payload.comment.id ? payload.comment : c))
-          );
-        }
-      } catch (err) {
-        console.error("Error updating SSE:", err);
-      }
-    });
+      es.addEventListener("update", (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.comment) {
+            handleIncomingUpdate(payload.comment);
+          }
+        } catch {}
+      });
 
-    es.addEventListener("delete", (e) => {
+      es.addEventListener("delete", (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.comment) {
+            handleIncomingDelete(payload.comment.id);
+          }
+        } catch {}
+      });
+    } catch (err) {
+      console.warn("SSE init error:", err);
+    }
+
+    // 4. KANAL KETIGA: Smart Fast Background Poller (Setiap 1.5 detik)
+    // Menjamin data 100% konsisten & langsung muncul tanpa refresh manual
+    const pollInterval = setInterval(async () => {
       try {
-        const payload = JSON.parse(e.data);
-        if (payload.comment) {
-          setComments((prev) =>
-            prev.map((c) => (c.id === payload.comment.id ? payload.comment : c))
-          );
+        const res = await fetch("/api/comments?forAdmin=true&limit=50", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data.comments)) {
+          setConnected(true);
+          const freshComments: LiveComment[] = data.comments;
+
+          setComments((prev) => {
+            // Jika isi persis sama, hindari trigger re-render
+            if (
+              freshComments.length === prev.length &&
+              freshComments.every(
+                (fc, i) =>
+                  fc.id === prev[i]?.id &&
+                  fc.is_highlighted === prev[i]?.is_highlighted &&
+                  fc.is_hidden === prev[i]?.is_hidden &&
+                  fc.message === prev[i]?.message
+              )
+            ) {
+              return prev;
+            }
+
+            // Cek apakah ada pesan baru di paling akhir
+            const lastPrev = prev[prev.length - 1];
+            const lastFresh = freshComments[freshComments.length - 1];
+            const hasNewMessage =
+              lastFresh && (!lastPrev || lastFresh.id !== lastPrev.id);
+
+            if (hasNewMessage && chatScrollRef.current) {
+              const { scrollTop, scrollHeight, clientHeight } = chatScrollRef.current;
+              const isNearBottom = scrollHeight - scrollTop - clientHeight < 120;
+              if (isNearBottom) {
+                setTimeout(() => scrollToBottom(true), 40);
+              } else {
+                setHasNewMessageBelow(true);
+              }
+            }
+
+            return freshComments;
+          });
         }
-      } catch (err) {
-        console.error("Error deleting SSE:", err);
+      } catch {
+        // Silent error
       }
-    });
+    }, 1500);
 
     return () => {
       controller.abort();
-      es.close();
-      eventSourceRef.current = null;
+      clearInterval(pollInterval);
+      if (es) {
+        es.close();
+        eventSourceRef.current = null;
+      }
+      if (supabase && supabaseChannel) {
+        supabase.removeChannel(supabaseChannel);
+      }
     };
   }, [scrollToBottom]);
 
