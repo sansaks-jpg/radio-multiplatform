@@ -34,6 +34,8 @@ interface LiveDetailSheetProps {
   matchedProgram?: Program | null;
   /** Mulai stream otomatis saat sheet dibuka (jika belum playing/buffering). */
   autoPlayOnOpen?: boolean;
+  /** Buka langsung dalam mode visual radio studio vMix */
+  initialVisual?: boolean;
 }
 
 const MAX_LEN = 200;
@@ -156,6 +158,7 @@ export function LiveDetailSheet({
   nowPlaying,
   matchedProgram,
   autoPlayOnOpen = false,
+  initialVisual = false,
 }: LiveDetailSheetProps) {
   const colors = useThemeStore((s) => s.colors);
   const glow = useThemeStore((s) => s.glow);
@@ -172,9 +175,20 @@ export function LiveDetailSheet({
   const [draftMessage, setDraftMessage] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const [programInfoOpen, setProgramInfoOpen] = useState(false);
-  const [isVisualActive, setIsVisualActive] = useState(false);
+  const [isVisualActive, setIsVisualActive] = useState(initialVisual);
   // Melacak apakah radio sedang aktif sebelum visual dibuka
   const wasPlayingBeforeVisual = React.useRef(false);
+
+  // Jika dibuka dengan initialVisual, aktifkan visual segera
+  useEffect(() => {
+    if (visible && initialVisual) {
+      wasPlayingBeforeVisual.current =
+        status === "playing" || status === "buffering";
+      void pause();
+      void stopLive();
+      setIsVisualActive(true);
+    }
+  }, [visible, initialVisual, pause, status]);
 
   const isPlaying = status === "playing";
   const isBuffering = status === "buffering";

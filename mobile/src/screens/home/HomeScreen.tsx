@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useAuthStore } from "../../stores/authStore";
@@ -7,7 +8,7 @@ import { usePrograms } from "../../hooks/usePrograms";
 import { flattenNewsPages, useNews } from "../../hooks/useNews";
 import { useBanners } from "../../hooks/useBanners";
 import { isOnAirNow, todayDow, getWibParts } from "../../utils/datetime";
-import { openExternalUrl, openYouTube } from "../../services/youtube";
+import { openExternalUrl } from "../../services/youtube";
 import { Screen } from "../../components/ui/Screen";
 import { TopNavbar } from "../../components/ui/TopNavbar";
 import { OfflineBanner } from "../../components/ui/OfflineBanner";
@@ -18,10 +19,6 @@ import { HomeNewsPreview } from "../../components/home/HomeNewsPreview";
 import { HomeHero } from "../../components/home/HomeHero";
 import { HomeUpNext } from "../../components/home/HomeUpNext";
 import { HomeQuickActions } from "../../components/home/HomeQuickActions";
-import {
-  VisualLiveCard,
-  type VisualLiveCardHandle,
-} from "../../components/home/VisualLiveCard";
 import type { Banner } from "../../types";
 
 /** Time-of-day greeting (WIB device clock). */
@@ -82,11 +79,16 @@ export function HomeScreen() {
 
   const newsItems = flattenNewsPages(news.data?.pages).slice(0, 5);
   const [liveSheetOpen, setLiveSheetOpen] = useState(false);
-  const visualCardRef = useRef<VisualLiveCardHandle>(null);
+  const [openWithVisual, setOpenWithVisual] = useState(false);
 
   const openVisualRadio = useCallback(() => {
-    const opened = visualCardRef.current?.openPlayer();
-    if (!opened) void openYouTube("channel");
+    setOpenWithVisual(true);
+    setLiveSheetOpen(true);
+  }, []);
+
+  const openAudioRadio = useCallback(() => {
+    setOpenWithVisual(false);
+    setLiveSheetOpen(true);
   }, []);
 
   const name = displayName(profile?.full_name);
@@ -160,7 +162,7 @@ export function HomeScreen() {
         <View className="mb-6">
           <HomeHero
             matchedProgram={onAirProgram}
-            onOpenDetail={() => setLiveSheetOpen(true)}
+            onOpenDetail={openAudioRadio}
             now={now}
           />
           {nextProgram ? (
@@ -220,9 +222,43 @@ export function HomeScreen() {
         {/* Visual radio */}
         <View className="mb-8">
           <SectionHeader title="Visual Radio Studio" />
-          <View className="mt-4">
-            <VisualLiveCard ref={visualCardRef} />
-          </View>
+          <Pressable
+            onPress={openVisualRadio}
+            accessibilityRole="button"
+            accessibilityLabel="Tonton siaran visual radio studio"
+            className="mt-4 overflow-hidden rounded-[24px] bg-surface border border-line/40 p-4 active:opacity-90 shadow-sm"
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 rounded-full bg-live/15 items-center justify-center">
+                  <Ionicons name="videocam" size={22} color="#FF3B30" />
+                </View>
+                <View>
+                  <Text
+                    className="text-sm font-bold text-text"
+                    style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                  >
+                    Tonton Siaran Studio Live
+                  </Text>
+                  <Text
+                    className="text-xs text-text-dim mt-0.5"
+                    style={{ fontFamily: "PlusJakartaSans_400Regular" }}
+                  >
+                    Siaran langsung vMix studio & interaksi
+                  </Text>
+                </View>
+              </View>
+              <View className="rounded-full bg-brand px-3.5 py-1.5 flex-row items-center gap-1.5 shadow-sm">
+                <Ionicons name="play" size={13} color="#FFFFFF" />
+                <Text
+                  className="text-xs font-bold text-white"
+                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                >
+                  Buka
+                </Text>
+              </View>
+            </View>
+          </Pressable>
         </View>
 
         {/* Berita Terkini */}
@@ -233,10 +269,14 @@ export function HomeScreen() {
 
       <LiveDetailSheet
         visible={liveSheetOpen}
-        onClose={() => setLiveSheetOpen(false)}
+        onClose={() => {
+          setLiveSheetOpen(false);
+          setOpenWithVisual(false);
+        }}
         nowPlaying={nowPlaying}
         matchedProgram={onAirProgram}
-        autoPlayOnOpen
+        autoPlayOnOpen={!openWithVisual}
+        initialVisual={openWithVisual}
       />
     </Screen>
   );

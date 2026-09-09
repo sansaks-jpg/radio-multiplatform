@@ -296,11 +296,14 @@ export function MediaMtxVisualPlayer({
 `;
 
   return (
-    <View className="relative aspect-[16/9] w-full overflow-hidden bg-black">
+    <View
+      className="relative w-full overflow-hidden bg-black"
+      style={{ minHeight: 215, aspectRatio: 16 / 9 }}
+    >
       <WebView
         ref={webViewRef}
         source={{ html: htmlContent, baseUrl: "http://40.81.231.250:8888/" }}
-        style={{ width: "100%", height: "100%", backgroundColor: "#000000" }}
+        style={{ flex: 1, width: "100%", minHeight: 215, backgroundColor: "#000000" }}
         allowsInlineMediaPlayback
         allowsFullscreenVideo
         mixedContentMode="always"
