@@ -170,7 +170,7 @@ export function LiveDetailSheet({
   const { toggle, play, pause } = usePlayerControls();
   const { stats } = useIcecastStats();
 
-  const { comments, send: sendLiveCommentMessage, isSending } =
+  const { comments, send: sendLiveCommentMessage } =
     useLiveComments(visible);
   const [draftMessage, setDraftMessage] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
@@ -194,7 +194,7 @@ export function LiveDetailSheet({
   const isBuffering = status === "buffering";
   const streamHealthy = isPlaying || isBuffering;
   const isDark = mode === "dark";
-  const canSend = draftMessage.trim().length > 0 && !isSending;
+  const canSend = draftMessage.trim().length > 0;
   const displayName = profile?.full_name?.trim() || "Kamu";
   const cover =
     matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
@@ -229,13 +229,11 @@ export function LiveDetailSheet({
       setProgramInfoOpen(false);
 
       // Jika sheet ditutup saat visual radio sedang aktif,
-      // nonaktifkan visual dan lanjutkan kembali siaran audio radio jika sebelumnya aktif
+      // nonaktifkan visual dan lanjutkan siaran audio radio agar tidak mati total
       if (isVisualActive) {
         setIsVisualActive(false);
-        if (wasPlayingBeforeVisual.current) {
-          void play();
-          wasPlayingBeforeVisual.current = false;
-        }
+        void play();
+        wasPlayingBeforeVisual.current = false;
       }
     }
   }, [visible, isVisualActive, play]);
@@ -250,14 +248,14 @@ export function LiveDetailSheet({
 
   const sendComment = useCallback(() => {
     const text = draftMessage.trim();
-    if (!text || isSending) return;
+    if (!text) return;
+    setDraftMessage("");
     void sendLiveCommentMessage(
       text.slice(0, MAX_LEN),
       displayName,
       profile?.id ?? "me"
     );
-    setDraftMessage("");
-  }, [draftMessage, isSending, sendLiveCommentMessage, displayName, profile?.id]);
+  }, [draftMessage, sendLiveCommentMessage, displayName, profile?.id]);
 
   const listenerLabel = useMemo(() => {
     if (!stats.isLive) return "—";
@@ -320,120 +318,120 @@ export function LiveDetailSheet({
             isVisualActive ? "w-full" : "mx-4 rounded-card"
           } overflow-hidden bg-surface`}
         >
-          {!keyboardOpen ? (
-            isVisualActive ? (
-              <MediaMtxVisualPlayer onCloseVisual={handleToggleVisual} />
-            ) : (
-              <View className="relative aspect-[16/9] w-full bg-surface-2">
-                {cover ? (
-                  <Image
-                    source={{ uri: cover }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                    transition={200}
-                  />
-                ) : (
-                  <View className="h-full w-full items-center justify-center">
-                    <Ionicons name="radio" size={48} color={colors.brand} />
-                  </View>
-                )}
-                <View className="absolute left-2.5 top-2.5">
-                  <LiveBadge active={streamHealthy} size="sm" />
-                </View>
-
-                {/* ── Visual Radio Toggle Button ── */}
-                <Pressable
-                  onPress={handleToggleVisual}
-                  accessibilityRole="button"
-                  accessibilityLabel="Beralih ke Visual Radio"
-                  className="absolute right-2.5 top-2.5 flex-row items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 active:opacity-85"
-                >
-                  <Ionicons name="videocam" size={14} color={colors.onBrand} />
-                  <Text
-                    className="text-xs font-bold text-onbrand"
-                    style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                  >
-                    Visual Radio
-                  </Text>
-                </Pressable>
-
-                <View className="absolute bottom-2.5 right-2.5 flex-row items-center gap-1 rounded-full bg-black/55 px-2 py-1">
-                  <Ionicons name="eye" size={12} color="#FFFFFF" />
-                  <Text
-                    className="text-[11px] font-bold text-white"
-                    style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                  >
-                    {listenerLabel}
-                  </Text>
-                </View>
-              </View>
-            )
-          ) : null}
-
-          <View className="flex-row items-center gap-3 px-4 py-3">
-            {keyboardOpen && cover ? (
-              <View className="h-11 w-11 overflow-hidden rounded-md bg-surface-2">
+          {isVisualActive ? (
+            <MediaMtxVisualPlayer onCloseVisual={handleToggleVisual} />
+          ) : !keyboardOpen ? (
+            <View className="relative aspect-[16/9] w-full bg-surface-2">
+              {cover ? (
                 <Image
                   source={{ uri: cover }}
-                  style={{ width: 44, height: 44 }}
+                  style={{ width: "100%", height: "100%" }}
                   contentFit="cover"
+                  transition={200}
                 />
+              ) : (
+                <View className="h-full w-full items-center justify-center">
+                  <Ionicons name="radio" size={48} color={colors.brand} />
+                </View>
+              )}
+              <View className="absolute left-2.5 top-2.5">
+                <LiveBadge active={streamHealthy} size="sm" />
               </View>
-            ) : null}
-            <View className="min-w-0 flex-1">
-              <Text
-                className="text-base font-extrabold text-text"
-                numberOfLines={keyboardOpen ? 1 : 2}
-                style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+
+              {/* ── Visual Radio Toggle Button ── */}
+              <Pressable
+                onPress={handleToggleVisual}
+                accessibilityRole="button"
+                accessibilityLabel="Beralih ke Visual Radio"
+                className="absolute right-2.5 top-2.5 flex-row items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 active:opacity-85"
               >
-                {title}
-              </Text>
-              <View className="mt-1 flex-row items-center gap-1">
-                <Ionicons name="mic" size={12} color={colors.brand} />
+                <Ionicons name="videocam" size={14} color={colors.onBrand} />
                 <Text
-                  className="text-xs font-semibold text-brand"
-                  numberOfLines={1}
-                  style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                  className="text-xs font-bold text-onbrand"
+                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
                 >
-                  {host}
+                  Visual Radio
+                </Text>
+              </Pressable>
+
+              <View className="absolute bottom-2.5 right-2.5 flex-row items-center gap-1 rounded-full bg-black/55 px-2 py-1">
+                <Ionicons name="eye" size={12} color="#FFFFFF" />
+                <Text
+                  className="text-[11px] font-bold text-white"
+                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                >
+                  {listenerLabel}
                 </Text>
               </View>
             </View>
+          ) : null}
 
-            <Pressable
-              onPress={() => {
-                if (isVisualActive) {
-                  handleToggleVisual();
-                  return;
+          {!keyboardOpen || !isVisualActive ? (
+            <View className="flex-row items-center gap-3 px-4 py-3">
+              {keyboardOpen && cover ? (
+                <View className="h-11 w-11 overflow-hidden rounded-md bg-surface-2">
+                  <Image
+                    source={{ uri: cover }}
+                    style={{ width: 44, height: 44 }}
+                    contentFit="cover"
+                  />
+                </View>
+              ) : null}
+              <View className="min-w-0 flex-1">
+                <Text
+                  className="text-base font-extrabold text-text"
+                  numberOfLines={keyboardOpen ? 1 : 2}
+                  style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                >
+                  {title}
+                </Text>
+                <View className="mt-1 flex-row items-center gap-1">
+                  <Ionicons name="mic" size={12} color={colors.brand} />
+                  <Text
+                    className="text-xs font-semibold text-brand"
+                    numberOfLines={1}
+                    style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                  >
+                    {host}
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                onPress={() => {
+                  if (isVisualActive) {
+                    handleToggleVisual();
+                    return;
+                  }
+                  void toggle();
+                }}
+                disabled={isBuffering}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isVisualActive
+                    ? "Tutup visual radio, lanjutkan audio"
+                    : isPlaying
+                    ? "Stop siaran"
+                    : "Putar siaran"
                 }
-                void toggle();
-              }}
-              disabled={isBuffering}
-              accessibilityRole="button"
-              accessibilityLabel={
-                isVisualActive
-                  ? "Tutup visual radio, lanjutkan audio"
-                  : isPlaying
-                  ? "Stop siaran"
-                  : "Putar siaran"
-              }
-              className={`h-12 w-12 items-center justify-center rounded-full active:opacity-90 ${
-                isVisualActive ? "bg-surface-3" : "bg-orange"
-              }`}
-              style={isVisualActive ? undefined : glow.orange}
-            >
-              {isBuffering ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Ionicons
-                  name={isVisualActive ? "close" : isPlaying ? "stop" : "play"}
-                  size={20}
-                  color={isVisualActive ? colors.textDim : "#FFFFFF"}
-                  style={{ marginLeft: isPlaying || isVisualActive ? 0 : 2 }}
-                />
-              )}
-            </Pressable>
-          </View>
+                className={`h-12 w-12 items-center justify-center rounded-full active:opacity-90 ${
+                  isVisualActive ? "bg-surface-3" : "bg-orange"
+                }`}
+                style={isVisualActive ? undefined : glow.orange}
+              >
+                {isBuffering ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Ionicons
+                    name={isVisualActive ? "close" : isPlaying ? "stop" : "play"}
+                    size={20}
+                    color={isVisualActive ? colors.textDim : "#FFFFFF"}
+                    style={{ marginLeft: isPlaying || isVisualActive ? 0 : 2 }}
+                  />
+                )}
+              </Pressable>
+            </View>
+          ) : null}
 
           {!keyboardOpen ? (
             <View className="border-t border-line/30 px-4 py-2.5">
@@ -553,7 +551,7 @@ export function LiveDetailSheet({
             }`}
           >
             <TextInput
-              className="max-h-24 min-h-10 flex-1 text-sm text-text"
+              className="min-h-10 flex-1 text-sm text-text"
               placeholder="Tulis komentar atau request lagu…"
               placeholderTextColor={colors.textDim}
               value={draftMessage}
@@ -564,7 +562,6 @@ export function LiveDetailSheet({
               returnKeyType="send"
               blurOnSubmit={false}
               maxLength={MAX_LEN}
-              multiline
               style={{
                 paddingVertical: Platform.OS === "ios" ? 8 : 4,
                 fontFamily: "PlusJakartaSans_400Regular",

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
 import { Image, type ImageSource } from "expo-image";
 import { Carousel } from "react-native-reanimated-carousel";
@@ -55,6 +55,38 @@ export function HomeHeroBanner({
 
   const isInfinite = validBanners.length > 1;
 
+  const renderItem = useCallback(
+    ({ item, index }: { item: Banner; index: number }) => {
+      const source = resolveBannerSource(item);
+      return (
+        <Pressable
+          key={`banner-item-${item.id ?? index}`}
+          onPress={() => onPress?.(item)}
+          accessibilityRole="button"
+          accessibilityLabel={item.title}
+          style={{ width: bannerWidth, height: bannerHeight }}
+        >
+          {source ? (
+            <Image
+              source={source}
+              style={{ width: bannerWidth, height: bannerHeight }}
+              contentFit="cover"
+              priority="high"
+              cachePolicy="memory-disk"
+              recyclingKey={item.id}
+            />
+          ) : (
+            <View
+              style={{ width: bannerWidth, height: bannerHeight }}
+              className="bg-surface-2 items-center justify-center"
+            />
+          )}
+        </Pressable>
+      );
+    },
+    [bannerWidth, bannerHeight, onPress]
+  );
+
   if (validBanners.length === 0 || bannerHeight <= 0) return null;
 
   return (
@@ -65,38 +97,16 @@ export function HomeHeroBanner({
       <Carousel
         loop={isInfinite}
         itemSize={bannerWidth}
+        style={{ width: bannerWidth, height: bannerHeight }}
         autoplay={isInfinite}
         autoplayInterval={autoPlayIntervalMs}
         data={validBanners}
-        animation={{ type: "timing", duration: 1000 }}
-        onSnapToItem={(index: number) => setActiveRealIndex(index)}
-        renderItem={({ item, index }: { item: Banner; index: number }) => {
-          const source = resolveBannerSource(item);
-          return (
-            <Pressable
-              key={`banner-item-${index}`}
-              onPress={() => onPress?.(item)}
-              accessibilityRole="button"
-              accessibilityLabel={item.title}
-              style={{ width: bannerWidth, height: bannerHeight }}
-            >
-              {source ? (
-                <Image
-                  source={source}
-                  style={{ width: bannerWidth, height: bannerHeight }}
-                  contentFit="cover"
-                  priority="high"
-                  cachePolicy="memory-disk"
-                />
-              ) : (
-                <View
-                  style={{ width: bannerWidth, height: bannerHeight }}
-                  className="bg-surface-2 items-center justify-center"
-                />
-              )}
-            </Pressable>
-          );
+        keyExtractor={(item) => item.id}
+        onConfigurePanGesture={(gesture) => {
+          gesture.activeOffsetX([-10, 10]).failOffsetY([-5, 5]);
         }}
+        onSnapToItem={(index: number) => setActiveRealIndex(index)}
+        renderItem={renderItem}
       />
 
       {/* Titik indikator bulat presisi & sinkron */}

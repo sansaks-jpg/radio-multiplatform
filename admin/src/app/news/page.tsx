@@ -20,9 +20,8 @@ export default function NewsPage() {
     setSyncing(true);
     try {
       // Simulate network latency for WP edge function
-      await new Promise((r) => setTimeout(r, 700));
-      const { added } = syncNewsFromWordPress();
-      toast.push(`Sync selesai · +${added} artikel (demo WP pull)`);
+      const { added } = await syncNewsFromWordPress();
+      toast.push(`Sync selesai · +${added} artikel tersimpan ke database`);
     } finally {
       setSyncing(false);
     }

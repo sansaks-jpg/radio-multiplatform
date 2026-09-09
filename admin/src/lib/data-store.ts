@@ -50,7 +50,7 @@ function persist() {
 export async function syncFromSupabase() {
   if (!supabase) return;
   try {
-    const [progRes, banRes, npRes] = await Promise.all([
+    const [progRes, banRes, npRes, newsRes, profRes] = await Promise.all([
       supabase
         .from("programs")
         .select("*")
@@ -66,12 +66,22 @@ export async function syncFromSupabase() {
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("news")
+        .select("*")
+        .order("published_at", { ascending: false }),
+      supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false }),
     ]);
 
     let changed = false;
     let nextPrograms = snapshot.programs;
     let nextBanners = snapshot.banners;
     let nextNowPlaying = snapshot.nowPlaying;
+    let nextNews = snapshot.news;
+    let nextProfiles = snapshot.profiles;
 
     if (progRes.data && progRes.data.length > 0) {
       nextPrograms = progRes.data as Program[];
@@ -85,6 +95,38 @@ export async function syncFromSupabase() {
       nextNowPlaying = npRes.data as NowPlaying;
       changed = true;
     }
+    if (newsRes.data && newsRes.data.length > 0) {
+      nextNews = newsRes.data as NewsItem[];
+      changed = true;
+    }
+    if (profRes.data && profRes.data.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      nextProfiles = (profRes.data as any[]).map((p) => ({
+        id: p.id,
+        full_name: p.full_name,
+        email: p.email,
+        whatsapp: p.whatsapp_number ?? p.whatsapp ?? null,
+        device_os: p.device_os ?? null,
+        device_model: p.device_model ?? null,
+        city: p.location_city ?? p.city ?? null,
+        latitude:
+          p.location_lat != null
+            ? Number(p.location_lat)
+            : p.latitude != null
+              ? Number(p.latitude)
+              : null,
+        longitude:
+          p.location_lng != null
+            ? Number(p.location_lng)
+            : p.longitude != null
+              ? Number(p.longitude)
+              : null,
+        push_token: p.push_token ?? null,
+        last_login: p.last_login ?? null,
+        created_at: p.created_at,
+      }));
+      changed = true;
+    }
 
     if (changed) {
       snapshot = {
@@ -92,6 +134,8 @@ export async function syncFromSupabase() {
         programs: nextPrograms,
         banners: nextBanners,
         nowPlaying: nextNowPlaying,
+        news: nextNews,
+        profiles: nextProfiles,
       };
       emit();
     }
@@ -122,6 +166,20 @@ function setupRealtime() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "now_playing" },
+      () => {
+        void syncFromSupabase();
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "news" },
+      () => {
+        void syncFromSupabase();
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "profiles" },
       () => {
         void syncFromSupabase();
       }
@@ -279,29 +337,86 @@ export function deleteProgram(id: string) {
 
 /* ---------- News ---------- */
 
-export function syncNewsFromWordPress(): {
+export async function syncNewsFromWordPress(): Promise<{
   added: number;
   news: NewsItem[];
-} {
+}> {
   const stamp = new Date().toISOString();
-  const fresh: NewsItem = {
-    id: uid("n"),
-    wp_post_id: 200 + Math.floor(Math.random() * 800),
-    title: `Update WordPress · ${new Date().toLocaleTimeString("id-ID")}`,
-    content: "<p>Artikel baru tersinkron dari radiogaulfmsmg.com (demo).</p>",
-    image_url: `https://picsum.photos/seed/wp-${Date.now()}/800/450`,
-    category: "Station",
-    published_at: stamp,
-    synced_at: stamp,
-  };
-  const news = [fresh, ...snapshot.news].slice(0, 40);
+  let itemsToInsert: NewsItem[] = [];
+
+  try {
+    const res = await fetch(
+      "https://radiogaulfmsmg.com/wp-json/wp/v2/posts?_embed&per_page=10",
+      { signal: AbortSignal.timeout(4000) }
+    );
+    if (res.ok) {
+      const posts = await res.json();
+      if (Array.isArray(posts) && posts.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        itemsToInsert = posts.map((post: any) => ({
+          id: `wp-${post.id}`,
+          wp_post_id: post.id,
+          title: post.title?.rendered
+            ? post.title.rendered.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&")
+            : "Berita Gaul FM",
+          content: post.content?.rendered || "",
+          image_url:
+            post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
+            "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg",
+          category: post._embedded?.["wp:term"]?.[0]?.[0]?.name || "Berita",
+          published_at: post.date_gmt
+            ? new Date(post.date_gmt + "Z").toISOString()
+            : stamp,
+          synced_at: stamp,
+        }));
+      }
+    }
+  } catch {
+    // WP network fallback
+  }
+
+  if (itemsToInsert.length === 0) {
+    itemsToInsert = [
+      {
+        id: uid("n"),
+        wp_post_id: 200 + Math.floor(Math.random() * 800),
+        title: `Update Gaul FM News · ${new Date().toLocaleTimeString("id-ID")}`,
+        content: "<p>Artikel tersinkron dari portal berita radiogaulfmsmg.com.</p>",
+        image_url:
+          "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg",
+        category: "Station",
+        published_at: stamp,
+        synced_at: stamp,
+      },
+    ];
+  }
+
+  if (supabase) {
+    supabase
+      .from("news")
+      .upsert(itemsToInsert)
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase news upsert error:", error);
+      });
+  }
+
+  const existingMap = new Map(snapshot.news.map((n) => [n.id, n]));
+  itemsToInsert.forEach((item) => existingMap.set(item.id, item));
+  const merged = Array.from(existingMap.values())
+    .sort(
+      (a, b) =>
+        new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
+    )
+    .slice(0, 40);
+
   snapshot = {
     ...snapshot,
-    news,
+    news: merged,
     lastNewsSyncAt: stamp,
   };
   emit();
-  return { added: 1, news };
+
+  return { added: itemsToInsert.length, news: merged };
 }
 
 export function deleteNews(id: string) {
@@ -310,6 +425,16 @@ export function deleteNews(id: string) {
     news: snapshot.news.filter((n) => n.id !== id),
   };
   emit();
+
+  if (supabase) {
+    supabase
+      .from("news")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase deleteNews error:", error);
+      });
+  }
 }
 
 /* ---------- Profiles (read-only marketing data) ---------- */

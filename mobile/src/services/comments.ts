@@ -36,6 +36,37 @@ function getTargetUrls(): string[] {
   return urls;
 }
 
+const NETWORK_TIMEOUT_MS = 3500;
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  timeoutMs = NETWORK_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function withTimeout<T>(
+  promise: PromiseLike<T>,
+  timeoutMs = NETWORK_TIMEOUT_MS
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout")), timeoutMs)
+    ),
+  ]);
+}
+
 /**
  * Mengambil daftar komentar terbaru dari Supabase atau Next.js API.
  * Jika offline/demo mode, kembalikan mock data (maksimal 50).
@@ -47,12 +78,14 @@ export async function fetchRecentComments(
   const supabase = getSupabase();
   if (supabase && isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
-        .from("live_comments")
-        .select("*")
-        .eq("is_hidden", false)
-        .order("created_at", { ascending: false })
-        .limit(safeLimit);
+      const { data, error } = await withTimeout(
+        supabase
+          .from("live_comments")
+          .select("*")
+          .eq("is_hidden", false)
+          .order("created_at", { ascending: false })
+          .limit(safeLimit)
+      );
 
       if (!error && data) {
         return data as LiveComment[];
@@ -67,7 +100,7 @@ export async function fetchRecentComments(
 
   for (const baseUrl of urls) {
     try {
-      const res = await fetch(`${baseUrl}/api/comments?limit=${safeLimit}`);
+      const res = await fetchWithTimeout(`${baseUrl}/api/comments?limit=${safeLimit}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.comments)) {
@@ -91,12 +124,14 @@ export async function fetchDeltaComments(
   const supabase = getSupabase();
   if (supabase && isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
-        .from("live_comments")
-        .select("*")
-        .eq("is_hidden", false)
-        .gt("created_at", sinceIso)
-        .order("created_at", { ascending: false });
+      const { data, error } = await withTimeout(
+        supabase
+          .from("live_comments")
+          .select("*")
+          .eq("is_hidden", false)
+          .gt("created_at", sinceIso)
+          .order("created_at", { ascending: false })
+      );
 
       if (!error && data) {
         return data as LiveComment[];
@@ -111,7 +146,7 @@ export async function fetchDeltaComments(
 
   for (const baseUrl of deltaUrls) {
     try {
-      const res = await fetch(`${baseUrl}/api/comments?limit=50`);
+      const res = await fetchWithTimeout(`${baseUrl}/api/comments?limit=50`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.comments)) {
@@ -141,18 +176,20 @@ export async function sendLiveComment(payload: {
   const supabase = getSupabase();
   if (supabase && isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
-        .from("live_comments")
-        .insert({
-          user_name: payload.userName,
-          message: payload.message,
-          avatar_seed: payload.avatarSeed ?? "listener",
-          is_highlighted: false,
-          is_hidden: false,
-          is_broadcaster: false,
-        })
-        .select()
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("live_comments")
+          .insert({
+            user_name: payload.userName,
+            message: payload.message,
+            avatar_seed: payload.avatarSeed ?? "listener",
+            is_highlighted: false,
+            is_hidden: false,
+            is_broadcaster: false,
+          })
+          .select()
+          .single()
+      );
 
       if (!error && data) {
         return data as LiveComment;
@@ -167,7 +204,7 @@ export async function sendLiveComment(payload: {
 
   for (const baseUrl of sendUrls) {
     try {
-      const res = await fetch(`${baseUrl}/api/comments`, {
+      const res = await fetchWithTimeout(`${baseUrl}/api/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

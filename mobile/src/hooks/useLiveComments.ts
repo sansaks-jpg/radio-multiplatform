@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import {
   fetchRecentComments,
@@ -14,6 +14,9 @@ export function useLiveComments(enabled: boolean) {
   const [comments, setComments] = useState<LiveComment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+
+  const pendingSendsCount = useRef(0);
+  const lastSendTime = useRef(0);
 
   // Initial load when opened
   const loadInitial = useCallback(async () => {
@@ -93,9 +96,9 @@ export function useLiveComments(enabled: boolean) {
           setComments((prev) => {
             if (prev.length === 0) return fresh;
 
-            // Pertahankan optimistic comments lokal yang belum tersimpan
-            const pendingOptimistic = prev.filter((c) =>
-              c.id.startsWith("temp-")
+            // Pertahankan optimistic & local comments lokal yang belum tersinkron
+            const pendingOptimistic = prev.filter(
+              (c) => c.id.startsWith("temp-") || c.id.startsWith("local-")
             );
             const freshIds = new Set(fresh.map((c) => c.id));
             const retainedPending = pendingOptimistic.filter(
@@ -119,14 +122,23 @@ export function useLiveComments(enabled: boolean) {
     };
   }, [enabled, loadInitial]);
 
-  // Kirim komentar
+  // Kirim komentar — asynchronous tanpa blocking interaksi pengguna
   const send = useCallback(
     async (message: string, userName: string, avatarSeed?: string | null) => {
       const text = message.trim();
-      if (!text || isSending) return;
+      if (!text) return;
 
+      // Throttle ringan (200ms) untuk mencegah double-tap spam tidak sengaja
+      const now = Date.now();
+      if (now - lastSendTime.current < 200) {
+        return;
+      }
+      lastSendTime.current = now;
+
+      pendingSendsCount.current += 1;
       setIsSending(true);
-      const tempId = `temp-${Date.now()}`;
+
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const optimisticComment: LiveComment = {
         id: tempId,
         user_name: userName,
@@ -138,7 +150,7 @@ export function useLiveComments(enabled: boolean) {
         is_broadcaster: false,
       };
 
-      // Optimistic update (maksimal 50)
+      // Optimistic update instan (maksimal 50)
       setComments((prev) => [optimisticComment, ...prev].slice(0, MAX_COMMENTS_LIMIT));
 
       try {
@@ -155,10 +167,13 @@ export function useLiveComments(enabled: boolean) {
       } catch {
         // Biarkan pesan optimis tetap tampil di sesi lokal
       } finally {
-        setIsSending(false);
+        pendingSendsCount.current = Math.max(0, pendingSendsCount.current - 1);
+        if (pendingSendsCount.current === 0) {
+          setIsSending(false);
+        }
       }
     },
-    [isSending]
+    []
   );
 
   return {
