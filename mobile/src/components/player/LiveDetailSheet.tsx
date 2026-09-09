@@ -14,14 +14,15 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { NowPlaying, Program } from "../../types";
+import type { LiveComment, NowPlaying, Program } from "../../types";
 import { useThemeStore } from "../../stores/themeStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useAuthStore } from "../../stores/authStore";
 import { usePlayerControls } from "../../hooks/usePlayerControls";
+import { stopLive } from "../../services/audio/trackPlayerService";
 import { useIcecastStats } from "../../hooks/useIcecastStats";
 import { useKeyboardInset } from "../../hooks/useKeyboardInset";
-import { mockComments, type LiveComment } from "../../mocks/comments";
+import { useLiveComments } from "../../hooks/useLiveComments";
 import { LiveBadge } from "./LiveBadge";
 import { MediaMtxVisualPlayer } from "./MediaMtxVisualPlayer";
 import { DAY_FULL_ID, formatDistanceToNow } from "../../utils/datetime";
@@ -56,42 +57,42 @@ function CommentRow({
   isMe: boolean;
   isDark: boolean;
 }) {
-  if (isMe) {
-    return (
-      <View className="mb-3 items-end pl-12">
-        <View className="max-w-full rounded-card rounded-br-sm bg-brand/15 px-3 py-2">
-          <Text
-            className="text-[11px] font-bold text-brand"
-            style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-          >
-            Kamu
-          </Text>
-          <Text
-            className="mt-0.5 text-sm leading-5 text-text"
-            style={{ fontFamily: "PlusJakartaSans_400Regular" }}
-          >
-            {item.message}
-          </Text>
-          <Text
-            className="mt-1 text-right text-[10px] text-text-dim"
-            style={{ fontFamily: "PlusJakartaSans_500Medium" }}
-          >
-            {formatDistanceToNow(item.created_at)}
-          </Text>
-        </View>
-      </View>
-    );
-  }
+  const isHighlighted = item.is_highlighted;
+  const isStudio = item.is_broadcaster;
 
   return (
     <View
       className={`mb-3 flex-row gap-2.5 ${
-        item.is_highlighted ? "rounded-card bg-orange/8 p-2" : "pr-6"
+        isHighlighted
+          ? "rounded-card bg-orange/10 border border-orange/30 p-2.5"
+          : isStudio
+          ? "rounded-card bg-brand/10 border border-brand/25 p-2.5"
+          : isMe
+          ? "rounded-card bg-surface-2/60 p-2"
+          : "pr-4"
       }`}
     >
-      <View className="h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand/20 border border-surface">
+      <View
+        className={`h-9 w-9 items-center justify-center overflow-hidden rounded-full border ${
+          isStudio
+            ? "bg-brand/30 border-brand"
+            : isHighlighted
+            ? "bg-orange/25 border-orange"
+            : isMe
+            ? "bg-brand/20 border-brand/40"
+            : "bg-surface-2 border-line/40"
+        }`}
+      >
         <Text
-          className="text-[11px] font-extrabold text-brand"
+          className={`text-[11px] font-extrabold ${
+            isStudio
+              ? "text-brand"
+              : isHighlighted
+              ? "text-orange"
+              : isMe
+              ? "text-brand"
+              : "text-text"
+          }`}
           style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
         >
           {initials(item.user_name)}
@@ -100,13 +101,23 @@ function CommentRow({
       <View className="min-w-0 flex-1">
         <View className="flex-row flex-wrap items-center gap-1.5">
           <Text
-            className="text-xs font-bold text-text"
+            className={`text-xs font-bold ${isMe ? "text-brand" : "text-text"}`}
             numberOfLines={1}
             style={{ fontFamily: "PlusJakartaSans_700Bold" }}
           >
             {item.user_name}
           </Text>
-          {item.is_highlighted ? (
+          {isStudio ? (
+            <View className="rounded-full bg-brand/20 px-1.5 py-0.5">
+              <Text
+                className="text-[9px] font-bold uppercase tracking-wider text-brand"
+                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+              >
+                Studio
+              </Text>
+            </View>
+          ) : null}
+          {isHighlighted ? (
             <View className="rounded-full bg-orange/20 px-1.5 py-0.5">
               <Text
                 className="text-[9px] font-bold uppercase tracking-wider text-orange"
@@ -156,9 +167,8 @@ export function LiveDetailSheet({
   const { toggle, play, pause } = usePlayerControls();
   const { stats } = useIcecastStats();
 
-  const [comments, setComments] = useState<LiveComment[]>(() => [
-    ...mockComments,
-  ]);
+  const { comments, send: sendLiveCommentMessage, isSending } =
+    useLiveComments(visible);
   const [draftMessage, setDraftMessage] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const [programInfoOpen, setProgramInfoOpen] = useState(false);
@@ -170,7 +180,7 @@ export function LiveDetailSheet({
   const isBuffering = status === "buffering";
   const streamHealthy = isPlaying || isBuffering;
   const isDark = mode === "dark";
-  const canSend = draftMessage.trim().length > 0;
+  const canSend = draftMessage.trim().length > 0 && !isSending;
   const displayName = profile?.full_name?.trim() || "Kamu";
   const cover =
     matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
@@ -186,6 +196,7 @@ export function LiveDetailSheet({
       wasPlayingBeforeVisual.current =
         status === "playing" || status === "buffering";
       void pause();
+      void stopLive();
       setIsVisualActive(true);
     } else {
       setIsVisualActive(false);
@@ -215,67 +226,24 @@ export function LiveDetailSheet({
     }
   }, [visible, isVisualActive, play]);
 
-  // Auto-play sekali saat sheet dibuka — jangan re-trigger saat user pause.
+  // Auto-play sekali saat sheet dibuka — jangan re-trigger saat user pause atau saat visual sedang aktif
   useEffect(() => {
-    if (!visible || !autoPlayOnOpen) return;
+    if (!visible || !autoPlayOnOpen || isVisualActive) return;
     const current = usePlayerStore.getState().status;
     if (current === "playing" || current === "buffering") return;
     void play();
-  }, [visible, autoPlayOnOpen, play]);
-
-  useEffect(() => {
-    if (!visible) return;
-    const dummyMessages = [
-      {
-        user_name: "Gita_Semarang",
-        avatar_seed: "gita",
-        message: "Lanjutkan kak! 🎶",
-      },
-      {
-        user_name: "Wahyu_Tembalang",
-        avatar_seed: "wahyu",
-        message: "Request Coldplay - Yellow dong!",
-      },
-      {
-        user_name: "FanGaulFM",
-        avatar_seed: "fan",
-        message: "Keren banget siaran hari ini 🔥",
-      },
-    ] as const;
-    let idx = 0;
-    const interval = setInterval(() => {
-      const dummy = dummyMessages[idx % dummyMessages.length];
-      if (!dummy) return;
-      idx += 1;
-      setComments((prev) => [
-        {
-          id: `live-${Date.now()}-${idx}`,
-          user_name: dummy.user_name,
-          avatar_seed: dummy.avatar_seed,
-          message: dummy.message,
-          created_at: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [visible]);
+  }, [visible, autoPlayOnOpen, play, isVisualActive]);
 
   const sendComment = useCallback(() => {
     const text = draftMessage.trim();
-    if (!text) return;
-    setComments((prev) => [
-      {
-        id: `user-${Date.now()}`,
-        user_name: displayName,
-        avatar_seed: profile?.id ?? "me",
-        message: text.slice(0, MAX_LEN),
-        created_at: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
+    if (!text || isSending) return;
+    void sendLiveCommentMessage(
+      text.slice(0, MAX_LEN),
+      displayName,
+      profile?.id ?? "me"
+    );
     setDraftMessage("");
-  }, [draftMessage, displayName, profile?.id]);
+  }, [draftMessage, isSending, sendLiveCommentMessage, displayName, profile?.id]);
 
   const listenerLabel = useMemo(() => {
     if (!stats.isLive) return "—";

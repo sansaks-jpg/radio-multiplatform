@@ -83,7 +83,7 @@ export function EditProfileScreen() {
   };
 
   return (
-    <Screen scroll dockInset="keyboard">
+    <Screen scroll keyboardAvoiding>
       {/* Header */}
       <View className="mt-2 mb-6 flex-row items-center justify-between">
         <Pressable

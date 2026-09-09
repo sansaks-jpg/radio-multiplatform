@@ -139,7 +139,7 @@ export default function StreamsPage() {
         <StatCard label="Audio Server" value="Icecast" hint="Port 8000" tone="brand" icon={<Radio />} />
         <StatCard label="Visual Server" value="MediaMTX" hint="Port 1935" tone="orange" icon={<Video />} />
         <StatCard label="Cloud Hub" value="40.81.231.250" hint="Azure VM" tone="default" icon={<Activity />} />
-        <StatCard label="YouTube Restream" value={ytEnabled ? "Aktif" : "Nonaktif"} hint="Direct Copy Engine" tone={ytEnabled ? "success" : "muted"} icon={<Cast />} />
+        <StatCard label="YouTube Restream" value={ytEnabled ? "Aktif" : "Nonaktif"} hint="Direct Copy Engine" tone={ytEnabled ? "brand" : "default"} icon={<Cast />} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">
@@ -219,7 +219,7 @@ export default function StreamsPage() {
                     <div className="p-4 rounded-full bg-muted/50 mb-4">
                       <Tv className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <Button variant="brand" onClick={testVisualStream} disabled={isVideoLoading} className="shadow-lg">
+                    <Button variant="primary" onClick={testVisualStream} disabled={isVideoLoading} className="shadow-lg">
                       <PlayIcon className="mr-2 h-4 w-4" /> 
                       {isVideoLoading ? "Menghubungkan HLS..." : "Muat Siaran Visual"}
                     </Button>
@@ -262,7 +262,7 @@ export default function StreamsPage() {
                   >
                     {ytEnabled ? "Matikan Push" : "Aktifkan Push"}
                   </Button>
-                  <Button variant="brand" onClick={handleSyncYoutube} disabled={isSyncing} className="flex-1 sm:flex-none">
+                  <Button variant="primary" onClick={handleSyncYoutube} disabled={isSyncing} className="flex-1 sm:flex-none">
                     <Save className="mr-2 h-4 w-4" />
                     {isSyncing ? "Menyimpan..." : "Terapkan"}
                   </Button>

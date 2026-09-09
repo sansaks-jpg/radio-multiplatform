@@ -17,27 +17,32 @@ def get_config():
     return {"youtube_enabled": False, "youtube_key": ""}
 
 def main():
-    mtx_path = os.environ.get("MTX_PATH", "live_visual")
+    mtx_path = os.environ.get("MTX_PATH", "gaulfm")
     
     config = get_config()
     youtube_enabled = config.get("youtube_enabled", False)
     youtube_key = config.get("youtube_key", "")
 
-    # Base FFmpeg command: Input from MediaMTX (the vMix stream)
+    target_webrtc_path = "gaulfm_webrtc" if mtx_path in ["gaulfm", "live_visual", "gaulfm_in"] else f"{mtx_path}_webrtc"
+
+    # Base FFmpeg command: Input from MediaMTX via local RTSP (fastest, zero-overhead)
     cmd = [
         "ffmpeg",
         "-hide_banner",
-        "-loglevel", "error",
-        "-i", f"rtmp://localhost:1935/{mtx_path}",
+        "-loglevel", "warning",
+        "-rtsp_transport", "tcp",
+        "-i", f"rtsp://localhost:8554/{mtx_path}",
         
         # Output 1: WebRTC Compatible Stream
         # Browsers require Opus audio for WebRTC. AAC will cause silent video.
-        # We copy the video (0% CPU) and transcode audio to Opus.
+        # We copy the video (0% CPU) and transcode audio to Opus at high quality.
         "-c:v", "copy",
         "-c:a", "libopus",
-        "-b:a", "64k",
+        "-b:a", "128k",
+        "-vbr", "on",
+        "-rtsp_transport", "tcp",
         "-f", "rtsp",
-        f"rtsp://localhost:8554/{mtx_path}_webrtc"
+        f"rtsp://localhost:8554/{target_webrtc_path}"
     ]
 
     # Output 2: YouTube Direct Restream

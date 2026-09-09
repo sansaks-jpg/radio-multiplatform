@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Image as ImageIcon,
   LayoutDashboard,
+  MessageSquare,
   Newspaper,
   Radio,
   Users,
@@ -18,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 const navigation = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
   { name: "Now Playing", href: "/now-playing", icon: Radio },
+  { name: "Live Chat", href: "/chat", icon: MessageSquare },
   { name: "Streaming", href: "/streams", icon: Video },
   { name: "Schedule", href: "/schedule", icon: CalendarDays },
   { name: "News Sync", href: "/news", icon: Newspaper },

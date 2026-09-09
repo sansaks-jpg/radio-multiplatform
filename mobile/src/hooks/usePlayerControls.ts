@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { usePlayerStore } from "../stores/playerStore";
 import {
-  pauseLive,
+  stopLive,
   playLive,
   retryLive,
 } from "../services/audio/trackPlayerService";
@@ -39,9 +39,9 @@ export function usePlayerControls(): PlayerControls {
 
   const pause = useCallback(async () => {
     try {
-      await pauseLive();
+      await stopLive();
     } catch (err) {
-      console.warn("[GaulFM] pause failed:", err);
+      console.warn("[GaulFM] stop failed:", err);
     }
   }, []);
 

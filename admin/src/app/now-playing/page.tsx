@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Radio, Save } from "lucide-react";
+import Link from "next/link";
+import { MessageSquare, Radio, Save } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
 import { useToday } from "@/hooks/useToday";
 import { updateNowPlaying } from "@/lib/data-store";
@@ -169,6 +170,18 @@ export default function NowPlayingPage() {
       <PageHeader
         title="Now Playing"
         description="Kontrol info siaran aktif yang tampil di app mobile (home hero, mini player, lock screen)."
+        actions={
+          <Link href="/chat">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 border-brand/40 text-brand hover:bg-brand/10"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Buka Live Chat Studio
+            </Button>
+          </Link>
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-5">

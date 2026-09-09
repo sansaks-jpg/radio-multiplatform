@@ -15,6 +15,17 @@ export interface NowPlaying {
   updated_at?: string;
 }
 
+export interface LiveComment {
+  id: string;
+  user_name: string;
+  avatar_seed?: string | null;
+  message: string;
+  created_at: string;
+  is_highlighted?: boolean;
+  is_hidden?: boolean;
+  is_broadcaster?: boolean;
+}
+
 /**
  * day_of_week follows the JavaScript Date.getDay() convention:
  * 0 = Sunday (Minggu) … 6 = Saturday (Sabtu).

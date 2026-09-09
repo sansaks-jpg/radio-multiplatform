@@ -83,6 +83,20 @@ CREATE TABLE IF NOT EXISTS public.banners (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- -----------------------------------------------------------------------------
+-- 6. Table: live_comments (Shoutbox & Live Broadcast Chat)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.live_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_name VARCHAR(100) NOT NULL,
+    avatar_seed VARCHAR(100),
+    message VARCHAR(300) NOT NULL,
+    is_highlighted BOOLEAN NOT NULL DEFAULT false,
+    is_hidden BOOLEAN NOT NULL DEFAULT false,
+    is_broadcaster BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- =============================================================================
 -- INDEXES FOR QUERY OPTIMIZATION
 -- =============================================================================
@@ -92,6 +106,8 @@ CREATE INDEX IF NOT EXISTS idx_news_wp_id ON public.news (wp_post_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles (email);
 CREATE INDEX IF NOT EXISTS idx_profiles_city ON public.profiles (location_city);
 CREATE INDEX IF NOT EXISTS idx_banners_sort ON public.banners (sort_order, is_active);
+CREATE INDEX IF NOT EXISTS idx_live_comments_created ON public.live_comments (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_live_comments_active ON public.live_comments (is_hidden, created_at DESC);
 
 -- =============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
@@ -101,6 +117,7 @@ ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.news ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.live_comments ENABLE ROW LEVEL SECURITY;
 
 -- 1. now_playing: Public read, admin/service role write
 CREATE POLICY "Allow public read on now_playing"
@@ -169,6 +186,27 @@ CREATE POLICY "Admin and service role can delete profile"
         auth.jwt()->'app_metadata'->>'role' = 'admin' 
         OR auth.jwt()->>'role' = 'service_role'
     );
+
+-- 6. live_comments: Public can read non-hidden, anyone can insert, admin can manage all
+CREATE POLICY "Allow public read on non-hidden live_comments"
+    ON public.live_comments FOR SELECT 
+    USING (
+        is_hidden = false 
+        OR auth.jwt()->'app_metadata'->>'role' = 'admin' 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
+
+CREATE POLICY "Allow public insert on live_comments"
+    ON public.live_comments FOR INSERT 
+    WITH CHECK (true);
+
+CREATE POLICY "Allow admin and service role full control on live_comments"
+    ON public.live_comments FOR ALL 
+    USING (
+        auth.jwt()->'app_metadata'->>'role' = 'admin' 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
+
 
 -- =============================================================================
 -- TRIGGERS: AUTO-SYNC AUTH.USERS -> PROFILES

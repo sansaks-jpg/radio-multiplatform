@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { WebView } from "react-native-webview";
-import { Ionicons } from "@expo/vector-icons";
 import {
   VISUAL_RTMP_URL,
   VISUAL_WHEP_URL,
   VISUAL_HLS_URL,
 } from "../../services/visualStream";
+import { stopLive } from "../../services/audio/trackPlayerService";
 
 interface MediaMtxVisualPlayerProps {
   rtmpUrl?: string;
@@ -22,6 +22,11 @@ export function MediaMtxVisualPlayer({
   onCloseVisual,
 }: MediaMtxVisualPlayerProps) {
   const webViewRef = useRef<WebView>(null);
+
+  // Pastikan radio Icecast dimatikan total saat visual player dibuka
+  useEffect(() => {
+    void stopLive();
+  }, []);
 
   // Jalankan pembersihan saat komponen di-unmount oleh React
   useEffect(() => {
@@ -50,7 +55,7 @@ export function MediaMtxVisualPlayer({
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline controls controlsList="nodownload"></video>
+  <video id="video" autoplay playsinline></video>
 
   <script>
     const whepUrl = "${whepUrl}";
@@ -66,12 +71,21 @@ export function MediaMtxVisualPlayer({
 
     function playVideo() {
       if (isCleanedUp || !video) return;
+      video.muted = false;
       video.play().catch(function() {
         if (isCleanedUp || !video) return;
         video.muted = true;
         video.play().catch(function() {});
       });
     }
+
+    // Tap di mana saja pada video untuk menyalakan audio jika ter-mute oleh kebijakan OS
+    video.addEventListener('click', function() {
+      if (video.muted) {
+        video.muted = false;
+        video.play().catch(function() {});
+      }
+    });
 
     // Fungsi pembersihan menyeluruh (WebRTC, HLS, Audio/Video Decoder, HTTP session)
     function cleanup() {
@@ -293,19 +307,10 @@ export function MediaMtxVisualPlayer({
         mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled
         domStorageEnabled
+        androidLayerType="hardware"
+        setSupportMultipleWindows={false}
         originWhitelist={["*"]}
       />
-
-      {onCloseVisual ? (
-        <Pressable
-          onPress={onCloseVisual}
-          accessibilityRole="button"
-          accessibilityLabel="Tutup siaran visual"
-          className="absolute right-2.5 top-2.5 rounded-full bg-black/60 p-2 active:opacity-80 z-30"
-        >
-          <Ionicons name="close-circle" size={24} color="#FFFFFF" />
-        </Pressable>
-      ) : null}
     </View>
   );
 }
