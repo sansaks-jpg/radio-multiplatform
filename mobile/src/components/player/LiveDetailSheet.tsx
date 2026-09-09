@@ -175,20 +175,24 @@ export function LiveDetailSheet({
   const [draftMessage, setDraftMessage] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const [programInfoOpen, setProgramInfoOpen] = useState(false);
-  const [isVisualActive, setIsVisualActive] = useState(initialVisual);
-  // Melacak apakah radio sedang aktif sebelum visual dibuka
-  const wasPlayingBeforeVisual = React.useRef(false);
+  const isVisualActive = usePlayerStore((s) => s.isVisualActive);
+  const setIsVisualActive = usePlayerStore((s) => s.setIsVisualActive);
 
-  // Jika dibuka dengan initialVisual, aktifkan visual segera
+  // Jika dibuka saat preferensi visual aktif atau initialVisual, aktifkan visual segera
   useEffect(() => {
-    if (visible && initialVisual) {
-      wasPlayingBeforeVisual.current =
-        status === "playing" || status === "buffering";
+    if (!visible) return;
+
+    if (initialVisual || isVisualActive) {
+      setIsVisualActive(true);
       void pause();
       void stopLive();
-      setIsVisualActive(true);
+    } else if (autoPlayOnOpen) {
+      const current = usePlayerStore.getState().status;
+      if (current !== "playing" && current !== "buffering") {
+        void play();
+      }
     }
-  }, [visible, initialVisual, pause, status]);
+  }, [visible, initialVisual, isVisualActive, autoPlayOnOpen, pause, play, setIsVisualActive]);
 
   const isPlaying = status === "playing";
   const isBuffering = status === "buffering";
@@ -206,21 +210,14 @@ export function LiveDetailSheet({
 
   const handleToggleVisual = useCallback(() => {
     if (!isVisualActive) {
-      // Catat apakah sebelum visual dibuka, audio radio sedang berputar
-      wasPlayingBeforeVisual.current =
-        status === "playing" || status === "buffering";
+      setIsVisualActive(true);
       void pause();
       void stopLive();
-      setIsVisualActive(true);
     } else {
       setIsVisualActive(false);
-      // Pulihkan siaran audio jika sebelumnya aktif
-      if (wasPlayingBeforeVisual.current) {
-        void play();
-        wasPlayingBeforeVisual.current = false;
-      }
+      void play();
     }
-  }, [isVisualActive, status, pause, play]);
+  }, [isVisualActive, setIsVisualActive, pause, play]);
 
   useEffect(() => {
     if (!visible) {
@@ -228,23 +225,14 @@ export function LiveDetailSheet({
       setInputFocused(false);
       setProgramInfoOpen(false);
 
-      // Jika sheet ditutup saat visual radio sedang aktif,
-      // nonaktifkan visual dan lanjutkan siaran audio radio agar tidak mati total
+      // Jika sheet ditutup saat visual radio sedang aktif (diminimize),
+      // tetap pertahankan preferensi isVisualActive di playerStore agar saat dibuka lagi tetap visual,
+      // tetapi jalankan siaran audio radio agar di MiniPlayer dan latar belakang suara tetap berputar
       if (isVisualActive) {
-        setIsVisualActive(false);
         void play();
-        wasPlayingBeforeVisual.current = false;
       }
     }
   }, [visible, isVisualActive, play]);
-
-  // Auto-play sekali saat sheet dibuka — jangan re-trigger saat user pause atau saat visual sedang aktif
-  useEffect(() => {
-    if (!visible || !autoPlayOnOpen || isVisualActive) return;
-    const current = usePlayerStore.getState().status;
-    if (current === "playing" || current === "buffering") return;
-    void play();
-  }, [visible, autoPlayOnOpen, play, isVisualActive]);
 
   const sendComment = useCallback(() => {
     const text = draftMessage.trim();

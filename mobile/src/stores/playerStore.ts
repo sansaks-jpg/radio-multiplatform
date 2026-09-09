@@ -12,6 +12,9 @@ interface PlayerStoreState {
   /** False until the user starts the stream for the first time — hides Mini Player. */
   hasStarted: boolean;
   nowPlaying: NowPlaying;
+  /** Menyimpan preferensi apakah siaran visual radio sedang aktif */
+  isVisualActive: boolean;
+  setIsVisualActive: (isVisualActive: boolean) => void;
   setStatus: (status: PlayerStatus) => void;
   setError: (message: string) => void;
   setNowPlaying: (nowPlaying: NowPlaying) => void;
@@ -24,9 +27,11 @@ export const usePlayerStore = create<PlayerStoreState>((set) => ({
   error: null,
   hasStarted: false,
   nowPlaying: mockNowPlaying,
+  isVisualActive: false,
+  setIsVisualActive: (isVisualActive) => set({ isVisualActive }),
   setStatus: (status) => set({ status, error: null }),
   setError: (message) => set({ status: "error", error: message }),
   setNowPlaying: (nowPlaying) => set({ nowPlaying }),
   markStarted: () => set({ hasStarted: true }),
-  reset: () => set({ status: "idle", error: null, hasStarted: false }),
+  reset: () => set({ status: "idle", error: null, hasStarted: false, isVisualActive: false }),
 }));

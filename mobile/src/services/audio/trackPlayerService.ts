@@ -72,6 +72,7 @@ export async function pauseLive(): Promise<void> {
   await ensureSetup();
   await engine.pause();
   resolvedUrl = null;
+  usePlayerStore.getState().setStatus("paused");
 }
 
 export async function stopLive(): Promise<void> {
@@ -79,7 +80,7 @@ export async function stopLive(): Promise<void> {
   await ensureSetup();
   await engine.stop();
   resolvedUrl = null;
-  usePlayerStore.getState().reset();
+  usePlayerStore.getState().setStatus("paused");
 }
 
 /** Retry after an error: re-resolve the playlist and start over. */

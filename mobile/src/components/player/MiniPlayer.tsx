@@ -31,13 +31,14 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
   const status = usePlayerStore((s) => s.status);
   const hasStarted = usePlayerStore((s) => s.hasStarted);
   const nowPlaying = usePlayerStore((s) => s.nowPlaying);
+  const isVisualActive = usePlayerStore((s) => s.isVisualActive);
   const { toggle } = usePlayerControls();
   const { stats } = useIcecastStats();
   const todayPrograms = usePrograms(todayDow());
   const [liveOpen, setLiveOpen] = useState(false);
 
-  // Persistent: tetap tampil setelah stream mulai, di tab mana pun.
-  if (!hasStarted || status === "idle") {
+  // Persistent: tetap tampil setelah stream mulai, di tab mana pun (seperti Spotify).
+  if (!hasStarted) {
     return null;
   }
 
@@ -87,7 +88,17 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
                 {displayTitle}
               </MarqueeText>
               <View className="mt-0.5 flex-row items-center gap-2">
-                {playing ? (
+                {isVisualActive ? (
+                  <View className="flex-row items-center gap-1 rounded-full bg-live/15 px-1.5 py-0.5">
+                    <Ionicons name="videocam" size={10} color="#FF3B30" />
+                    <Text
+                      className="text-[10px] font-bold text-live"
+                      style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                    >
+                      Visual
+                    </Text>
+                  </View>
+                ) : playing ? (
                   <View
                     style={{
                       width: 6,
