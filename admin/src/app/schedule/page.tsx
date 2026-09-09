@@ -133,7 +133,7 @@ export default function SchedulePage() {
       />
 
       {/* Day pills */}
-      <div className="mb-5 flex-wrap gap-2">
+      <div className="mb-5 flex flex-wrap gap-2">
         {DAY_SHORT.map((label, i) => {
           const count = programs.filter((p) => p.day_of_week === i).length;
           const active = day === i;
@@ -144,16 +144,19 @@ export default function SchedulePage() {
               type="button"
               onClick={() => setDay(i)}
               className={cn(
-                "min-w-[72px] rounded-md border px-3 py-2 text-center transition",
+                "min-w-18 rounded-md border px-3 py-2 text-center transition",
                 active
                   ? "border-brand bg-brand text-brand-foreground"
                   : isToday
-                    ? "border-orange/50 bg-orange/10 text-foreground"
+                    ? "border-accent/40 bg-accent-soft text-foreground"
                     : "border-border bg-card hover:bg-muted",
               )}
             >
-              <span className="block text-xs font-bold uppercase tracking-wide">
+              <span className="flex items-center justify-center gap-1 text-xs font-bold uppercase tracking-wide">
                 {label}
+                {isToday && !active ? (
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
+                ) : null}
               </span>
               <span
                 className={cn(
@@ -224,7 +227,7 @@ export default function SchedulePage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => onDelete(p)}
-                    className="text-danger hover:bg-danger/10"
+                    className="text-danger hover:bg-danger-soft"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -315,7 +318,7 @@ export default function SchedulePage() {
           </div>
 
           {error ? (
-            <p className="rounded-md bg-danger-container/20 px-3 py-2 text-sm text-danger">
+            <p className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">
               {error}
             </p>
           ) : null}

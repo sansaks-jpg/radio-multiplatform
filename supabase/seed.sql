@@ -18,11 +18,12 @@ VALUES (
 );
 
 -- -----------------------------------------------------------------------------
--- 2. Seed: programs (Full Weekly Schedule: Monday–Sunday)
+-- 2. Seed: programs (Official Schedule from Banner: Senin–Jumat)
 -- -----------------------------------------------------------------------------
 DELETE FROM public.programs;
 
 -- Senin s/d Jumat (day_of_week: 1 to 5)
+-- Di luar jam siaran program ini dan akhir pekan, Gaul FM memutarkan musik hits nonstop 24 jam.
 INSERT INTO public.programs (id, name, host, day_of_week, start_time, end_time, cover_url, description)
 SELECT 
     'prog-' || d || '-' || slot.id,
@@ -36,33 +37,10 @@ SELECT
 FROM generate_series(1, 5) AS d
 CROSS JOIN (
     VALUES 
-        (1, 'Gaul Pagi', 'Reno & Dita', '06:00', '10:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg', 'Bangunin pagi kamu dengan hits terbaru, info lalu lintas Semarang, dan obrolan receh.'),
-        (2, 'Cek Sound', 'Bara', '10:00', '13:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.33.37.jpeg', 'Seputar musik lokal, band indie Semarang, dan cerita di balik lagu.'),
-        (3, 'Gaul Siang', 'Nadia', '13:00', '16:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-26-at-12.28.41.jpeg', 'Temenin jam kerja dan kuliah kamu dengan playlist paling gaul.'),
-        (4, 'Drive Time Gaul', 'Yoga & Sinta', '16:00', '19:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg', 'Nemenin macet pulang: request lagu, games, dan update sore Semarang.'),
-        (5, 'Gaul Malam', 'Raka', '19:00', '22:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-12.15.45-1.jpeg', 'Curhat malam, lagu galau, dan topik hangat anak muda.'),
-        (6, 'Nonstop Hits', 'Gaul FM Autopilot', '22:00', '00:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-22-at-13.34.42.jpeg', 'Musik nonstop sampai tengah malam.')
+        (1, 'Gaul Morning Show', 'Reno & Dita', '07:00', '10:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg', 'Mulai pagi kamu dengan hits terbaru, info lalu lintas Semarang, dan obrolan seru bareng Reno & Dita di Gaul Morning Show.'),
+        (2, 'Gaul Waktu Setempat', 'Yoga & Sinta', '15:00', '18:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg', 'Nemenin sore perjalanan pulang kamu dengan musik hits, obrolan santai, dan info terkini waktu setempat di 87.8 MHz.'),
+        (3, 'Asupan Gaul', 'Raka', '19:00', '22:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-12.15.45-1.jpeg', 'Asupan musik paling hits malam hari di 87.8 FM bareng Raka: playlist terbaik, request lagu, dan curhat anak muda.')
 ) AS slot(id, name, host, start_time, end_time, cover_url, description);
-
--- Sabtu (day_of_week: 6)
-INSERT INTO public.programs (id, name, host, day_of_week, start_time, end_time, cover_url, description)
-VALUES 
-    ('prog-6-1', 'Weekend Warm-Up', 'Dita', 6, '06:00', '09:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg', 'Awali akhir pekan dengan musik ceria dan ide liburan di Semarang.'),
-    ('prog-6-2', 'Top 20 Gaul Chart', 'Bara & Nadia', 6, '09:00', '12:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.33.37.jpeg', 'Hitung mundur 20 lagu terpopuler minggu ini pilihan pendengar.'),
-    ('prog-6-3', 'Komunitas Semarang', 'Reno', 6, '12:00', '15:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-26-at-12.28.41.jpeg', 'Ngobrol seru bareng komunitas kreatif, hobi, dan olahraga Kota Atlas.'),
-    ('prog-6-4', 'Gaul Sore Weekend', 'Yoga', 6, '15:00', '18:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg', 'Nongkrong sore, rekomendasi kuliner, dan event akhir pekan.'),
-    ('prog-6-5', 'Saturday Night Party', 'DJ Mix & Sinta', 6, '18:00', '22:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-12.15.45-1.jpeg', 'EDM, remix hits, dan playlist pemanasan malam minggu.'),
-    ('prog-6-6', 'After Hours', 'Gaul FM Autopilot', 6, '22:00', '00:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-22-at-13.34.42.jpeg', 'Chill beats dan lo-fi menemani istirahat malam.');
-
--- Minggu (day_of_week: 0)
-INSERT INTO public.programs (id, name, host, day_of_week, start_time, end_time, cover_url, description)
-VALUES 
-    ('prog-0-1', 'Sunday Morning Vibes', 'Reno', 0, '06:00', '09:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg', 'Musik santai untuk car free day dan sarapan pagi di Simpang Lima.'),
-    ('prog-0-2', 'Nostalgia Gaul', 'Dita', 0, '09:00', '12:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.33.37.jpeg', 'Kilas balik lagu-lagu 2000-an dan 2010-an yang bikin kangen masa sekolah.'),
-    ('prog-0-3', 'Indie Corner', 'Bara', 0, '12:00', '15:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-26-at-12.28.41.jpeg', 'Panggung musisi independen Jawa Tengah: rilis lagu baru dan wawancara eksklusif.'),
-    ('prog-0-4', 'Gaul Santai', 'Nadia', 0, '15:00', '18:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg', 'Refleksi akhir pekan sebelum memulai rutinitas hari Senin.'),
-    ('prog-0-5', 'Sunday Acoustic', 'Raka', 0, '18:00', '21:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-12.15.45-1.jpeg', 'Sesi live akustik dan lagu-lagu hangat penutup akhir pekan.'),
-    ('prog-0-6', 'Nightcap', 'Gaul FM Autopilot', 0, '21:00', '00:00', 'https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-22-at-13.34.42.jpeg', 'Lagu pengantar tidur bersiap menyambut minggu yang baru.');
 
 -- -----------------------------------------------------------------------------
 -- 3. Seed: news

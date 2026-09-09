@@ -2,88 +2,118 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Gaul FM Admin — Light Mode Studio */
+/*
+ * Gaul FM Admin — Studio Theme
+ * One brand palette shared with the mobile app ("Gaul Neon Night"):
+ * green = brand/primary, orange = on-air/broadcast accent, red = live only.
+ * Dark is the default ("studio console" feel); light is a calm, low-glare
+ * alternative — neither uses pure white pages or clashing accent colors.
+ */
+
 :root {
-  /* Surfaces — Clean Light Studio spectrum */
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  /* Surfaces — soft paper, not glaring white */
+  --background: #f2f4f3;
+  --foreground: #12181a;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
+  --card-foreground: #12181a;
+  --muted: #e9ede9;
+  --muted-foreground: #5c6b63;
+  --border: #dde4de;
   --input: #ffffff;
-  --ring: #ea580c;
+  --ring: #0f7a45;
 
-  /* Brand (Emerald Gaul FM) */
-  --brand: #059669;
+  /* Brand (primary green) */
+  --brand: #0f7a45;
   --brand-foreground: #ffffff;
-  --brand-container: #d1fae5;
+  --brand-soft: #e1f2e6;
 
-  /* Accents */
-  --orange: #ea580c;
-  --orange-foreground: #ffffff;
-  --orange-container: #ffedd5;
-  --live: #dc2626;
+  /* Accent — reserved for on-air / broadcast actions only */
+  --accent: #c2650f;
+  --accent-foreground: #ffffff;
+  --accent-soft: #f7e6d3;
+
+  /* Live — reserved strictly for on-air / live status */
+  --live: #d1291f;
   --live-foreground: #ffffff;
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --danger-container: #fee2e2;
+  --live-soft: #fbe2df;
+
+  /* System feedback */
+  --success: #0f7a45;
+  --success-soft: #e1f2e6;
+  --warning: #a3620a;
+  --warning-soft: #f6e6cf;
+  --danger: #c22a2a;
+  --danger-soft: #f8dedb;
 
   /* Sidebar / shell */
   --sidebar: #ffffff;
-  --sidebar-foreground: #0f172a;
-  --sidebar-muted: #64748b;
-  --sidebar-active: #059669;
-  --sidebar-border: #e2e8f0;
+  --sidebar-foreground: #12181a;
+  --sidebar-muted: #5c6b63;
+  --sidebar-active: #0f7a45;
+  --sidebar-active-soft: #e1f2e6;
+  --sidebar-border: #dde4de;
 
   /* Typography */
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
-  /* Radius — Sonic Pulse scale */
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
-  /* Elevation hints */
-  --surface-0: #ffffff;
-  --surface-1: #f8fafc;
-  --surface-2: #f1f5f9;
-  --surface-3: #e2e8f0;
+  --surface-1: #f7f8f7;
+  --surface-2: #eef1ee;
+  --surface-3: #e2e7e2;
+
+  --shadow-color: 15 23 20;
 }
 
 .dark {
-  /* Fallback konsisten light-first */
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --input: #ffffff;
-  --ring: #ea580c;
-  --brand: #059669;
-  --brand-foreground: #ffffff;
-  --brand-container: #d1fae5;
-  --orange: #ea580c;
-  --orange-foreground: #ffffff;
-  --orange-container: #ffedd5;
-  --live: #dc2626;
+  /* Surfaces — deep charcoal console, never pure black or pure white */
+  --background: #0a0d0c;
+  --foreground: #e9efe9;
+  --card: #121615;
+  --card-foreground: #e9efe9;
+  --muted: #171c1b;
+  --muted-foreground: #8b978f;
+  --border: #232a28;
+  --input: #141918;
+  --ring: #5fd394;
+
+  /* Brand (primary green) — bright on dark, deep text on fill */
+  --brand: #5fd394;
+  --brand-foreground: #04170d;
+  --brand-soft: rgba(95, 211, 148, 0.14);
+
+  /* Accent — on-air / broadcast orange */
+  --accent: #ff9a3d;
+  --accent-foreground: #24140a;
+  --accent-soft: rgba(255, 154, 61, 0.14);
+
+  /* Live — strictly for on-air / live status */
+  --live: #ff5147;
   --live-foreground: #ffffff;
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --danger-container: #fee2e2;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0f172a;
-  --sidebar-muted: #64748b;
-  --sidebar-active: #059669;
-  --sidebar-border: #e2e8f0;
-  --surface-0: #ffffff;
-  --surface-1: #f8fafc;
-  --surface-2: #f1f5f9;
-  --surface-3: #e2e8f0;
+  --live-soft: rgba(255, 81, 71, 0.16);
+
+  /* System feedback */
+  --success: #5fd394;
+  --success-soft: rgba(95, 211, 148, 0.14);
+  --warning: #f4b740;
+  --warning-soft: rgba(244, 183, 64, 0.14);
+  --danger: #ff5147;
+  --danger-soft: rgba(255, 81, 71, 0.14);
+
+  /* Sidebar / shell — a touch darker than the page for separation */
+  --sidebar: #0d1110;
+  --sidebar-foreground: #e9efe9;
+  --sidebar-muted: #7d8b83;
+  --sidebar-active: #5fd394;
+  --sidebar-active-soft: rgba(95, 211, 148, 0.12);
+  --sidebar-border: #1c2220;
+
+  --surface-1: #141918;
+  --surface-2: #191f1d;
+  --surface-3: #212824;
+
+  --shadow-color: 0 0 0;
 }
 
 @theme inline {
@@ -96,32 +126,41 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
-  --color-brand-container: var(--brand-container);
-  --color-orange: var(--orange);
-  --color-orange-foreground: var(--orange-foreground);
-  --color-orange-container: var(--orange-container);
+  --color-brand-soft: var(--brand-soft);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+
   --color-live: var(--live);
   --color-live-foreground: var(--live-foreground);
+  --color-live-soft: var(--live-soft);
+
   --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
-  --color-danger-container: var(--danger-container);
+  --color-danger-soft: var(--danger-soft);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-soft: var(--sidebar-active-soft);
   --color-sidebar-border: var(--sidebar-border);
-  --color-surface-0: var(--surface-0);
+
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
   --color-surface-3: var(--surface-3);
 
-  --radius-sm: 0.25rem;
+  --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -144,19 +183,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle studio grid texture on background */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image:
-    linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -166,28 +192,28 @@ body::before {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--surface-3);
   border-radius: 999px;
   border: 2px solid var(--background);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--muted-foreground);
 }
 
-/* Focus ring — On-Air Orange glow per spec */
+/* Focus ring */
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
-/* Live pulse animation */
+/* Live pulse animation — used sparingly, only for genuine on-air state */
 @keyframes live-pulse {
- 0%,
- 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
- 50% {
+  50% {
     opacity: 0.55;
     transform: scale(1.4);
   }
@@ -196,21 +222,14 @@ body::before {
   animation: live-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* On-air glow for hero modules */
+/* Subtle glow used only on the single active on-air module */
 .on-air-glow {
   box-shadow:
-    0 0 0 1px rgba(220, 38, 38, 0.15),
-    0 0 24px rgba(220, 38, 38, 0.08);
+    0 0 0 1px var(--live-soft),
+    0 0 28px rgba(0, 0, 0, 0.08);
 }
-
-/* Card gradient — Clean Light gradient */
-.card-gradient {
-  background-image: linear-gradient(145deg, #ffffff 0%, #f8fafc 60%, #f1f5f9 100%);
-}
-
-/* Backdrop blur surfaces */
-.glass {
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+.dark .on-air-glow {
+  box-shadow:
+    0 0 0 1px var(--live-soft),
+    0 0 28px rgba(0, 0, 0, 0.45);
 }

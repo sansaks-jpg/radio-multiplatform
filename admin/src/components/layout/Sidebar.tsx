@@ -15,16 +15,33 @@ import {
 import { cn } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navigation = [
-  { name: "Overview", href: "/", icon: LayoutDashboard },
-  { name: "Now Playing", href: "/now-playing", icon: Radio },
-  { name: "Live Chat", href: "/chat", icon: MessageSquare },
-  { name: "Streaming", href: "/streams", icon: Video },
-  { name: "Schedule", href: "/schedule", icon: CalendarDays },
-  { name: "News Sync", href: "/news", icon: Newspaper },
-  { name: "Banners", href: "/banners", icon: ImageIcon },
-  { name: "Listeners", href: "/users", icon: Users },
+  {
+    section: null,
+    items: [{ name: "Overview", href: "/", icon: LayoutDashboard }],
+  },
+  {
+    section: "Siaran",
+    items: [
+      { name: "Now Playing", href: "/now-playing", icon: Radio },
+      { name: "Live Chat", href: "/chat", icon: MessageSquare },
+      { name: "Streaming", href: "/streams", icon: Video },
+    ],
+  },
+  {
+    section: "Konten",
+    items: [
+      { name: "Jadwal Siaran", href: "/schedule", icon: CalendarDays },
+      { name: "Berita", href: "/news", icon: Newspaper },
+      { name: "Banner", href: "/banners", icon: ImageIcon },
+    ],
+  },
+  {
+    section: "Data",
+    items: [{ name: "Pendengar", href: "/users", icon: Users }],
+  },
 ] as const;
 
 export function Sidebar({
@@ -38,75 +55,75 @@ export function Sidebar({
 
   const content = (
     <>
-      <div className="flex flex-1 flex-col overflow-y-auto p-4">
+      <div className="flex flex-1 flex-col overflow-y-auto p-3">
         {/* Brand lockup */}
-        <div className="mb-6 flex items-center gap-3 px-2 pt-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand font-black text-brand-foreground shadow-[0_4px_16px_rgba(120,219,148,0.25)]">
+        <div className="mb-5 flex items-center gap-2.5 px-2 pt-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand font-black text-brand-foreground">
             G
           </div>
           <div>
-            <p className="text-sm font-extrabold tracking-tight text-sidebar-foreground">
+            <p className="text-sm font-semibold tracking-tight text-sidebar-foreground">
               Gaul FM
             </p>
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-muted">
-              Admin Console
-            </p>
+            <p className="text-[11px] text-sidebar-muted">Admin Console</p>
           </div>
         </div>
 
-        {/* Section label */}
-        <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-muted">
-          Studio
-        </p>
-
-        <nav className="space-y-1">
-          {navigation.map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={onClose}
-                className={cn(
-                  "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
-                  active
-                    ? "bg-sidebar-active/15 text-sidebar-active"
-                    : "text-sidebar-muted hover:bg-sidebar-border hover:text-sidebar-foreground",
-                )}
-              >
-                <item.icon
-                  className={cn(
-                    "h-4 w-4 shrink-0 transition-colors",
-                    active
-                      ? "text-sidebar-active"
-                      : "text-sidebar-muted group-hover:text-sidebar-foreground",
-                  )}
-                />
-                {item.name}
-              </Link>
-            );
-          })}
+        <nav className="space-y-4">
+          {navigation.map((group, i) => (
+            <div key={group.section ?? `group-${i}`}>
+              {group.section ? (
+                <p className="mb-1.5 px-3 text-[11px] font-medium text-sidebar-muted">
+                  {group.section}
+                </p>
+              ) : null}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const active =
+                    item.href === "/"
+                      ? pathname === "/"
+                      : pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={onClose}
+                      className={cn(
+                        "group relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-sidebar-active-soft text-sidebar-active"
+                          : "text-sidebar-muted hover:bg-sidebar-active-soft/40 hover:text-sidebar-foreground",
+                      )}
+                    >
+                      {active ? (
+                        <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-sidebar-active" />
+                      ) : null}
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </div>
 
       {/* Footer / status */}
-      <div className="space-y-3 border-t border-sidebar-border p-4">
+      <div className="space-y-3 border-t border-sidebar-border p-3">
+        <ThemeToggle />
         <div className="flex items-center justify-between gap-2 px-1">
-          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-sidebar-muted">
-            Data mode
-          </span>
-          <Badge tone={isSupabaseConfigured ? "success" : "orange"}>
+          <span className="text-[11px] text-sidebar-muted">Data mode</span>
+          <Badge tone={isSupabaseConfigured ? "success" : "accent"}>
             {isSupabaseConfigured ? "Supabase" : "Demo"}
           </Badge>
         </div>
-
-        <p className="px-1 text-[11px] leading-relaxed text-sidebar-muted">
-          87.8 FM Semarang · Demo store in localStorage. Connect Supabase env
-          for live data.
-        </p>
+        {!isSupabaseConfigured ? (
+          <p className="px-1 text-[11px] leading-relaxed text-sidebar-muted">
+            87.8 FM Semarang · data demo tersimpan lokal. Hubungkan Supabase
+            untuk data live.
+          </p>
+        ) : null}
       </div>
     </>
   );

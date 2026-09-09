@@ -48,13 +48,13 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
           On air
         </Badge>
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold tracking-tight">
+          <p className="truncate text-sm font-semibold tracking-tight">
             {nowPlaying.current_program}
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {nowPlaying.current_host}
             {now != null
-              ? ` · updated ${formatRelative(nowPlaying.updated_at, now)}`
+              ? ` · diperbarui ${formatRelative(nowPlaying.updated_at, now)}`
               : ""}
           </p>
         </div>

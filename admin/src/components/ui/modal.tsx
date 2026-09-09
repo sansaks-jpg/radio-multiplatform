@@ -42,21 +42,21 @@ export function Modal({
       <button
         type="button"
         aria-label="Tutup"
-        className="absolute inset-0 bg-black/60 backdrop-blur-[4px]"
+        className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-10 flex max-h-[90vh] w-full flex-col rounded-t-xl border-border bg-card shadow-2xl sm:rounded-xl",
+          "relative z-10 flex max-h-[90vh] w-full flex-col rounded-t-lg border border-border bg-card shadow-2xl sm:rounded-lg",
           wide ? "sm:max-w-2xl" : "sm:max-w-lg",
           className,
         )}
       >
         <div className="flex items-start justify-between gap-3 border-b border-border p-5">
           <div>
-            <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+            <h2 className="text-base font-semibold tracking-tight">{title}</h2>
             {description ? (
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {description}

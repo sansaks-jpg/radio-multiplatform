@@ -23,12 +23,10 @@ import { resetDemoData } from "@/lib/data-store";
 import { useToast } from "@/components/ui/toast";
 
 const AVATAR_COLORS = [
-  "bg-emerald-100 text-emerald-800 border-emerald-300",
-  "bg-blue-100 text-blue-800 border-blue-300",
-  "bg-violet-100 text-violet-800 border-violet-300",
-  "bg-amber-100 text-amber-800 border-amber-300",
-  "bg-rose-100 text-rose-800 border-rose-300",
-  "bg-cyan-100 text-cyan-800 border-cyan-300",
+  "bg-brand-soft text-brand",
+  "bg-accent-soft text-accent",
+  "bg-live-soft text-live",
+  "bg-warning-soft text-warning",
 ];
 
 function getAvatarColor(name: string) {
@@ -69,31 +67,24 @@ export default function OverviewPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-12">
-      {/* ── HEADER HALAMAN ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
+      {/* ── HEADER ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               Overview Studio
             </h1>
-            <Badge tone="brand" className="text-[10px] font-bold">
-              87.8 FM
-            </Badge>
+            <Badge tone="brand">87.8 FM</Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Pusat kendali siaran, jadwal on-air, berita portal, dan data pendengar aktif Gaul FM.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportUsers}
-            className="gap-1.5 shadow-2xs bg-card hover:bg-muted"
-          >
-            <Download className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>Export Listeners (.xlsx)</span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportUsers}>
+            <Download className="h-3.5 w-3.5" />
+            <span>Export Listeners</span>
           </Button>
 
           <Button
@@ -103,7 +94,6 @@ export default function OverviewPage() {
               resetDemoData();
               toast.push("Data demo berhasil di-reset", "info");
             }}
-            className="gap-1.5 text-muted-foreground hover:text-foreground"
             title="Reset data demo ke awal"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -112,79 +102,76 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* ── METRIK RINGKASAN (STAT STRIP) ── */}
-      <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+      {/* ── METRIK RINGKASAN ── */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Sedang Siaran"
+          label="Sedang siaran"
           value={data.nowPlaying.current_program}
           hint={`Penyiar: ${data.nowPlaying.current_host}`}
-          tone="orange"
-          icon={<Radio className="h-5 w-5" />}
+          tone="accent"
+          icon={<Radio className="h-4.5 w-4.5" />}
         />
         <StatCard
-          label="Program Minggu Ini"
-          value={`${data.programs.length} Acara`}
+          label="Program minggu ini"
+          value={`${data.programs.length} acara`}
           hint={`${todayPrograms.length} slot hari ${DAY_NAMES[today]}`}
           tone="brand"
-          icon={<CalendarDays className="h-5 w-5" />}
+          icon={<CalendarDays className="h-4.5 w-4.5" />}
         />
         <StatCard
-          label="Berita Tersinkron"
-          value={`${data.news.length} Artikel`}
+          label="Berita tersinkron"
+          value={`${data.news.length} artikel`}
           hint={
             data.lastNewsSyncAt
               ? `Sync ${formatRelative(data.lastNewsSyncAt)}`
-              : "Siap sinkronisasi"
+              : "Siap disinkronkan"
           }
-          icon={<Newspaper className="h-5 w-5" />}
+          icon={<Newspaper className="h-4.5 w-4.5" />}
         />
         <StatCard
-          label="Pendengar Terdaftar"
-          value={`${data.profiles.length} Akun`}
+          label="Pendengar terdaftar"
+          value={`${data.profiles.length} akun`}
           hint={
             data.sheetsSyncStatus === "ok"
-              ? "Sinkron ke Google Sheets ✓"
+              ? "Tersinkron ke Google Sheets"
               : "Mode lokal / standby"
           }
-          tone="live"
-          icon={<Users className="h-5 w-5" />}
+          icon={<Users className="h-4.5 w-4.5" />}
         />
       </div>
 
-      {/* ── HERO ON-AIR + JADWAL HARI INI ── */}
-      <div className="grid gap-6 lg:grid-cols-12 items-start">
-        {/* HERO: Live Control Card (lg:col-span-8) */}
-        <Card className="lg:col-span-8 border border-orange-200/90 bg-gradient-to-br from-card via-card to-orange-50/35 shadow-xs overflow-hidden">
-          <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4 border-b border-border/60">
+      {/* ── ON-AIR + JADWAL HARI INI ── */}
+      <div className="grid gap-5 lg:grid-cols-12 items-start">
+        <Card className="lg:col-span-8 on-air-glow">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 border-b border-border/60 pb-4">
             <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <Badge tone="live" pulse className="px-2 py-0.5 text-[10px]">
-                  LIVE ON AIR
+              <div className="mb-1.5 flex items-center gap-2">
+                <Badge tone="live" pulse>
+                  Live on air
                 </Badge>
-                <span className="text-xs text-muted-foreground font-medium">
-                  Update terakhir {formatDateTime(data.nowPlaying.updated_at)}
+                <span className="text-xs text-muted-foreground">
+                  Diperbarui {formatDateTime(data.nowPlaying.updated_at)}
                 </span>
               </div>
-              <CardTitle className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
+              <CardTitle className="text-lg sm:text-xl">
                 {data.nowPlaying.current_program}
               </CardTitle>
-              <CardDescription className="text-sm font-semibold text-orange mt-0.5">
+              <CardDescription className="mt-0.5 font-medium text-accent">
                 Host / Penyiar: {data.nowPlaying.current_host}
               </CardDescription>
             </div>
 
             <Link href="/now-playing">
-              <Button variant="orange" size="sm" className="gap-1.5 shadow-xs shrink-0">
+              <Button variant="accent" size="sm" className="shrink-0">
                 <Radio className="h-3.5 w-3.5" />
                 <span>Ubah On-Air</span>
               </Button>
             </Link>
           </CardHeader>
 
-          <CardContent className="pt-5">
-            <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
-              {/* Cover Art Program */}
-              <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center">
+          <CardContent className="pt-4">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
                 {data.nowPlaying.current_cover_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -193,34 +180,33 @@ export default function OverviewPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <Radio className="h-10 w-10 text-slate-400" />
+                  <Radio className="h-8 w-8 text-muted-foreground" />
                 )}
               </div>
 
-              {/* Deskripsi & Shortcut Aksi */}
-              <div className="flex-1 space-y-3 min-w-0">
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              <div className="min-w-0 flex-1 space-y-3">
+                <p className="text-sm leading-relaxed text-muted-foreground">
                   Status on-air dan judul program di kartu ini langsung terkirim secara instan ke seluruh aplikasi mobile pendengar.
                 </p>
 
-                <div className="flex flex-wrap items-center gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <Link href="/chat">
-                    <Button variant="secondary" size="sm" className="gap-1.5 border border-border shadow-2xs">
-                      <MessageSquare className="h-3.5 w-3.5 text-brand" />
+                    <Button variant="secondary" size="sm">
+                      <MessageSquare className="h-3.5 w-3.5" />
                       <span>Live Chat Studio</span>
                     </Button>
                   </Link>
 
                   <Link href="/schedule">
-                    <Button variant="secondary" size="sm" className="gap-1.5 border border-border shadow-2xs">
-                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Button variant="secondary" size="sm">
+                      <CalendarDays className="h-3.5 w-3.5" />
                       <span>Kelola Jadwal</span>
                     </Button>
                   </Link>
 
                   <Link href="/news">
-                    <Button variant="secondary" size="sm" className="gap-1.5 border border-border shadow-2xs">
-                      <Newspaper className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Button variant="secondary" size="sm">
+                      <Newspaper className="h-3.5 w-3.5" />
                       <span>Sync Berita</span>
                     </Button>
                   </Link>
@@ -230,23 +216,21 @@ export default function OverviewPage() {
           </CardContent>
         </Card>
 
-        {/* JADWAL HARI INI (lg:col-span-4) */}
-        <Card className="lg:col-span-4 border border-border shadow-xs">
-          <CardHeader className="pb-3 border-b border-border/60 flex flex-row items-center justify-between">
+        {/* JADWAL HARI INI */}
+        <Card className="lg:col-span-4">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
             <div>
-              <CardTitle className="text-base font-bold">
-                Jadwal Siar {DAY_NAMES[today]}
-              </CardTitle>
+              <CardTitle>Jadwal {DAY_NAMES[today]}</CardTitle>
               <CardDescription className="text-xs">
                 {todayPrograms.length} segmen siaran hari ini
               </CardDescription>
             </div>
-            <Link href="/schedule" className="text-xs font-bold text-brand hover:underline">
-              Semua →
+            <Link href="/schedule" className="text-xs font-medium text-brand hover:underline">
+              Semua
             </Link>
           </CardHeader>
 
-          <CardContent className="pt-3.5 space-y-2">
+          <CardContent className="space-y-1.5 pt-3">
             {todayPrograms.length === 0 ? (
               <p className="py-6 text-center text-xs text-muted-foreground">
                 Tidak ada program siaran hari ini.
@@ -257,27 +241,27 @@ export default function OverviewPage() {
                 return (
                   <div
                     key={p.id}
-                    className={`flex items-center justify-between gap-2.5 rounded-lg px-3 py-2 transition-all border ${
+                    className={`flex items-center justify-between gap-2.5 rounded-md px-3 py-2 transition-colors ${
                       isCurrent
-                        ? "bg-orange-50/70 border-orange-200/80 shadow-2xs"
-                        : "bg-muted/40 border-transparent hover:bg-muted/70"
+                        ? "bg-accent-soft"
+                        : "hover:bg-muted"
                     }`}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <p className="truncate text-xs sm:text-sm font-bold text-foreground">
+                        <p className="truncate text-sm font-medium text-foreground">
                           {p.name}
                         </p>
                         {isCurrent && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-orange animate-ping shrink-0" />
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                         )}
                       </div>
-                      <p className="truncate text-[11px] text-muted-foreground">
+                      <p className="truncate text-xs text-muted-foreground">
                         {p.host}
                       </p>
                     </div>
 
-                    <span className="shrink-0 font-mono text-[11px] font-semibold text-muted-foreground bg-card border border-border/80 px-2 py-0.5 rounded shadow-2xs">
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground">
                       {p.start_time}–{p.end_time}
                     </span>
                   </div>
@@ -287,9 +271,9 @@ export default function OverviewPage() {
 
             <Link
               href="/schedule"
-              className="mt-3 flex items-center justify-center gap-1 py-1.5 text-xs font-bold text-brand hover:text-brand/80 transition-colors border-t border-border/60"
+              className="mt-2 flex items-center justify-center gap-1 border-t border-border/60 py-2 text-xs font-medium text-brand transition-colors hover:text-brand/80"
             >
-              <span>Kelola Jadwal Lengkap 7 Hari</span>
+              <span>Kelola jadwal lengkap 7 hari</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </CardContent>
@@ -297,26 +281,23 @@ export default function OverviewPage() {
       </div>
 
       {/* ── BERITA TERBARU & PENDENGAR BARU ── */}
-      <div className="grid gap-6 lg:grid-cols-12 items-start">
-        {/* BERITA TERBARU (lg:col-span-8) */}
-        <Card className="lg:col-span-8 border border-border shadow-xs">
+      <div className="grid gap-5 lg:grid-cols-12 items-start">
+        <Card className="lg:col-span-8">
           <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
             <div>
-              <CardTitle className="text-base font-bold">
-                Berita & Konten Terbaru
-              </CardTitle>
+              <CardTitle>Berita & konten terbaru</CardTitle>
               <CardDescription className="text-xs">
                 Artikel tersinkronisasi dari portal radiogaulfmsmg.com
               </CardDescription>
             </div>
             <Link href="/news">
-              <Button variant="ghost" size="sm" className="text-xs font-semibold">
+              <Button variant="ghost" size="sm">
                 Kelola Berita
               </Button>
             </Link>
           </CardHeader>
 
-          <CardContent className="pt-3.5 space-y-2.5">
+          <CardContent className="space-y-1 pt-3">
             {data.news.length === 0 ? (
               <p className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada berita tersinkron. Klik Sync Berita untuk mengambil artikel WordPress.
@@ -325,9 +306,9 @@ export default function OverviewPage() {
               data.news.slice(0, 4).map((n) => (
                 <div
                   key={n.id}
-                  className="flex items-center gap-3.5 rounded-lg p-2.5 transition-all hover:bg-muted/50 border border-transparent hover:border-border/60"
+                  className="flex items-center gap-3.5 rounded-md p-2 transition-colors hover:bg-muted"
                 >
-                  <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100 border border-border/80 shadow-2xs">
+                  <div className="h-14 w-20 shrink-0 overflow-hidden rounded-md bg-muted">
                     {n.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -336,21 +317,21 @@ export default function OverviewPage() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-slate-300">
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                         <Newspaper className="h-5 w-5" />
                       </div>
                     )}
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs sm:text-sm font-bold text-foreground hover:text-brand transition-colors">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {n.title}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
                         {n.category ?? "Umum"}
                       </span>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         sync {formatRelative(n.synced_at)}
                       </span>
                     </div>
@@ -361,34 +342,32 @@ export default function OverviewPage() {
           </CardContent>
         </Card>
 
-        {/* PENDENGAR BARU (lg:col-span-4) */}
-        <Card className="lg:col-span-4 border border-border shadow-xs">
+        {/* PENDENGAR BARU */}
+        <Card className="lg:col-span-4">
           <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
             <div>
-              <CardTitle className="text-base font-bold">
-                Pendengar Baru
-              </CardTitle>
+              <CardTitle>Pendengar baru</CardTitle>
               <CardDescription className="text-xs">
                 Pengguna terdaftar aplikasi mobile
               </CardDescription>
             </div>
             <Link href="/users">
-              <Button variant="ghost" size="sm" className="text-xs font-semibold">
+              <Button variant="ghost" size="sm">
                 Semua
               </Button>
             </Link>
           </CardHeader>
 
-          <CardContent className="pt-3.5 space-y-3">
+          <CardContent className="space-y-1 pt-3">
             {data.profiles.length === 0 ? (
               <p className="py-8 text-center text-xs text-muted-foreground">
                 Belum ada data pendengar.
               </p>
             ) : (
               data.profiles.slice(0, 5).map((u) => (
-                <div key={u.id} className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-muted/40 transition-colors">
+                <div key={u.id} className="flex items-center gap-3 rounded-md p-1.5 transition-colors hover:bg-muted">
                   <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-extrabold border shadow-2xs shrink-0 ${getAvatarColor(
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${getAvatarColor(
                       u.full_name || "User"
                     )}`}
                   >
@@ -396,15 +375,15 @@ export default function OverviewPage() {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs sm:text-sm font-bold text-foreground">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {u.full_name}
                     </p>
-                    <p className="truncate text-[11px] text-muted-foreground">
+                    <p className="truncate text-xs text-muted-foreground">
                       {u.city || "Semarang"}
                     </p>
                   </div>
 
-                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border/60 shrink-0">
+                  <span className="shrink-0 rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
                     {u.device_os || "Mobile"}
                   </span>
                 </div>

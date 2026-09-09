@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const baseField =
-  "flex h-10 w-full rounded-md border-border bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-orange focus:bg-surface-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+  "flex h-9 w-full rounded-md border border-border bg-input px-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-ring focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 export const Input = React.forwardRef<
   HTMLInputElement,
@@ -41,7 +41,7 @@ export function Label({
   return (
     <label
       className={cn(
-        "mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground",
+        "mb-1.5 block text-xs font-medium text-muted-foreground",
         className,
       )}
       {...props}

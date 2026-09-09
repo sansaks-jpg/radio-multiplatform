@@ -1,8 +1,21 @@
 "use client";
 
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+
 /**
- * ThemeProvider — Panel Admin Gaul FM menggunakan static Clean Light Mode.
+ * Studio theme system — dark is the default ("console" feel matching the
+ * mobile app's Gaul Neon Night brand), with a calmer light mode available
+ * via the toggle in the sidebar footer.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem={false}
+      disableTransitionOnChange
+    >
+      {children}
+    </NextThemesProvider>
+  );
 }

@@ -241,20 +241,20 @@ export function ScheduleScreen() {
           <ErrorState onRetry={() => void programs.refetch()} />
         ) : list.length === 0 ? (
           <EmptyState
-            icon="calendar-clear-outline"
-            title="Belum ada jadwal"
-            message={`Tidak ada program di hari ${DAY_FULL_ID[selectedDay]}. Coba hari lain.`}
+            icon="musical-notes-outline"
+            title="Musik Nonstop 24 Jam"
+            message={`Tidak ada program siaran khusus di hari ${DAY_FULL_ID[selectedDay]}. Gaul FM memutarkan lagu-lagu hits terbaik nonstop 24 jam!`}
           />
         ) : (
           <View>
             {isToday && !onAir ? (
               <View className="mb-3 flex-row items-center gap-2.5 rounded-xl bg-surface-2 px-3.5 py-3">
-                <Ionicons name="moon-outline" size={16} color={colors.textDim} />
+                <Ionicons name="musical-notes-outline" size={16} color={colors.brand} />
                 <Text
                   className="flex-1 text-xs leading-5 text-text-dim"
                   style={{ fontFamily: "PlusJakartaSans_400Regular" }}
                 >
-                  Tidak ada siaran sekarang.
+                  Di luar jadwal program: Gaul FM memutarkan musik hits nonstop 24 jam.
                 </Text>
               </View>
             ) : null}

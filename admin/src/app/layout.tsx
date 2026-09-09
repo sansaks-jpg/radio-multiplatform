@@ -21,8 +21,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="light">
-      <body className={`${plusJakarta.variable} font-sans antialiased`}>
+    <html lang="id" className="dark" suppressHydrationWarning>
+      <body
+        className={`${plusJakarta.variable} font-sans antialiased`}
+        suppressHydrationWarning
+      >
         <ThemeProvider>
           <AppShell>{children}</AppShell>
         </ThemeProvider>

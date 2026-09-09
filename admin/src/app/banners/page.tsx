@@ -115,7 +115,7 @@ export default function BannersPage() {
       ) : (
         <div className="space-y-3">
           {sorted.map((b) => (
-            <Card key={b.id} className={!b.is_active ? "opacity-60" : undefined}>
+            <Card key={b.id} className={!b.is_active ? "opacity-70" : undefined}>
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                 <div className="h-20 w-36 shrink-0 overflow-hidden rounded-md bg-muted">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -126,7 +126,7 @@ export default function BannersPage() {
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex-wrap gap-2">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
                     <Badge tone="brand">{b.type}</Badge>
                     <Badge tone={b.is_active ? "success" : "muted"}>
                       {b.is_active ? "Active" : "Off"}
@@ -148,7 +148,7 @@ export default function BannersPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-danger hover:bg-danger/10"
+                    className="text-danger hover:bg-danger-soft"
                     onClick={() => {
                       if (confirm("Hapus banner?")) {
                         deleteBanner(b.id);

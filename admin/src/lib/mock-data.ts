@@ -21,48 +21,34 @@ function cover(i: number) {
   return COVERS[i % COVERS.length]!;
 }
 
-/** Weekday template → expand Mon–Fri + weekend slots. */
+/** Weekday template based on official banner-2.png (Senin–Jumat) */
 function buildPrograms(): Program[] {
   const weekday = [
     {
-      name: "Gaul Pagi",
+      name: "Gaul Morning Show",
       host: "Reno & Dita",
-      start_time: "06:00",
+      start_time: "07:00",
       end_time: "10:00",
       description:
-        "Bangunin pagi dengan hits terbaru, info lalu lintas Semarang, dan obrolan receh.",
+        "Mulai pagi dengan hits terbaru, info lalu lintas Semarang, dan obrolan seru bareng Reno & Dita.",
       cover: 0,
     },
     {
-      name: "Cek Sound",
-      host: "Bara",
-      start_time: "10:00",
-      end_time: "13:00",
-      description: "Musik lokal, band indie Semarang, dan cerita di balik lagu.",
-      cover: 1,
-    },
-    {
-      name: "Gaul Siang",
-      host: "Nadia",
-      start_time: "13:00",
-      end_time: "16:00",
-      description: "Temenin jam kerja dan kuliah dengan playlist paling gaul.",
-      cover: 2,
-    },
-    {
-      name: "Drive Time Gaul",
+      name: "Gaul Waktu Setempat",
       host: "Yoga & Sinta",
-      start_time: "16:00",
-      end_time: "19:00",
-      description: "Nemenin macet pulang: request lagu, games, update sore.",
+      start_time: "15:00",
+      end_time: "18:00",
+      description:
+        "Nemenin sore pulang: musik hits, obrolan santai, dan update waktu setempat di 87.8 MHz.",
       cover: 3,
     },
     {
-      name: "Gaul Malam",
+      name: "Asupan Gaul",
       host: "Raka",
       start_time: "19:00",
       end_time: "22:00",
-      description: "Curhat malam, lagu galau, dan topik hangat anak muda.",
+      description:
+        "Asupan musik gaul malam hari di 87.8 FM: playlist pilihan, curhat, dan obrolan hangat anak muda.",
       cover: 4,
     },
   ];
@@ -83,42 +69,7 @@ function buildPrograms(): Program[] {
     });
   }
 
-  // Weekend
-  for (const day of [0, 6]) {
-    list.push(
-      {
-        id: `p-${day}-1`,
-        name: "Weekend Warmup",
-        host: "DJ Mix",
-        day_of_week: day,
-        start_time: "08:00",
-        end_time: "12:00",
-        cover_url: cover(5),
-        description: "Playlist weekend hits non-stop.",
-      },
-      {
-        id: `p-${day}-2`,
-        name: "Gaul Weekend",
-        host: "Team Gaul",
-        day_of_week: day,
-        start_time: "12:00",
-        end_time: "18:00",
-        cover_url: cover(0),
-        description: "Request marathon + games weekend.",
-      },
-      {
-        id: `p-${day}-3`,
-        name: "Night Groove",
-        host: "Raka",
-        day_of_week: day,
-        start_time: "18:00",
-        end_time: "23:00",
-        cover_url: cover(4),
-        description: "Groove malam weekend.",
-      },
-    );
-  }
-
+  // Weekend (Sabtu & Minggu): Kosong / musik nonstop 24 jam
   return list;
 }
 
@@ -126,7 +77,7 @@ const seedPrograms = buildPrograms();
 
 export const seedNowPlaying: NowPlaying = {
   id: "demo-now-playing",
-  current_program: "Drive Time Gaul",
+  current_program: "Gaul Waktu Setempat",
   current_host: "Yoga & Sinta",
   current_cover_url: cover(3),
   updated_at: "2026-07-19T09:00:00+07:00",

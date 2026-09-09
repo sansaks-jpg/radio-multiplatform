@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { CheckCircle2, Info, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ToastTone = "success" | "error" | "info";
@@ -22,6 +23,12 @@ interface ToastApi {
 }
 
 const ToastContext = createContext<ToastApi | null>(null);
+
+const toneStyles: Record<ToastTone, { icon: typeof Info; className: string }> = {
+  success: { icon: CheckCircle2, className: "text-success" },
+  error: { icon: XCircle, className: "text-danger" },
+  info: { icon: Info, className: "text-brand" },
+};
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
@@ -40,27 +47,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div className="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-full max-w-sm flex-col gap-2 px-4 sm:px-0">
-        {items.map((t) => (
-          <div
-            key={t.id}
-            className={cn(
-              "pointer-events-auto rounded-lg border px-4 py-3 text-sm font-medium shadow-xl backdrop-blur",
-              t.tone === "success" && "border-success/30 bg-card text-foreground",
-              t.tone === "error" && "border-danger/40 bg-card text-foreground",
-              t.tone === "info" && "border-brand/30 bg-card text-foreground",
-            )}
-          >
-            <span
-              className={cn(
-                "mr-2 inline-block h-2 w-2 rounded-full",
-                t.tone === "success" && "bg-success",
-                t.tone === "error" && "bg-danger",
-                t.tone === "info" && "bg-brand",
-              )}
-            />
-            {t.message}
-          </div>
-        ))}
+        {items.map((t) => {
+          const { icon: Icon, className } = toneStyles[t.tone];
+          return (
+            <div
+              key={t.id}
+              className="pointer-events-auto flex items-center gap-2.5 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-lg"
+            >
+              <Icon className={cn("h-4 w-4 shrink-0", className)} />
+              {t.message}
+            </div>
+          );
+        })}
       </div>
     </ToastContext.Provider>
   );
