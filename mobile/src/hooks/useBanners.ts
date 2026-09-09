@@ -25,7 +25,8 @@ export function useBanners() {
   return useQuery({
     queryKey: ["banners"],
     queryFn: fetchBanners,
-    initialData: mockBanners,
-    staleTime: 5 * 60_000,
+    placeholderData: mockBanners,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
   });
 }

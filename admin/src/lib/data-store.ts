@@ -1,9 +1,8 @@
 "use client";
 
 /**
- * Client data store with localStorage persistence.
- * Demo-first: works fully offline. When Supabase env is set, methods can
- * be swapped to real queries without changing UI components.
+ * Client data store with localStorage persistence & automatic Supabase synchronization.
+ * Supports offline demo fallback and live two-way synchronization with Supabase.
  */
 
 import { createSeedSnapshot } from "./mock-data";
@@ -17,6 +16,7 @@ import type {
   StreamSettings,
 } from "./types";
 import { uid } from "./utils";
+import { supabase } from "./supabase";
 
 const STORAGE_KEY = "gaulfm-admin-v1";
 
@@ -24,13 +24,9 @@ type Listener = () => void;
 
 let snapshot: AdminSnapshot = createSeedSnapshot();
 let hydrated = false;
+let realtimeSubscribed = false;
 const listeners = new Set<Listener>();
 
-/**
- * Cached server snapshot — must be referentially stable across calls.
- * React calls getServerSnapshot repeatedly during SSR; returning a fresh
- * object each time triggers the "getServerSnapshot should be cached" warning.
- */
 let serverSnapshot: AdminSnapshot | null = null;
 function getCachedServerSnapshot(): AdminSnapshot {
   if (!serverSnapshot) serverSnapshot = createSeedSnapshot();
@@ -49,6 +45,88 @@ function persist() {
   } catch {
     /* quota / private mode */
   }
+}
+
+export async function syncFromSupabase() {
+  if (!supabase) return;
+  try {
+    const [progRes, banRes, npRes] = await Promise.all([
+      supabase
+        .from("programs")
+        .select("*")
+        .order("day_of_week", { ascending: true })
+        .order("start_time", { ascending: true }),
+      supabase
+        .from("banners")
+        .select("*")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("now_playing")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    let changed = false;
+    let nextPrograms = snapshot.programs;
+    let nextBanners = snapshot.banners;
+    let nextNowPlaying = snapshot.nowPlaying;
+
+    if (progRes.data && progRes.data.length > 0) {
+      nextPrograms = progRes.data as Program[];
+      changed = true;
+    }
+    if (banRes.data && banRes.data.length > 0) {
+      nextBanners = banRes.data as Banner[];
+      changed = true;
+    }
+    if (npRes.data) {
+      nextNowPlaying = npRes.data as NowPlaying;
+      changed = true;
+    }
+
+    if (changed) {
+      snapshot = {
+        ...snapshot,
+        programs: nextPrograms,
+        banners: nextBanners,
+        nowPlaying: nextNowPlaying,
+      };
+      emit();
+    }
+  } catch (err) {
+    console.error("[data-store] Error syncing from Supabase:", err);
+  }
+}
+
+function setupRealtime() {
+  if (realtimeSubscribed || typeof window === "undefined" || !supabase) return;
+  realtimeSubscribed = true;
+  supabase
+    .channel("gaulfm-admin-realtime")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "programs" },
+      () => {
+        void syncFromSupabase();
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "banners" },
+      () => {
+        void syncFromSupabase();
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "now_playing" },
+      () => {
+        void syncFromSupabase();
+      }
+    )
+    .subscribe();
 }
 
 function hydrate() {
@@ -72,6 +150,10 @@ function hydrate() {
   } catch {
     snapshot = createSeedSnapshot();
   }
+
+  // Pull latest updates from Supabase and listen to realtime updates
+  void syncFromSupabase();
+  setupRealtime();
 }
 
 export function subscribe(listener: Listener) {
@@ -80,20 +162,11 @@ export function subscribe(listener: Listener) {
   return () => listeners.delete(listener);
 }
 
-/**
- * Client snapshot — hydrates from localStorage. May differ from server.
- * Used as `getSnapshot` in useSyncExternalStore.
- */
 export function getSnapshot(): AdminSnapshot {
   hydrate();
   return snapshot;
 }
 
-/**
- * Server snapshot — always the seed. Keeps SSR/CSR first render identical
- * so hydration never mismatches (React then re-renders with client data).
- * Used as `getServerSnapshot` in useSyncExternalStore.
- */
 export function getServerSnapshot(): AdminSnapshot {
   return getCachedServerSnapshot();
 }
@@ -111,16 +184,34 @@ export function updateNowPlaying(
     "current_program" | "current_host" | "current_cover_url"
   >,
 ): NowPlaying {
+  const nextNowPlaying: NowPlaying = {
+    ...snapshot.nowPlaying,
+    ...patch,
+    updated_at: new Date().toISOString(),
+  };
+
   snapshot = {
     ...snapshot,
-    nowPlaying: {
-      ...snapshot.nowPlaying,
-      ...patch,
-      updated_at: new Date().toISOString(),
-    },
+    nowPlaying: nextNowPlaying,
   };
   emit();
-  return snapshot.nowPlaying;
+
+  if (supabase) {
+    supabase
+      .from("now_playing")
+      .upsert({
+        id: "00000000-0000-0000-0000-000000000001",
+        current_program: patch.current_program,
+        current_host: patch.current_host,
+        current_cover_url: patch.current_cover_url,
+        updated_at: nextNowPlaying.updated_at,
+      })
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase updateNowPlaying error:", error);
+      });
+  }
+
+  return nextNowPlaying;
 }
 
 /* ---------- Programs ---------- */
@@ -136,7 +227,7 @@ export function upsertProgram(
     day_of_week: input.day_of_week,
     start_time: input.start_time,
     end_time: input.end_time,
-    cover_url: input.cover_url,
+    cover_url: input.cover_url || null,
     description: input.description,
   };
   const idx = snapshot.programs.findIndex((p) => p.id === id);
@@ -146,6 +237,25 @@ export function upsertProgram(
       : [...snapshot.programs, next];
   snapshot = { ...snapshot, programs };
   emit();
+
+  if (supabase) {
+    supabase
+      .from("programs")
+      .upsert({
+        id: next.id,
+        name: next.name,
+        host: next.host,
+        day_of_week: next.day_of_week,
+        start_time: next.start_time,
+        end_time: next.end_time,
+        cover_url: next.cover_url || null,
+        description: next.description || "",
+      })
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase upsertProgram error:", error);
+      });
+  }
+
   return next;
 }
 
@@ -155,6 +265,16 @@ export function deleteProgram(id: string) {
     programs: snapshot.programs.filter((p) => p.id !== id),
   };
   emit();
+
+  if (supabase) {
+    supabase
+      .from("programs")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase deleteProgram error:", error);
+      });
+  }
 }
 
 /* ---------- News ---------- */
@@ -163,7 +283,6 @@ export function syncNewsFromWordPress(): {
   added: number;
   news: NewsItem[];
 } {
-  // Simulated WP pull — prepends a fresh demo item + bumps sync time
   const stamp = new Date().toISOString();
   const fresh: NewsItem = {
     id: uid("n"),
@@ -213,6 +332,27 @@ export function upsertBanner(
       : [...snapshot.banners, next];
   snapshot = { ...snapshot, banners };
   emit();
+
+  if (supabase) {
+    supabase
+      .from("banners")
+      .upsert({
+        id: next.id,
+        title: next.title,
+        subtitle: next.subtitle || null,
+        image_url: next.image_url,
+        cta_label: next.cta_label || null,
+        link_to: next.link_to || null,
+        link_url: next.link_url || null,
+        type: next.type,
+        sort_order: next.sort_order,
+        is_active: next.is_active,
+      })
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase upsertBanner error:", error);
+      });
+  }
+
   return next;
 }
 
@@ -222,6 +362,16 @@ export function deleteBanner(id: string) {
     banners: snapshot.banners.filter((b) => b.id !== id),
   };
   emit();
+
+  if (supabase) {
+    supabase
+      .from("banners")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase deleteBanner error:", error);
+      });
+  }
 }
 
 export function setSheetsStatus(status: AdminSnapshot["sheetsSyncStatus"]) {
@@ -257,4 +407,3 @@ export function resetStreamSettings(): StreamSettings {
   emit();
   return snapshot.streamSettings;
 }
-

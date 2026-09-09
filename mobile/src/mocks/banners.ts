@@ -15,7 +15,8 @@ export const mockBanners: Banner[] = [
     type: "program",
     title: "Gaul FM 87.8 Semarang",
     subtitle: "The Best Visual Radio Station — Hits Music & Lifestyle",
-    image_url: "",
+    image_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-1.png",
     image_source: banner1,
     cta_label: "Tonton live",
     link_to: null,
@@ -28,7 +29,8 @@ export const mockBanners: Banner[] = [
     type: "program",
     title: "Jadwal Siaran Gaul FM",
     subtitle: "Gaul Morning Show, Gaul Waktu Setempat & Asupan Gaul",
-    image_url: "",
+    image_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-2.png",
     image_source: banner2,
     cta_label: "Lihat Jadwal",
     link_to: "schedule",
@@ -41,7 +43,8 @@ export const mockBanners: Banner[] = [
     type: "event",
     title: "Gaulista Community",
     subtitle: "Radio anak muda hits 15-29 tahun di Semarang",
-    image_url: "",
+    image_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-3.png",
     image_source: banner3,
     cta_label: "Instagram",
     link_to: null,
@@ -54,7 +57,8 @@ export const mockBanners: Banner[] = [
     type: "ad",
     title: "radiogaulfmsmg.com",
     subtitle: "Kunjungi portal web resmi Radio Gaul FM Semarang",
-    image_url: "",
+    image_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-4.png",
     image_source: banner4,
     cta_label: "Kunjungi Web",
     link_to: null,

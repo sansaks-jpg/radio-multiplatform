@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Upload, Loader2 } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
 import { deleteBanner, upsertBanner } from "@/lib/data-store";
+import { supabase } from "@/lib/supabase";
 import type { Banner, BannerType } from "@/lib/types";
 import { uid } from "@/lib/utils";
 import { PageHeader, EmptyState } from "@/components/ui/page-header";
@@ -44,6 +45,36 @@ export default function BannersPage() {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(empty());
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!supabase) {
+      toast.push("Supabase belum terkonfigurasi untuk upload gambar", "error");
+      return;
+    }
+    try {
+      setUploading(true);
+      const ext = file.name.split(".").pop() || "png";
+      const fileName = `banner-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("banners")
+        .upload(fileName, file, { upsert: true, contentType: file.type });
+      if (uploadError) throw uploadError;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("banners").getPublicUrl(fileName);
+
+      setForm((prev) => ({ ...prev, image_url: publicUrl }));
+      toast.push("Gambar banner berhasil diunggah!", "success");
+    } catch (err) {
+      toast.push("Gagal mengunggah: " + (err as Error).message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const sorted = [...banners].sort((a, b) => a.sort_order - b.sort_order);
 
@@ -192,14 +223,47 @@ export default function BannersPage() {
                 onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
               />
             </Field>
-            <Field label="Image URL" className="sm:col-span-2">
-              <Input
-                value={form.image_url}
-                onChange={(e) =>
-                  setForm({ ...form, image_url: e.target.value })
-                }
-                required
-              />
+            <Field label="Gambar Banner" className="sm:col-span-2">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted active:scale-95 transition-all shadow-xs">
+                    {uploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-brand" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5 text-brand" />
+                    )}
+                    <span>{uploading ? "Mengunggah..." : "Upload File Gambar"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                  <span className="text-[11px] text-muted-foreground">
+                    Upload PNG/JPG ke Supabase CDN atau paste URL di bawah
+                  </span>
+                </div>
+                <Input
+                  value={form.image_url}
+                  onChange={(e) =>
+                    setForm({ ...form, image_url: e.target.value })
+                  }
+                  placeholder="https://... URL gambar banner"
+                  required
+                />
+                {form.image_url ? (
+                  <div className="relative mt-2 h-28 w-full max-w-sm overflow-hidden rounded-lg border border-border bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={form.image_url}
+                      alt="Preview"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : null}
+              </div>
             </Field>
             <Field label="CTA label">
               <Input
