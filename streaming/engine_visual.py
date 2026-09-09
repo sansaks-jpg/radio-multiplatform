@@ -38,7 +38,8 @@ def main():
         # Video: Direct copy with normalized timestamps (0% CPU, ultra smooth)
         "-c:v", "copy",
         
-        # Audio: Studio Broadcast Opus (Fullband 20kHz, smooth music profile like YouTube)
+        # Audio: Resampling filter to fix backward timestamps, sync audio, and prevent stutter
+        "-af", "aresample=async=1000:min_hard_comp=0.100000:first_pts=0",
         "-c:a", "libopus",
         "-b:a", "128k",
         "-vbr", "on",

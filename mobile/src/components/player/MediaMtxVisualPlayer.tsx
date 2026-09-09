@@ -8,6 +8,7 @@ import {
   VISUAL_HLS_URL,
 } from "../../services/visualStream";
 import { stopLive } from "../../services/audio/trackPlayerService";
+import { setAudioModeAsync } from "expo-audio";
 
 interface MediaMtxVisualPlayerProps {
   rtmpUrl?: string;
@@ -24,9 +25,16 @@ export function MediaMtxVisualPlayer({
 }: MediaMtxVisualPlayerProps) {
   const webViewRef = useRef<WebView>(null);
 
-  // Pastikan radio Icecast dimatikan total saat visual player dibuka
+  // Pastikan radio Icecast dimatikan total & audio mode ponsel aktif untuk pemutaran video
   useEffect(() => {
     void stopLive();
+    try {
+      void setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
+        interruptionMode: "duckOthers",
+      });
+    } catch {}
   }, []);
 
   // Jalankan pembersihan saat komponen di-unmount oleh React
@@ -73,11 +81,30 @@ export function MediaMtxVisualPlayer({
     function playVideo() {
       if (isCleanedUp || !video) return;
       video.muted = false;
-      video.play().catch(function() {
-        if (isCleanedUp || !video) return;
-        video.muted = true;
-        video.play().catch(function() {});
-      });
+      video.volume = 1.0;
+      var promise = video.play();
+      if (promise !== undefined) {
+        promise.then(function() {
+          video.muted = false;
+        }).catch(function() {
+          if (isCleanedUp || !video) return;
+          video.muted = false;
+          video.play().catch(function() {
+            video.muted = true;
+            video.play().catch(function() {});
+            var unmuteOnce = function() {
+              if (video) {
+                video.muted = false;
+                video.volume = 1.0;
+              }
+              window.removeEventListener('touchstart', unmuteOnce);
+              window.removeEventListener('click', unmuteOnce);
+            };
+            window.addEventListener('touchstart', unmuteOnce, { once: true, passive: true });
+            window.addEventListener('click', unmuteOnce, { once: true, passive: true });
+          });
+        });
+      }
     }
 
     // Tap di mana saja pada video untuk menyalakan audio jika ter-mute oleh kebijakan OS
@@ -343,6 +370,7 @@ export function MediaMtxVisualPlayer({
         androidLayerType="hardware"
         setSupportMultipleWindows={false}
         originWhitelist={["*"]}
+        injectedJavaScript="setTimeout(function(){ var v = document.getElementById('video'); if (v) { v.muted = false; v.volume = 1.0; v.play().catch(function(){}); } }, 200); true;"
       />
 
       {/* ── Tombol Fullscreen (Layar Penuh) ── */}
