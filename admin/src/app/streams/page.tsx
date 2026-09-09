@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Activity, Copy, Radio, Save, Tv, Video, Cast, Check, RadioReceiver } from "lucide-react";
-import { PageHeader, StatCard } from "@/components/ui/page-header";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Copy, Radio, Save, Tv, Video, Cast, Check, Volume2, VolumeX, ExternalLink, Play, RefreshCw } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 
+type TabType = "visual" | "audio" | "youtube";
+
 export default function StreamsPage() {
   const toast = useToast();
   
-  // States
+  // Tab State
+  const [activeTab, setActiveTab] = useState<TabType>("visual");
+
+  // YouTube Restream States
   const [ytEnabled, setYtEnabled] = useState(false);
   const [ytKey, setYtKey] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
@@ -35,13 +39,13 @@ export default function StreamsPage() {
           setYtKey(data.youtube_key || "");
         }
       })
-      .catch(() => toast.push("Gagal terhubung ke Cloud Engine", "error"));
+      .catch(() => toast.push("Gagal memuat status cloud engine", "error"));
   }, [toast]);
 
   const copyText = (text: string, id: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    toast.push(`${label} disalin ke clipboard`);
+    toast.push(`${label} berhasil disalin!`);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -57,12 +61,12 @@ export default function StreamsPage() {
         }),
       });
       if (res.ok) {
-        toast.push("Sistem Cloud berhasil disinkronisasi!");
+        toast.push(ytEnabled ? "Restream YouTube berhasil diaktifkan!" : "Restream YouTube dimatikan");
       } else {
-        toast.push("Gagal sinkronisasi ke Cloud", "error");
+        toast.push("Gagal menyimpan ke server", "error");
       }
     } catch {
-      toast.push("Terjadi kesalahan jaringan", "error");
+      toast.push("Terjadi gangguan jaringan", "error");
     } finally {
       setIsSyncing(false);
     }
@@ -74,7 +78,6 @@ export default function StreamsPage() {
         audioRef.current.pause();
         setIsAudioPlaying(false);
       } else {
-        // Cache bust to always get fresh stream
         audioRef.current.src = `http://40.81.231.250:8000/live?t=${Date.now()}`;
         audioRef.current.play()
           .then(() => setIsAudioPlaying(true))
@@ -86,13 +89,13 @@ export default function StreamsPage() {
   const testVisualStream = () => {
     if (videoRef.current) {
       setIsVideoLoading(true);
-      const hlsUrl = "http://40.81.231.250:8888/live_visual_webrtc/index.m3u8";
+      const hlsUrl = "http://40.81.231.250:8888/gaulfm_webrtc/index.m3u8";
       
       if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
         videoRef.current.src = hlsUrl;
         videoRef.current.play()
           .then(() => { setIsVideoPlaying(true); setIsVideoLoading(false); })
-          .catch(() => { setIsVideoLoading(false); toast.push("Stream vMix offline", "error"); });
+          .catch(() => { setIsVideoLoading(false); toast.push("Sinyal vMix belum tersambung", "error"); });
       } else {
         const script = document.createElement("script");
         script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js";
@@ -110,11 +113,9 @@ export default function StreamsPage() {
                 .catch(() => { setIsVideoLoading(false); });
             });
             // @ts-expect-error missing hls types
-            hls.on(window.Hls.Events.ERROR, (event, data) => {
-              if (data.fatal) {
-                setIsVideoLoading(false);
-                toast.push("Siaran Visual offline / HLS belum aktif", "error");
-              }
+            hls.on(window.Hls.Events.ERROR, () => {
+              setIsVideoLoading(false);
+              toast.push("Sinyal visual studio belum online", "error");
             });
           }
         };
@@ -124,184 +125,372 @@ export default function StreamsPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <PageHeader
-          title="Streaming Orchestrator"
-          description="Pusat kendali ingest server independen untuk siaran Audio (RadioBOSS) dan Visual (vMix) beserta distribusi Cloud."
-        />
-        <div className="flex gap-2">
-           <Badge tone="live" pulse>CLOUD ENGINE ONLINE</Badge>
+    <div className="space-y-6 max-w-5xl mx-auto pb-16 px-2 sm:px-4">
+      
+      {/* ── HEADER RINGKAS & RAMAH ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Studio Siaran Multiplatform</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Hubungkan software studio radio Anda ke Aplikasi Mobile dan YouTube dengan mudah.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge tone="live" pulse>SERVER AKTIF</Badge>
+          <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1 rounded-md">
+            40.81.231.250
+          </span>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Audio Server" value="Icecast" hint="Port 8000" tone="brand" icon={<Radio />} />
-        <StatCard label="Visual Server" value="MediaMTX" hint="Port 1935" tone="orange" icon={<Video />} />
-        <StatCard label="Cloud Hub" value="40.81.231.250" hint="Azure VM" tone="default" icon={<Activity />} />
-        <StatCard label="YouTube Restream" value={ytEnabled ? "Aktif" : "Nonaktif"} hint="Direct Copy Engine" tone={ytEnabled ? "brand" : "default"} icon={<Cast />} />
+      {/* ── NAVIGASI TAB MENU BESAR & JELAS ── */}
+      <div className="grid grid-cols-3 gap-2 bg-muted/30 p-1.5 rounded-xl border border-border/70">
+        <button
+          onClick={() => setActiveTab("visual")}
+          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all ${
+            activeTab === "visual"
+              ? "bg-background text-foreground shadow-sm border border-border"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+          }`}
+        >
+          <Tv className={`h-4 w-4 ${activeTab === "visual" ? "text-orange" : ""}`} />
+          <span>1. Visual (vMix / OBS)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("audio")}
+          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all ${
+            activeTab === "audio"
+              ? "bg-background text-foreground shadow-sm border border-border"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+          }`}
+        >
+          <Radio className={`h-4 w-4 ${activeTab === "audio" ? "text-brand" : ""}`} />
+          <span>2. Audio (RadioBOSS)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("youtube")}
+          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold text-sm transition-all ${
+            activeTab === "youtube"
+              ? "bg-background text-foreground shadow-sm border border-border"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+          }`}
+        >
+          <Cast className={`h-4 w-4 ${activeTab === "youtube" ? "text-red-500" : ""}`} />
+          <span>3. YouTube Live</span>
+          {ytEnabled && <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />}
+        </button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-12">
-        {/* LEFT COLUMN: SETUP */}
-        <div className="lg:col-span-5 space-y-6">
+      {/* ── TAB 1: VISUAL RADIO (VMIX) ── */}
+      {activeTab === "visual" && (
+        <div className="grid lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
           
-          {/* CARD 1: RADIOBOSS */}
-          <Card className="border border-border shadow-sm overflow-hidden relative">
-            <div className="absolute top-0 left-0 w-1 h-full bg-brand"></div>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <RadioReceiver className="h-5 w-5 text-brand" /> 
-                  1. Setup Audio (RadioBOSS)
+          {/* Kolom Kiri: Input Setup vMix */}
+          <div className="lg:col-span-6 space-y-4">
+            <Card className="border border-border shadow-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Video className="h-5 w-5 text-orange" />
+                  Pengaturan di Software vMix
                 </CardTitle>
-                {isAudioPlaying && <Badge tone="live" pulse>MONITOR AKTIF</Badge>}
-              </div>
-              <CardDescription>
-                Masukkan ke <b>RadioBOSS / SAM Broadcaster</b> agar aplikasi membaca Metadata Judul Lagu otomatis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-border bg-muted/30 p-1">
-                <CopyField label="Server IP" value="40.81.231.250" id="ip" copiedId={copiedId} onCopy={copyText} />
-                <CopyField label="Port" value="8000" id="port" copiedId={copiedId} onCopy={copyText} />
-                <CopyField label="Mount Point" value="/live" id="mount" copiedId={copiedId} onCopy={copyText} highlight />
-                <CopyField label="Password" value="sourcepass123" id="pass" copiedId={copiedId} onCopy={copyText} isSecret />
-              </div>
-            </CardContent>
-            <CardFooter className="bg-muted/10 border-t border-border pt-4">
-              <Button variant={isAudioPlaying ? "outline" : "secondary"} className="w-full" onClick={toggleAudio}>
-                {isAudioPlaying ? "Hentikan Pemutaran" : "Tes Putar Suara (Icecast)"}
-              </Button>
-              <audio ref={audioRef} className="hidden" />
-            </CardFooter>
-          </Card>
-
-          {/* CARD 2: VMIX */}
-          <Card className="border border-border shadow-sm overflow-hidden relative">
-            <div className="absolute top-0 left-0 w-1 h-full bg-orange"></div>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Tv className="h-5 w-5 text-orange" /> 
-                2. Setup Visual (vMix / OBS)
-              </CardTitle>
-              <CardDescription>
-                Gunakan profil encoder <b>H.264 + AAC</b>. Cloud engine kami akan mengonversi audio ke WebRTC (Opus) secara real-time.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border border-border bg-muted/30 p-1">
-                <CopyField label="RTMP Server URL" value="rtmp://40.81.231.250:1935/" id="rtmp" copiedId={copiedId} onCopy={copyText} />
-                <CopyField label="Stream Key" value="live_visual" id="streamkey" copiedId={copiedId} onCopy={copyText} highlight />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* RIGHT COLUMN: PREVIEW & YOUTUBE */}
-        <div className="lg:col-span-7 space-y-6">
-          
-          {/* VISUAL MONITOR */}
-          <Card className="border border-border shadow-sm overflow-hidden">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">Live Visual Monitor</CardTitle>
-                <CardDescription>Preview HLS/WebRTC dari siaran vMix Anda (Latensi Rendah).</CardDescription>
-              </div>
-              {isVideoPlaying && <Badge tone="live" pulse>LIVE</Badge>}
-            </CardHeader>
-            <div className="p-5 pt-0">
-              <div className="aspect-video w-full rounded-xl bg-black overflow-hidden relative border border-border shadow-inner group">
-                <video ref={videoRef} className="w-full h-full object-contain" controls playsInline />
+                <CardDescription>
+                  Buka vMix $\to$ klik ikon gear pada menu <b>Stream</b> $\to$ pilih <b>Custom RTMP Server</b>, lalu isi data berikut:
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 
-                {!isVideoPlaying && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10 transition-opacity">
-                    <div className="p-4 rounded-full bg-muted/50 mb-4">
-                      <Tv className="h-8 w-8 text-muted-foreground" />
+                {/* Parameter 1: URL */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    URL Server RTMP
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-muted/40 border border-border rounded-lg px-3.5 py-2.5 font-mono text-sm select-all">
+                      rtmp://40.81.231.250:1935/
                     </div>
-                    <Button variant="primary" onClick={testVisualStream} disabled={isVideoLoading} className="shadow-lg">
-                      <PlayIcon className="mr-2 h-4 w-4" /> 
-                      {isVideoLoading ? "Menghubungkan HLS..." : "Muat Siaran Visual"}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => copyText("rtmp://40.81.231.250:1935/", "url_vmix", "URL RTMP")}
+                      className="shrink-0 h-10 px-3.5"
+                    >
+                      {copiedId === "url_vmix" ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                      <span className="ml-1.5 text-xs">Salin</span>
                     </Button>
-                    <p className="text-xs text-muted-foreground mt-4 max-w-xs text-center">
-                      Pastikan studio vMix Anda sudah menyala dan mengirimkan stream sebelum memutar preview ini.
-                    </p>
                   </div>
-                )}
-              </div>
-            </div>
-          </Card>
+                </div>
 
-          {/* YOUTUBE SETTINGS */}
+                {/* Parameter 2: Stream Key */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Stream Name / Key
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-orange/10 border border-orange/40 text-orange font-bold rounded-lg px-3.5 py-2.5 font-mono text-sm select-all">
+                      gaulfm
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => copyText("gaulfm", "key_vmix", "Stream Key")}
+                      className="shrink-0 h-10 px-3.5"
+                    >
+                      {copiedId === "key_vmix" ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                      <span className="ml-1.5 text-xs">Salin</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Info Otomatis */}
+                <div className="rounded-lg bg-muted/20 border border-border/80 p-3.5 text-xs text-muted-foreground leading-relaxed space-y-1">
+                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+                    💡 Cara Kerja Otomatis:
+                  </p>
+                  <p>
+                    Server akan langsung menyalin video H.264 kamera Anda dan otomatis mengonversi audio studio ke WebRTC (Opus) agar bersuara jernih di HP pendengar tanpa jeda.
+                  </p>
+                </div>
+
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Kolom Kanan: Layar Monitor Studio */}
+          <div className="lg:col-span-6 space-y-4">
+            <Card className="border border-border shadow-sm overflow-hidden">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">Monitor Siaran Langsung</CardTitle>
+                  <CardDescription className="text-xs">
+                    Tampilan langsung yang ditonton oleh pendengar di aplikasi HP.
+                  </CardDescription>
+                </div>
+                {isVideoPlaying && <Badge tone="live" pulse>ON AIR</Badge>}
+              </CardHeader>
+              <div className="p-4 pt-0">
+                <div className="aspect-video w-full rounded-xl bg-black overflow-hidden relative border border-border shadow-inner flex items-center justify-center">
+                  <video ref={videoRef} className="w-full h-full object-contain" controls playsInline />
+                  
+                  {!isVideoPlaying && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-6 text-center">
+                      <Tv className="h-10 w-10 text-muted-foreground/60 mb-3" />
+                      <p className="text-sm font-medium text-white mb-1">Preview Studio</p>
+                      <p className="text-xs text-muted-foreground max-w-xs mb-4">
+                        Pastikan vMix sudah menekan tombol &quot;Stream&quot; sebelum memuat preview ini.
+                      </p>
+                      <Button
+                        variant="primary"
+                        onClick={testVisualStream}
+                        disabled={isVideoLoading}
+                        className="shadow-md"
+                      >
+                        {isVideoLoading ? (
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Play className="mr-2 h-4 w-4 fill-current" />
+                        )}
+                        {isVideoLoading ? "Menghubungkan..." : "Cek Tampilan Siaran"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+        </div>
+      )}
+
+      {/* ── TAB 2: AUDIO RADIO (RADIOBOSS) ── */}
+      {activeTab === "audio" && (
+        <div className="max-w-2xl mx-auto space-y-4 animate-in fade-in duration-200">
           <Card className="border border-border shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Cast className="h-5 w-5 text-red-500" /> YouTube Restreamer
-              </CardTitle>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Radio className="h-5 w-5 text-brand" />
+                  Pengaturan di Software RadioBOSS / SAM
+                </CardTitle>
+                {isAudioPlaying && <Badge tone="live" pulse>SUARA AKTIF</Badge>}
+              </div>
               <CardDescription>
-                Meneruskan siaran dari vMix langsung ke YouTube tanpa membebani CPU komputer studio Anda.
+                Masukkan data server Icecast ini ke pengaturan <b>Broadcasting</b> di RadioBOSS agar judul lagu dan audio mengalir ke aplikasi.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col sm:flex-row gap-4 items-end bg-muted/20 p-4 rounded-lg border border-border">
-                <div className="flex-1 space-y-2 w-full">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Stream Key YouTube</label>
-                  <Input
-                    type="password"
-                    placeholder="Contoh: abcd-1234-efgh-5678"
-                    value={ytKey}
-                    onChange={(e) => setYtKey(e.target.value)}
-                    className="font-mono"
-                  />
-                </div>
-                <div className="flex w-full sm:w-auto gap-2">
-                  <Button
-                    variant={ytEnabled ? "danger" : "secondary"}
-                    onClick={() => setYtEnabled(!ytEnabled)}
-                    className="flex-1 sm:flex-none"
-                  >
-                    {ytEnabled ? "Matikan Push" : "Aktifkan Push"}
-                  </Button>
-                  <Button variant="primary" onClick={handleSyncYoutube} disabled={isSyncing} className="flex-1 sm:flex-none">
-                    <Save className="mr-2 h-4 w-4" />
-                    {isSyncing ? "Menyimpan..." : "Terapkan"}
-                  </Button>
-                </div>
+            <CardContent className="space-y-3">
+              
+              <SimpleCopyRow
+                label="Server / Host"
+                value="40.81.231.250"
+                id="rb_ip"
+                copiedId={copiedId}
+                onCopy={copyText}
+              />
+
+              <SimpleCopyRow
+                label="Port"
+                value="8000"
+                id="rb_port"
+                copiedId={copiedId}
+                onCopy={copyText}
+              />
+
+              <SimpleCopyRow
+                label="Mount Point"
+                value="/live"
+                id="rb_mount"
+                copiedId={copiedId}
+                onCopy={copyText}
+                highlight
+              />
+
+              <SimpleCopyRow
+                label="Password Source"
+                value="sourcepass123"
+                id="rb_pass"
+                copiedId={copiedId}
+                onCopy={copyText}
+              />
+
+              {/* Player Audio Test */}
+              <div className="pt-4 border-t border-border mt-4">
+                <Button
+                  variant={isAudioPlaying ? "outline" : "primary"}
+                  className="w-full h-11"
+                  onClick={toggleAudio}
+                >
+                  {isAudioPlaying ? (
+                    <>
+                      <VolumeX className="mr-2 h-4 w-4" />
+                      Hentikan Suara Radio
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="mr-2 h-4 w-4" />
+                      Dengarkan Siaran Audio Radio
+                    </>
+                  )}
+                </Button>
+                <audio ref={audioRef} className="hidden" />
               </div>
+
             </CardContent>
           </Card>
-          
         </div>
-      </div>
+      )}
+
+      {/* ── TAB 3: YOUTUBE LIVE RESTREAM ── */}
+      {activeTab === "youtube" && (
+        <div className="max-w-2xl mx-auto space-y-4 animate-in fade-in duration-200">
+          <Card className="border border-border shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Cast className="h-5 w-5 text-red-500" />
+                Siaran Ulang Otomatis ke YouTube Live
+              </CardTitle>
+              <CardDescription>
+                Server cloud akan meneruskan siaran vMix studio Anda ke YouTube tanpa membebani laptop atau kuota internet studio Anda.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              
+              {/* Sakelar ON/OFF */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border">
+                <div>
+                  <p className="font-semibold text-sm text-foreground">Status Push YouTube</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {ytEnabled ? "Siaran vMix akan otomatis terkirim ke YouTube" : "Siaran hanya berjalan di Aplikasi Mobile"}
+                  </p>
+                </div>
+                <Button
+                  variant={ytEnabled ? "danger" : "secondary"}
+                  size="sm"
+                  onClick={() => setYtEnabled(!ytEnabled)}
+                  className="font-bold text-xs px-4 h-9"
+                >
+                  {ytEnabled ? "Matikan" : "Aktifkan"}
+                </Button>
+              </div>
+
+              {/* Input Key */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Stream Key YouTube Anda
+                  </label>
+                  <a
+                    href="https://studio.youtube.com/channel/live"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-brand hover:underline inline-flex items-center gap-1"
+                  >
+                    Buka YouTube Studio <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+                <Input
+                  type="password"
+                  placeholder="Tempel Stream Key YouTube di sini (contoh: abcd-1234-efgh-5678)"
+                  value={ytKey}
+                  onChange={(e) => setYtKey(e.target.value)}
+                  className="font-mono text-sm h-11"
+                />
+              </div>
+
+              {/* Tombol Simpan */}
+              <Button
+                variant="primary"
+                onClick={handleSyncYoutube}
+                disabled={isSyncing}
+                className="w-full h-11 text-sm font-semibold shadow-md"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {isSyncing ? "Menyimpan ke Server..." : "Simpan & Terapkan Pengaturan"}
+              </Button>
+
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
     </div>
   );
 }
 
-// Komponen helper untuk field copy yang elegan
-function CopyField({ 
-  label, value, id, copiedId, onCopy, highlight = false, isSecret = false 
-}: { 
-  label: string; value: string; id: string; copiedId: string | null; onCopy: (v: string, id: string, l: string) => void; highlight?: boolean; isSecret?: boolean 
+// Komponen baris salin yang rapi dan mudah
+function SimpleCopyRow({
+  label,
+  value,
+  id,
+  copiedId,
+  onCopy,
+  highlight = false,
+}: {
+  label: string;
+  value: string;
+  id: string;
+  copiedId: string | null;
+  onCopy: (v: string, id: string, l: string) => void;
+  highlight?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between p-3 rounded-md hover:bg-muted/50 transition-colors group cursor-pointer" onClick={() => onCopy(value, id, label)}>
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-3">
-        <span className={`text-sm font-mono ${highlight ? "font-bold text-brand" : "text-foreground"} ${isSecret ? "blur-sm group-hover:blur-none transition-all duration-300" : ""}`}>
+    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border hover:bg-muted/40 transition-colors">
+      <div className="space-y-0.5">
+        <p className="text-xs text-muted-foreground font-medium">{label}</p>
+        <p className={`font-mono text-sm ${highlight ? "text-brand font-bold" : "text-foreground"}`}>
           {value}
-        </span>
-        <div className={`text-muted-foreground transition-all duration-200 ${copiedId === id ? "text-success" : "group-hover:text-foreground"}`}>
-          {copiedId === id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4 opacity-0 group-hover:opacity-100" />}
-        </div>
+        </p>
       </div>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => onCopy(value, id, label)}
+        className="h-8 px-3 text-xs"
+      >
+        {copiedId === id ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+        <span className="ml-1">{copiedId === id ? "Disalin" : "Salin"}</span>
+      </Button>
     </div>
-  );
-}
-
-function PlayIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="5 3 19 12 5 21 5 3" />
-    </svg>
   );
 }
