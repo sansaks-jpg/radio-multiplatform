@@ -25,21 +25,27 @@ def main():
 
     target_webrtc_path = "gaulfm_webrtc" if mtx_path in ["gaulfm", "live_visual", "gaulfm_in"] else f"{mtx_path}_webrtc"
 
-    # Base FFmpeg command: Input from MediaMTX via local RTSP (fastest, zero-overhead)
+    # Base FFmpeg command: Input from MediaMTX via local RTSP with DTS/PTS normalization
     cmd = [
         "ffmpeg",
         "-hide_banner",
         "-loglevel", "warning",
+        "-fflags", "+genpts+discardcorrupt",
+        "-avoid_negative_ts", "make_zero",
         "-rtsp_transport", "tcp",
         "-i", f"rtsp://localhost:8554/{mtx_path}",
         
-        # Output 1: WebRTC Compatible Stream
-        # Browsers require Opus audio for WebRTC. AAC will cause silent video.
-        # We copy the video (0% CPU) and transcode audio to Opus at high quality.
+        # Video: Direct copy with normalized timestamps (0% CPU, ultra smooth)
         "-c:v", "copy",
+        
+        # Audio: Ultra-low latency Opus transcode (20ms frames, zero buffer)
         "-c:a", "libopus",
-        "-b:a", "128k",
-        "-vbr", "on",
+        "-b:a", "96k",
+        "-application", "lowdelay",
+        "-frame_duration", "20",
+        
+        # Output RTSP via TCP without interleave latency
+        "-max_interleave_delta", "0",
         "-rtsp_transport", "tcp",
         "-f", "rtsp",
         f"rtsp://localhost:8554/{target_webrtc_path}"
