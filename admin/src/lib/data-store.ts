@@ -8,6 +8,7 @@
 import { createSeedSnapshot } from "./mock-data";
 import type {
   AdminSnapshot,
+  Announcer,
   Banner,
   NewsItem,
   NowPlaying,
@@ -50,7 +51,7 @@ function persist() {
 export async function syncFromSupabase() {
   if (!supabase) return;
   try {
-    const [progRes, banRes, npRes, newsRes, profRes] = await Promise.all([
+    const [progRes, banRes, npRes, newsRes, profRes, annRes] = await Promise.all([
       supabase
         .from("programs")
         .select("*")
@@ -74,6 +75,10 @@ export async function syncFromSupabase() {
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false }),
+      supabase
+        .from("announcers")
+        .select("*")
+        .order("sort_order", { ascending: true }),
     ]);
 
     let changed = false;
@@ -82,6 +87,7 @@ export async function syncFromSupabase() {
     let nextNowPlaying = snapshot.nowPlaying;
     let nextNews = snapshot.news;
     let nextProfiles = snapshot.profiles;
+    let nextAnnouncers = snapshot.announcers;
 
     if (progRes.data && progRes.data.length > 0) {
       nextPrograms = progRes.data as Program[];
@@ -97,6 +103,10 @@ export async function syncFromSupabase() {
     }
     if (newsRes.data && newsRes.data.length > 0) {
       nextNews = newsRes.data as NewsItem[];
+      changed = true;
+    }
+    if (annRes.data && annRes.data.length > 0) {
+      nextAnnouncers = annRes.data as Announcer[];
       changed = true;
     }
     if (profRes.data && profRes.data.length > 0) {
@@ -136,6 +146,7 @@ export async function syncFromSupabase() {
         nowPlaying: nextNowPlaying,
         news: nextNews,
         profiles: nextProfiles,
+        announcers: nextAnnouncers,
       };
       emit();
     }
@@ -184,6 +195,13 @@ function setupRealtime() {
         void syncFromSupabase();
       }
     )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "announcers" },
+      () => {
+        void syncFromSupabase();
+      }
+    )
     .subscribe();
 }
 
@@ -198,6 +216,7 @@ function hydrate() {
         ...createSeedSnapshot(),
         ...parsed,
         programs: parsed.programs ?? createSeedSnapshot().programs,
+        announcers: parsed.announcers ?? createSeedSnapshot().announcers,
         news: parsed.news ?? createSeedSnapshot().news,
         profiles: parsed.profiles ?? createSeedSnapshot().profiles,
         banners: parsed.banners ?? createSeedSnapshot().banners,
@@ -270,6 +289,23 @@ export function updateNowPlaying(
   }
 
   return nextNowPlaying;
+}
+
+/** 1-Klik ganti penyiar on-air dari Gaul Squad atau reset ke default */
+export function setBroadcasterOnAir(announcer: Announcer | null): NowPlaying {
+  if (announcer) {
+    return updateNowPlaying({
+      current_program: snapshot.nowPlaying.current_program,
+      current_host: announcer.name,
+      current_cover_url: announcer.photo_url,
+    });
+  } else {
+    return updateNowPlaying({
+      current_program: snapshot.nowPlaying.current_program,
+      current_host: "Gaul Squad",
+      current_cover_url: null,
+    });
+  }
 }
 
 /* ---------- Programs ---------- */

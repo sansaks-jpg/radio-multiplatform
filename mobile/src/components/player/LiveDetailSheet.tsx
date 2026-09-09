@@ -231,10 +231,18 @@ export function LiveDetailSheet({
   const isDark = mode === "dark";
   const canSend = draftMessage.trim().length > 0;
   const displayName = profile?.full_name?.trim() || "Kamu";
+  const isCustomHost =
+    nowPlaying.current_host &&
+    nowPlaying.current_host !== "Gaul FM" &&
+    nowPlaying.current_host !== "Gaul Squad";
   const cover =
-    matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
+    isCustomHost && nowPlaying.current_cover_url
+      ? nowPlaying.current_cover_url
+      : nowPlaying.current_cover_url ?? matchedProgram?.cover_url ?? null;
   const title = matchedProgram?.name ?? nowPlaying.current_program;
-  const host = matchedProgram?.host ?? nowPlaying.current_host;
+  const host = isCustomHost
+    ? nowPlaying.current_host
+    : nowPlaying.current_host || matchedProgram?.host || "Gaul Squad";
   const keyboardOpen = keyboardHeight > 0;
 
   const bottomLift = keyboardHeight;

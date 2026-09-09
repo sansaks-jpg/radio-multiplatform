@@ -29,11 +29,23 @@ function mergeWithOnAir(
   onAir: Program | null | undefined,
 ): NowPlaying {
   if (!onAir) return base;
+  // Di Gaul FM, penyiar tidak tetap per program.
+  // Prioritaskan penyiar yang sedang on-air di now_playing (base.current_host & base.current_cover_url).
+  const isCustomHost =
+    base.current_host &&
+    base.current_host !== "Gaul FM" &&
+    base.current_host !== "Gaul Squad";
+
   return {
     ...base,
-    current_program: onAir.name,
-    current_host: onAir.host,
-    current_cover_url: onAir.cover_url ?? base.current_cover_url,
+    current_program: base.current_program || onAir.name,
+    current_host: isCustomHost
+      ? base.current_host
+      : onAir.host || base.current_host || "Gaul Squad",
+    current_cover_url:
+      isCustomHost && base.current_cover_url
+        ? base.current_cover_url
+        : base.current_cover_url || onAir.cover_url,
   };
 }
 

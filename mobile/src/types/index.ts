@@ -26,6 +26,17 @@ export interface LiveComment {
   is_broadcaster?: boolean;
 }
 
+export interface Announcer {
+  id: string;
+  name: string;
+  nickname?: string | null;
+  photo_url: string;
+  bio?: string | null;
+  instagram?: string | null;
+  is_active?: boolean;
+  sort_order?: number;
+}
+
 /**
  * day_of_week follows the JavaScript Date.getDay() convention:
  * 0 = Sunday (Minggu) … 6 = Saturday (Sabtu).

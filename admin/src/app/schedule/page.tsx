@@ -29,7 +29,7 @@ type FormState = {
 
 const emptyForm = (day: number): FormState => ({
   name: "",
-  host: "",
+  host: "Gaul Squad",
   day_of_week: day,
   start_time: "09:00",
   end_time: "12:00",
@@ -255,10 +255,14 @@ export default function SchedulePage() {
                 required
               />
             </Field>
-            <Field label="Host">
+            <Field
+              label="Host / Penyiar"
+              hint="Default: Gaul Squad (Penyiar rolling real-time di Now Playing)"
+            >
               <Input
                 value={form.host}
                 onChange={(e) => setForm({ ...form, host: e.target.value })}
+                placeholder="Gaul Squad"
                 required
               />
             </Field>

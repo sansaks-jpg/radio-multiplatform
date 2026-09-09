@@ -84,9 +84,22 @@ export interface StreamSettings {
   updated_at: string;
 }
 
+export interface Announcer {
+  id: string;
+  name: string;
+  nickname: string | null;
+  photo_url: string;
+  bio: string | null;
+  instagram: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+}
+
 export interface AdminSnapshot {
   nowPlaying: NowPlaying;
   programs: Program[];
+  announcers: Announcer[];
   news: NewsItem[];
   profiles: Profile[];
   banners: Banner[];

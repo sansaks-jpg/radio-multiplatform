@@ -47,10 +47,18 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
   // Callers: MainTabs. User: "now playing di beranda samakan dengan jadwal".
   const matchedProgram =
     todayPrograms.data?.find((p) => isOnAirNow(p)) ?? null;
+  const isCustomHost =
+    nowPlaying.current_host &&
+    nowPlaying.current_host !== "Gaul FM" &&
+    nowPlaying.current_host !== "Gaul Squad";
   const displayTitle = matchedProgram?.name ?? nowPlaying.current_program;
-  const displayHost = matchedProgram?.host ?? nowPlaying.current_host;
+  const displayHost = isCustomHost
+    ? nowPlaying.current_host
+    : nowPlaying.current_host || matchedProgram?.host || "Gaul Squad";
   const displayCover =
-    matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
+    isCustomHost && nowPlaying.current_cover_url
+      ? nowPlaying.current_cover_url
+      : nowPlaying.current_cover_url ?? matchedProgram?.cover_url ?? null;
   const listeners = stats.isLive
     ? stats.listeners.toLocaleString("id-ID")
     : "—";

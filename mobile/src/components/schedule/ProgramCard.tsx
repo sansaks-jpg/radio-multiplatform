@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "../../stores/themeStore";
+import { usePlayerStore } from "../../stores/playerStore";
 import type { Program } from "../../types";
 
 export type ProgramCardStatus = "live" | "upNext" | "upcoming" | "done";
@@ -39,9 +40,18 @@ export function ProgramCard({
   progress = null,
 }: ProgramCardProps) {
   const colors = useThemeStore((s) => s.colors);
+  const nowPlaying = usePlayerStore((s) => s.nowPlaying);
   const isLive = status === "live";
   const isDone = status === "done";
   const isUpNext = status === "upNext";
+
+  const displayHost = isLive
+    ? nowPlaying.current_host || program.host || "Gaul Squad"
+    : program.host || "Gaul Squad";
+  const displayCover =
+    isLive && nowPlaying.current_cover_url
+      ? nowPlaying.current_cover_url
+      : program.cover_url;
 
   const body = (
     <View
@@ -86,9 +96,9 @@ export function ProgramCard({
             isLive ? "h-16 w-16 border-orange/20 shadow-sm" : "h-[54px] w-[54px] border-line/20"
           }`}
         >
-          {program.cover_url ? (
+          {displayCover ? (
             <Image
-              source={{ uri: program.cover_url }}
+              source={{ uri: displayCover }}
               style={{ width: "100%", height: "100%" }}
               contentFit="cover"
               transition={200}
@@ -149,7 +159,7 @@ export function ProgramCard({
             numberOfLines={1}
             style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
           >
-            {program.host}
+            {displayHost}
           </Text>
         </View>
 

@@ -33,9 +33,18 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
   const streamHealthy = playing || buffering;
   const hasError = status === "error";
 
+  const isCustomHost =
+    nowPlaying.current_host &&
+    nowPlaying.current_host !== "Gaul FM" &&
+    nowPlaying.current_host !== "Gaul Squad";
   const title = matchedProgram?.name ?? nowPlaying.current_program;
-  const host = matchedProgram?.host ?? nowPlaying.current_host;
-  const cover = matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
+  const host = isCustomHost
+    ? nowPlaying.current_host
+    : nowPlaying.current_host || matchedProgram?.host || "Gaul Squad";
+  const cover =
+    isCustomHost && nowPlaying.current_cover_url
+      ? nowPlaying.current_cover_url
+      : nowPlaying.current_cover_url ?? matchedProgram?.cover_url ?? null;
   const listeners = stats.isLive ? stats.listeners.toLocaleString("id-ID") : null;
   const timeRange = matchedProgram
     ? `${matchedProgram.start_time}–${matchedProgram.end_time} WIB`

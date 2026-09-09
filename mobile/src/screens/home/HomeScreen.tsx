@@ -7,6 +7,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { usePrograms } from "../../hooks/usePrograms";
 import { flattenNewsPages, useNews } from "../../hooks/useNews";
 import { useBanners } from "../../hooks/useBanners";
+import { useAnnouncers } from "../../hooks/useAnnouncers";
 import { isOnAirNow, todayDow, getWibParts } from "../../utils/datetime";
 import { openExternalUrl } from "../../services/youtube";
 import { Screen } from "../../components/ui/Screen";
@@ -18,6 +19,7 @@ import { HomeNewsPreview } from "../../components/home/HomeNewsPreview";
 import { HomeHero } from "../../components/home/HomeHero";
 import { HomeUpNext } from "../../components/home/HomeUpNext";
 import { HomeQuickActions } from "../../components/home/HomeQuickActions";
+import { HomeAnnouncers } from "../../components/home/HomeAnnouncers";
 import type { Banner } from "../../types";
 
 /** Time-of-day greeting (WIB device clock). */
@@ -59,6 +61,7 @@ export function HomeScreen() {
   const todayPrograms = usePrograms(todayDow(now));
   const news = useNews();
   const banners = useBanners();
+  const announcers = useAnnouncers();
 
   const programs = todayPrograms.data ?? [];
   const onAirProgram = programs.find((p) => isOnAirNow(p, now)) ?? null;
@@ -91,12 +94,16 @@ export function HomeScreen() {
   const navigation = useNavigation();
 
   const isRefreshing =
-    todayPrograms.isRefetching || news.isRefetching || banners.isRefetching;
+    todayPrograms.isRefetching ||
+    news.isRefetching ||
+    banners.isRefetching ||
+    announcers.isRefetching;
   const onRefresh = useCallback(() => {
     void todayPrograms.refetch();
     void news.refetch();
     void banners.refetch();
-  }, [todayPrograms, news, banners]);
+    void announcers.refetch();
+  }, [todayPrograms, news, banners, announcers]);
 
   const onBannerPress = useCallback(
     (banner: Banner) => {
@@ -202,6 +209,9 @@ export function HomeScreen() {
             ]}
           />
         </View>
+
+        {/* Gaul Squad Announcers */}
+        <HomeAnnouncers announcers={announcers.data ?? []} />
       </View>
 
       {/* Promos */}

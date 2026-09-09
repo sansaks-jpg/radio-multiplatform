@@ -1,5 +1,6 @@
 import type {
   AdminSnapshot,
+  Announcer,
   Banner,
   NewsItem,
   NowPlaying,
@@ -26,16 +27,16 @@ function buildPrograms(): Program[] {
   const weekday = [
     {
       name: "Gaul Morning Show",
-      host: "Reno & Dita",
+      host: "Gaul Squad",
       start_time: "07:00",
       end_time: "10:00",
       description:
-        "Mulai pagi dengan hits terbaru, info lalu lintas Semarang, dan obrolan seru bareng Reno & Dita.",
+        "Mulai pagi dengan hits terbaru, info lalu lintas Semarang, dan obrolan seru bareng Gaul Squad.",
       cover: 0,
     },
     {
       name: "Gaul Waktu Setempat",
-      host: "Yoga & Sinta",
+      host: "Gaul Squad",
       start_time: "15:00",
       end_time: "18:00",
       description:
@@ -44,7 +45,7 @@ function buildPrograms(): Program[] {
     },
     {
       name: "Asupan Gaul",
-      host: "Raka",
+      host: "Gaul Squad",
       start_time: "19:00",
       end_time: "22:00",
       description:
@@ -78,7 +79,7 @@ const seedPrograms = buildPrograms();
 export const seedNowPlaying: NowPlaying = {
   id: "demo-now-playing",
   current_program: "Gaul Waktu Setempat",
-  current_host: "Yoga & Sinta",
+  current_host: "Gaul Squad",
   current_cover_url: cover(3),
   updated_at: "2026-07-19T09:00:00+07:00",
 };
@@ -255,6 +256,86 @@ export const seedBanners: Banner[] = [
   },
 ];
 
+export const seedAnnouncers: Announcer[] = [
+  {
+    id: "ann-1",
+    name: "Attaya",
+    nickname: "Attaya",
+    photo_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png",
+    bio: "Gaul FM Announcer",
+    instagram: "@radiogaulfm_smg",
+    is_active: true,
+    sort_order: 1,
+  },
+  {
+    id: "ann-2",
+    name: "Ega Ratu",
+    nickname: "Ega",
+    photo_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png",
+    bio: "Gaul FM Announcer",
+    instagram: "@radiogaulfm_smg",
+    is_active: true,
+    sort_order: 2,
+  },
+  {
+    id: "ann-3",
+    name: "Kara Ferina",
+    nickname: "Kara",
+    photo_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png",
+    bio: "Gaul FM Announcer",
+    instagram: "@radiogaulfm_smg",
+    is_active: true,
+    sort_order: 3,
+  },
+  {
+    id: "ann-4",
+    name: "Nafa",
+    nickname: "Nafa",
+    photo_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png",
+    bio: "Gaul FM Announcer",
+    instagram: "@radiogaulfm_smg",
+    is_active: true,
+    sort_order: 4,
+  },
+  {
+    id: "ann-5",
+    name: "Nanda",
+    nickname: "Nanda",
+    photo_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png",
+    bio: "Gaul FM Announcer",
+    instagram: "@radiogaulfm_smg",
+    is_active: true,
+    sort_order: 5,
+  },
+  {
+    id: "ann-6",
+    name: "Rizky",
+    nickname: "Rizky",
+    photo_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png",
+    bio: "Gaul FM Announcer",
+    instagram: "@radiogaulfm_smg",
+    is_active: true,
+    sort_order: 6,
+  },
+  {
+    id: "ann-7",
+    name: "Tyas",
+    nickname: "Tyas",
+    photo_url:
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/tyas.png",
+    bio: "Gaul FM Announcer",
+    instagram: "@radiogaulfm_smg",
+    is_active: true,
+    sort_order: 7,
+  },
+];
+
 export const seedStreamSettings: StreamSettings = {
   audioPrimaryUrl: "http://27.50.19.173:9000/gaulfm.m3u",
   audioFallbackUrl: "http://27.50.19.173:9000/gaulfm",
@@ -274,6 +355,7 @@ export function createSeedSnapshot(): AdminSnapshot {
   return {
     nowPlaying: { ...seedNowPlaying },
     programs: seedPrograms.map((p) => ({ ...p })),
+    announcers: seedAnnouncers.map((a) => ({ ...a })),
     news: seedNews.map((n) => ({ ...n })),
     profiles: seedProfiles.map((p) => ({ ...p })),
     banners: seedBanners.map((b) => ({ ...b })),

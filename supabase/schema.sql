@@ -95,11 +95,25 @@ CREATE TABLE IF NOT EXISTS public.live_comments (
     is_hidden BOOLEAN NOT NULL DEFAULT false,
     is_broadcaster BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- -----------------------------------------------------------------------------
+-- 7. Table: announcers (Gaul Squad Master Profiles)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.announcers (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    name VARCHAR(255) NOT NULL,
+    nickname VARCHAR(100),
+    photo_url TEXT NOT NULL,
+    bio TEXT,
+    instagram VARCHAR(100),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =============================================================================
 -- INDEXES FOR QUERY OPTIMIZATION
 -- =============================================================================
+CREATE INDEX IF NOT EXISTS idx_announcers_sort ON public.announcers (sort_order, is_active);
 CREATE INDEX IF NOT EXISTS idx_programs_day_time ON public.programs (day_of_week, start_time);
 CREATE INDEX IF NOT EXISTS idx_news_published ON public.news (published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_news_wp_id ON public.news (wp_post_id);
@@ -169,6 +183,11 @@ CREATE POLICY "Admin and service role can delete profile"
 -- 6. live_comments: Public read, insert, and studio full control
 CREATE POLICY "Allow full control on live_comments"
     ON public.live_comments FOR ALL USING (true) WITH CHECK (true);
+
+-- 7. announcers: Public read and studio full control
+ALTER TABLE public.announcers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow full control on announcers"
+    ON public.announcers FOR ALL USING (true) WITH CHECK (true);
 
 
 -- =============================================================================

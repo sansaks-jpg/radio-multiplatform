@@ -6,7 +6,9 @@ import {
   CalendarDays,
   Clock,
   MessageSquare,
+  Mic,
   Radio,
+  RotateCcw,
   Save,
   Smartphone,
   Sparkles,
@@ -15,8 +17,8 @@ import {
 } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
 import { useToday } from "@/hooks/useToday";
-import { updateNowPlaying } from "@/lib/data-store";
-import type { Program } from "@/lib/types";
+import { setBroadcasterOnAir, updateNowPlaying } from "@/lib/data-store";
+import type { Announcer, Program } from "@/lib/types";
 import { PageHeader, StatCard } from "@/components/ui/page-header";
 import {
   Card,
@@ -72,7 +74,7 @@ function isSlotCurrentWib(start: string, end: string): boolean {
 }
 
 export default function NowPlayingPage() {
-  const { nowPlaying, programs } = useAdminStore();
+  const { nowPlaying, programs, announcers } = useAdminStore();
   const toast = useToast();
   const today = useToday();
 
@@ -99,12 +101,37 @@ export default function NowPlayingPage() {
     return todaySlots.find((p) => isSlotCurrentWib(p.start_time, p.end_time));
   }, [todaySlots]);
 
+  // 1-Klik aktifkan penyiar yang bertugas
+  const handleSelectAnnouncer = (announcer: Announcer) => {
+    setBroadcasterOnAir(announcer);
+    toast.push(`🎙️ ${announcer.name} kini sedang on-air mengudara!`);
+  };
+
+  // 1-Klik reset penyiar ke generic Gaul Squad
+  const handleResetAnnouncer = () => {
+    setBroadcasterOnAir(null);
+    toast.push("📻 Host direset ke default Gaul Squad");
+  };
+
   // Aksi 1-klik aktifkan program dari jadwal
   const handleActivateProgram = (p: Program) => {
+    // Pertahankan penyiar on-air yang sudah dipilih (jika bukan default/generic)
+    const isCustomHostActive =
+      nowPlaying.current_host &&
+      nowPlaying.current_host !== "Gaul FM" &&
+      nowPlaying.current_host !== "Gaul Squad";
+    const hostToUse = isCustomHostActive
+      ? nowPlaying.current_host
+      : p.host || "Gaul Squad";
+    const coverToUse =
+      isCustomHostActive && nowPlaying.current_cover_url
+        ? nowPlaying.current_cover_url
+        : p.cover_url || null;
+
     updateNowPlaying({
       current_program: p.name,
-      current_host: p.host || "Gaul FM",
-      current_cover_url: p.cover_url || null,
+      current_host: hostToUse,
+      current_cover_url: coverToUse,
     });
     toast.push(`⭐ "${p.name}" kini mengudara di aplikasi mobile!`);
   };
@@ -216,6 +243,72 @@ export default function NowPlayingPage() {
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         {/* KOLOM KIRI (7 Kolom): Panel Pergantian Siaran */}
         <div className="lg:col-span-7 space-y-4">
+          {/* Card: Penyiar On-Air (Gaul Squad Dynamic 1-Click Picker) */}
+          <Card className="border-accent/30 bg-gradient-to-br from-card via-card to-accent-soft/10">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Mic className="h-4 w-4 text-accent" />
+                  <CardTitle className="text-base">
+                    Penyiar On-Air Studio
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs mt-0.5">
+                  Penyiar tidak tetap di satu program. 1-klik foto untuk mengudarakan penyiar yang sedang siaran.
+                </CardDescription>
+              </div>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleResetAnnouncer}
+                className="shrink-0 text-xs gap-1.5 border-border/80 hover:bg-muted"
+                title="Kembalikan host ke default Gaul Squad"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>Reset Gaul Squad</span>
+              </Button>
+            </CardHeader>
+
+            <CardContent className="pt-3.5 pb-3.5">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                {announcers.map((ann) => {
+                  const isOnAir =
+                    nowPlaying.current_host.toLowerCase().includes(ann.name.toLowerCase());
+                  return (
+                    <button
+                      key={ann.id}
+                      type="button"
+                      onClick={() => handleSelectAnnouncer(ann)}
+                      className={`group flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-all text-center relative ${
+                        isOnAir
+                          ? "border-accent bg-accent-soft/40 shadow-sm ring-2 ring-accent"
+                          : "border-border/70 bg-card hover:border-accent/40 hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="relative h-12 w-12 sm:h-13 sm:w-13 overflow-hidden rounded-full border border-border bg-muted">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={ann.photo_url}
+                          alt={ann.name}
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        />
+                        {isOnAir && (
+                          <span className="absolute bottom-0 inset-x-0 bg-accent text-[9px] font-bold text-accent-foreground py-0.5 text-center leading-none">
+                            ON AIR
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-bold text-foreground line-clamp-1">
+                        {ann.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Segmented Tab Switcher */}
           <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-border bg-muted/40 p-1">
             <button
