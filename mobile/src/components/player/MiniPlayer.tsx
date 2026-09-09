@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,7 +9,6 @@ import { useIcecastStats } from "../../hooks/useIcecastStats";
 import { usePrograms } from "../../hooks/usePrograms";
 import { isOnAirNow, todayDow } from "../../utils/datetime";
 import { MarqueeText } from "../ui/MarqueeText";
-import { LiveDetailSheet } from "./LiveDetailSheet";
 import type { MainTabParamList } from "../../types";
 
 interface MiniPlayerProps {
@@ -32,10 +31,10 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
   const hasStarted = usePlayerStore((s) => s.hasStarted);
   const nowPlaying = usePlayerStore((s) => s.nowPlaying);
   const isVisualActive = usePlayerStore((s) => s.isVisualActive);
+  const openLiveSheet = usePlayerStore((s) => s.openLiveSheet);
   const { toggle } = usePlayerControls();
   const { stats } = useIcecastStats();
   const todayPrograms = usePrograms(todayDow());
-  const [liveOpen, setLiveOpen] = useState(false);
 
   // Persistent: tetap tampil setelah stream mulai, di tab mana pun (seperti Spotify).
   if (!hasStarted) {
@@ -57,11 +56,10 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
     : "—";
 
   return (
-    <>
-      <View className="border-t border-line/40 bg-surface-2 px-3 pb-1.5 pt-2">
+    <View className="border-t border-line/40 bg-surface-2 px-3 pb-1.5 pt-2">
         <View className="flex-row items-center gap-2 rounded-card bg-surface px-2.5 py-2">
           <Pressable
-            onPress={() => setLiveOpen(true)}
+            onPress={() => openLiveSheet()}
             accessibilityRole="button"
             accessibilityLabel={`Buka live chat: ${displayTitle}`}
             className="min-w-0 flex-1 flex-row items-center gap-3 active:opacity-90"
@@ -150,14 +148,5 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
           </Pressable>
         </View>
       </View>
-
-      <LiveDetailSheet
-        visible={liveOpen}
-        onClose={() => setLiveOpen(false)}
-        nowPlaying={nowPlaying}
-        matchedProgram={matchedProgram}
-        autoPlayOnOpen
-      />
-    </>
   );
 }

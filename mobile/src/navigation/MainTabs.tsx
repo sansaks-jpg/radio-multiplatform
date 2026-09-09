@@ -18,6 +18,10 @@ import type {
   ScheduleStackParamList,
 } from "../types";
 import { MiniPlayer } from "../components/player/MiniPlayer";
+import { LiveDetailSheet } from "../components/player/LiveDetailSheet";
+import { usePlayerStore } from "../stores/playerStore";
+import { usePrograms } from "../hooks/usePrograms";
+import { todayDow, isOnAirNow } from "../utils/datetime";
 import { HomeScreen } from "../screens/home/HomeScreen";
 import { ScheduleScreen } from "../screens/schedule/ScheduleScreen";
 import { ProgramDetailScreen } from "../screens/schedule/ProgramDetailScreen";
@@ -137,106 +141,120 @@ function TabBarWithMiniPlayer(props: BottomTabBarProps) {
 
 export function MainTabs() {
   const colors = useThemeStore((s) => s.colors);
+  const liveSheetOpen = usePlayerStore((s) => s.liveSheetOpen);
+  const closeLiveSheet = usePlayerStore((s) => s.closeLiveSheet);
+  const nowPlaying = usePlayerStore((s) => s.nowPlaying);
+  const todayPrograms = usePrograms(todayDow());
+  const onAir = todayPrograms.data?.find((p) => isOnAirNow(p)) ?? null;
 
   return (
-    <Tab.Navigator
-      tabBar={(props) => <TabBarWithMiniPlayer {...props} />}
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: colors.brand,
-        tabBarInactiveTintColor: colors.textDim,
-        tabBarShowLabel: true,
-        tabBarHideOnKeyboard: true,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "500",
-        },
-        tabBarStyle: {
-          backgroundColor: colors.surface2,
-          borderTopWidth: 0,
-          elevation: 0,
-        },
-        tabBarIcon: ({ color, focused }) => (
-          <Ionicons
-            name={TAB_ICONS[route.name]}
-            size={22}
-            color={color}
-            accessibilityLabel={
-              focused
-                ? `${TAB_LABELS[route.name]} aktif`
-                : TAB_LABELS[route.name]
-            }
-          />
-        ),
-        tabBarLabel: TAB_LABELS[route.name],
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen
-        name="Schedule"
-        component={ScheduleNavigator}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            const state = navigation.getState();
-            const schedRoute = state.routes.find((r) => r.name === "Schedule");
-            const nested = schedRoute?.state as
-              | { index?: number; routes?: { name: string }[] }
-              | undefined;
-            if (!nested?.routes?.length) return;
-            const active = nested.routes[nested.index ?? 0]?.name;
-            if (active && active !== "ScheduleList") {
-              e.preventDefault();
-              navigation.navigate("Schedule", {
-                screen: "ScheduleList",
-              });
-            }
+    <>
+      <Tab.Navigator
+        tabBar={(props) => <TabBarWithMiniPlayer {...props} />}
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: colors.brand,
+          tabBarInactiveTintColor: colors.textDim,
+          tabBarShowLabel: true,
+          tabBarHideOnKeyboard: true,
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: "500",
           },
-        })}
-      />
-      <Tab.Screen
-        name="News"
-        component={NewsNavigator}
-        listeners={({ navigation }) => ({
-          // Tapping the News tab always lands on the feed — never a stale detail
-          // (including when Home left only NewsDetail in the nested stack).
-          tabPress: (e) => {
-            const state = navigation.getState();
-            const newsRoute = state.routes.find((r) => r.name === "News");
-            const nested = newsRoute?.state as
-              | { index?: number; routes?: { name: string }[] }
-              | undefined;
-            if (!nested?.routes?.length) return;
-            const active = nested.routes[nested.index ?? 0]?.name;
-            if (active && active !== "NewsFeed") {
-              e.preventDefault();
-              navigation.navigate("News", {
-                screen: "NewsFeed",
-              });
-            }
+          tabBarStyle: {
+            backgroundColor: colors.surface2,
+            borderTopWidth: 0,
+            elevation: 0,
           },
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={TAB_ICONS[route.name]}
+              size={22}
+              color={color}
+              accessibilityLabel={
+                focused
+                  ? `${TAB_LABELS[route.name]} aktif`
+                  : TAB_LABELS[route.name]
+              }
+            />
+          ),
+          tabBarLabel: TAB_LABELS[route.name],
         })}
+      >
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen
+          name="Schedule"
+          component={ScheduleNavigator}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              const state = navigation.getState();
+              const schedRoute = state.routes.find((r) => r.name === "Schedule");
+              const nested = schedRoute?.state as
+                | { index?: number; routes?: { name: string }[] }
+                | undefined;
+              if (!nested?.routes?.length) return;
+              const active = nested.routes[nested.index ?? 0]?.name;
+              if (active && active !== "ScheduleList") {
+                e.preventDefault();
+                navigation.navigate("Schedule", {
+                  screen: "ScheduleList",
+                });
+              }
+            },
+          })}
+        />
+        <Tab.Screen
+          name="News"
+          component={NewsNavigator}
+          listeners={({ navigation }) => ({
+            // Tapping the News tab always lands on the feed — never a stale detail
+            // (including when Home left only NewsDetail in the nested stack).
+            tabPress: (e) => {
+              const state = navigation.getState();
+              const newsRoute = state.routes.find((r) => r.name === "News");
+              const nested = newsRoute?.state as
+                | { index?: number; routes?: { name: string }[] }
+                | undefined;
+              if (!nested?.routes?.length) return;
+              const active = nested.routes[nested.index ?? 0]?.name;
+              if (active && active !== "NewsFeed") {
+                e.preventDefault();
+                navigation.navigate("News", {
+                  screen: "NewsFeed",
+                });
+              }
+            },
+          })}
+        />
+        <Tab.Screen
+          name="Profile"
+          component={ProfileNavigator}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              const state = navigation.getState();
+              const profRoute = state.routes.find((r) => r.name === "Profile");
+              const nested = profRoute?.state as
+                | { index?: number; routes?: { name: string }[] }
+                | undefined;
+              if (!nested?.routes?.length) return;
+              const active = nested.routes[nested.index ?? 0]?.name;
+              if (active && active !== "ProfileHome") {
+                e.preventDefault();
+                navigation.navigate("Profile", {
+                  screen: "ProfileHome",
+                });
+              }
+            },
+          })}
+        />
+      </Tab.Navigator>
+
+      <LiveDetailSheet
+        visible={liveSheetOpen}
+        onClose={closeLiveSheet}
+        nowPlaying={nowPlaying}
+        matchedProgram={onAir}
       />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileNavigator}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            const state = navigation.getState();
-            const profRoute = state.routes.find((r) => r.name === "Profile");
-            const nested = profRoute?.state as
-              | { index?: number; routes?: { name: string }[] }
-              | undefined;
-            if (!nested?.routes?.length) return;
-            const active = nested.routes[nested.index ?? 0]?.name;
-            if (active && active !== "ProfileHome") {
-              e.preventDefault();
-              navigation.navigate("Profile", {
-                screen: "ProfileHome",
-              });
-            }
-          },
-        })}
-      />
-    </Tab.Navigator>
+    </>
   );
 }

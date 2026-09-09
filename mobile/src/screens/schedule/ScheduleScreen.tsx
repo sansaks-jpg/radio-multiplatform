@@ -31,7 +31,6 @@ import {
   ProgramCard,
   type ProgramCardStatus,
 } from "../../components/schedule/ProgramCard";
-import { LiveDetailSheet } from "../../components/player/LiveDetailSheet";
 import type { Program, ScheduleStackParamList } from "../../types";
 
 function toMinutes(hhmm: string): number {
@@ -62,11 +61,10 @@ export function ScheduleScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<ScheduleStackParamList>>();
   const playerStatus = usePlayerStore((s) => s.status);
-  const nowPlaying = usePlayerStore((s) => s.nowPlaying);
   const { toggle, play } = usePlayerControls();
 
   const [selectedDay, setSelectedDay] = useState(todayDow());
-  const [liveOpen, setLiveOpen] = useState(false);
+  const openLiveSheet = usePlayerStore((s) => s.openLiveSheet);
   const reminders = useReminderStore((s) => s.reminders);
   const addReminder = useReminderStore((s) => s.addReminder);
   const removeReminder = useReminderStore((s) => s.removeReminder);
@@ -125,7 +123,7 @@ export function ScheduleScreen() {
 
   const openProgram = (program: Program) => {
     if (isOnAirNow(program, now)) {
-      setLiveOpen(true);
+      openLiveSheet();
       if (playerStatus !== "playing" && playerStatus !== "buffering") {
         void play();
       }
@@ -294,13 +292,6 @@ export function ScheduleScreen() {
 
       <View className="h-6" />
 
-      <LiveDetailSheet
-        visible={liveOpen}
-        onClose={() => setLiveOpen(false)}
-        nowPlaying={nowPlaying}
-        matchedProgram={onAir}
-        autoPlayOnOpen
-      />
     </Screen>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -158,7 +158,7 @@ export function LiveDetailSheet({
   nowPlaying,
   matchedProgram,
   autoPlayOnOpen = false,
-  initialVisual = false,
+  initialVisual,
 }: LiveDetailSheetProps) {
   const colors = useThemeStore((s) => s.colors);
   const glow = useThemeStore((s) => s.glow);
@@ -177,22 +177,53 @@ export function LiveDetailSheet({
   const [programInfoOpen, setProgramInfoOpen] = useState(false);
   const isVisualActive = usePlayerStore((s) => s.isVisualActive);
   const setIsVisualActive = usePlayerStore((s) => s.setIsVisualActive);
+  const prevVisibleRef = useRef(visible);
 
-  // Jika dibuka saat preferensi visual aktif atau initialVisual, aktifkan visual segera
+  // Simpan play dan pause ke ref stabil agar pergantian callback tidak memicu re-eksekusi efek
+  const playRef = useRef(play);
+  playRef.current = play;
+  const pauseRef = useRef(pause);
+  pauseRef.current = pause;
+
+  // Efek transisi saat modal DIBUKA (false -> true) atau DITUTUP / DIMINIMIZE (true -> false)
   useEffect(() => {
-    if (!visible) return;
+    const wasVisible = prevVisibleRef.current;
+    prevVisibleRef.current = visible;
 
-    if (initialVisual || isVisualActive) {
-      setIsVisualActive(true);
-      void pause();
-      void stopLive();
-    } else if (autoPlayOnOpen) {
-      const current = usePlayerStore.getState().status;
-      if (current !== "playing" && current !== "buffering") {
-        void play();
+    // 1. Modal BARU DIBUKA (false -> true)
+    if (!wasVisible && visible) {
+      if (initialVisual !== undefined) {
+        setIsVisualActive(initialVisual);
+      }
+      const currentVisual =
+        initialVisual !== undefined
+          ? initialVisual
+          : usePlayerStore.getState().isVisualActive;
+
+      if (currentVisual) {
+        void pauseRef.current();
+        void stopLive();
+      } else if (autoPlayOnOpen) {
+        const current = usePlayerStore.getState().status;
+        if (current !== "playing" && current !== "buffering") {
+          void playRef.current();
+        }
       }
     }
-  }, [visible, initialVisual, isVisualActive, autoPlayOnOpen, pause, play, setIsVisualActive]);
+
+    // 2. Modal BARU DITUTUP / DIMINIMIZE (true -> false)
+    if (wasVisible && !visible) {
+      setDraftMessage("");
+      setInputFocused(false);
+      setProgramInfoOpen(false);
+
+      if (isVisualActive) {
+        // Tetap simpan preferensi di playerStore agar saat dibuka kembali tetap visual,
+        // dan putar siaran audio Icecast di MiniPlayer & latar belakang
+        void playRef.current();
+      }
+    }
+  }, [visible, initialVisual, autoPlayOnOpen, isVisualActive, setIsVisualActive]);
 
   const isPlaying = status === "playing";
   const isBuffering = status === "buffering";
@@ -210,29 +241,14 @@ export function LiveDetailSheet({
 
   const handleToggleVisual = useCallback(() => {
     if (!isVisualActive) {
-      setIsVisualActive(true);
-      void pause();
+      void pauseRef.current();
       void stopLive();
+      setIsVisualActive(true);
     } else {
       setIsVisualActive(false);
-      void play();
+      void playRef.current();
     }
-  }, [isVisualActive, setIsVisualActive, pause, play]);
-
-  useEffect(() => {
-    if (!visible) {
-      setDraftMessage("");
-      setInputFocused(false);
-      setProgramInfoOpen(false);
-
-      // Jika sheet ditutup saat visual radio sedang aktif (diminimize),
-      // tetap pertahankan preferensi isVisualActive di playerStore agar saat dibuka lagi tetap visual,
-      // tetapi jalankan siaran audio radio agar di MiniPlayer dan latar belakang suara tetap berputar
-      if (isVisualActive) {
-        void play();
-      }
-    }
-  }, [visible, isVisualActive, play]);
+  }, [isVisualActive, setIsVisualActive]);
 
   const sendComment = useCallback(() => {
     const text = draftMessage.trim();

@@ -13,7 +13,6 @@ import { Screen } from "../../components/ui/Screen";
 import { TopNavbar } from "../../components/ui/TopNavbar";
 import { OfflineBanner } from "../../components/ui/OfflineBanner";
 import { SectionHeader } from "../../components/ui/SectionHeader";
-import { LiveDetailSheet } from "../../components/player/LiveDetailSheet";
 import { HomeHeroBanner } from "../../components/home/HomeHeroBanner";
 import { HomeNewsPreview } from "../../components/home/HomeNewsPreview";
 import { HomeHero } from "../../components/home/HomeHero";
@@ -47,7 +46,6 @@ function displayName(fullName: string | null | undefined): string | null {
  * 5. Visual Radio & News
  */
 export function HomeScreen() {
-  const nowPlaying = usePlayerStore((s) => s.nowPlaying);
   const profile = useAuthStore((s) => s.profile);
   const [now, setNow] = useState(() => new Date());
 
@@ -78,18 +76,15 @@ export function HomeScreen() {
         ) ?? null);
 
   const newsItems = flattenNewsPages(news.data?.pages).slice(0, 5);
-  const [liveSheetOpen, setLiveSheetOpen] = useState(false);
-  const [openWithVisual, setOpenWithVisual] = useState(false);
+  const openLiveSheet = usePlayerStore((s) => s.openLiveSheet);
 
   const openVisualRadio = useCallback(() => {
-    setOpenWithVisual(true);
-    setLiveSheetOpen(true);
-  }, []);
+    openLiveSheet({ visual: true });
+  }, [openLiveSheet]);
 
   const openAudioRadio = useCallback(() => {
-    setOpenWithVisual(false);
-    setLiveSheetOpen(true);
-  }, []);
+    openLiveSheet({ visual: false });
+  }, [openLiveSheet]);
 
   const name = displayName(profile?.full_name);
 
@@ -188,7 +183,7 @@ export function HomeScreen() {
                 label: "Live Chat",
                 icon: "chatbubbles-outline",
                 colorKey: "orange",
-                onPress: () => setLiveSheetOpen(true),
+                onPress: () => openLiveSheet(),
               },
               {
                 key: "visual",
@@ -267,17 +262,6 @@ export function HomeScreen() {
         <View className="h-8" />
       </View>
 
-      <LiveDetailSheet
-        visible={liveSheetOpen}
-        onClose={() => {
-          setLiveSheetOpen(false);
-          setOpenWithVisual(false);
-        }}
-        nowPlaying={nowPlaying}
-        matchedProgram={onAirProgram}
-        autoPlayOnOpen={!openWithVisual}
-        initialVisual={openWithVisual}
-      />
     </Screen>
   );
 }
