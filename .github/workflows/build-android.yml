@@ -5,19 +5,39 @@ on:
     branches:
       - main
       - master
+    tags:
+      - 'v*'
     paths:
       - 'mobile/**'
       - '.github/workflows/build-android.yml'
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag (misal: v0.0.1)'
+        required: false
+        default: 'v0.0.1'
+      release_title:
+        description: 'Release Title'
+        required: false
+        default: 'Gaul FM v0.0.1 (Development Build)'
+      prerelease:
+        description: 'Tandai sebagai Pre-release?'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
 
 jobs:
   build-apk:
-    name: Build Android APK (Testing Build)
+    name: Build Android APK (Release Standalone)
     runs-on: ubuntu-latest
 
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: ☕ Setup Java 17
         uses: actions/setup-java@v4
@@ -62,9 +82,54 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
+      - name: 📦 Prepare APK Artifacts
+        run: |
+          mkdir -p release-artifacts
+          APK_FILE=$(find mobile/android/app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "::error::Tidak ada file APK yang ditemukan di folder output release!"
+            exit 1
+          fi
+          echo "Ditemukan APK: $APK_FILE"
+          cp "$APK_FILE" release-artifacts/GaulFM-v0.0.1-development.apk
+          ls -lh release-artifacts/
+
       - name: 📤 Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: gaulfm-android-release-apk
-          path: mobile/android/app/build/outputs/apk/release/*.apk
+          path: release-artifacts/GaulFM-v0.0.1-development.apk
           retention-days: 14
+
+      - name: 🚀 Publish APK to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.inputs.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.0.1' }}"
+          TITLE="${{ github.event.inputs.release_title || 'Gaul FM v0.0.1 (Development Build)' }}"
+          
+          echo "Menyiapkan rilis GitHub untuk tag: $TAG..."
+          
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG sudah ada. Mengunggah/memperbarui aset APK..."
+            gh release upload "$TAG" release-artifacts/GaulFM-v0.0.1-development.apk --clobber
+          else
+            echo "Membuat GitHub Release baru untuk tag $TAG..."
+            gh release create "$TAG" release-artifacts/GaulFM-v0.0.1-development.apk \
+              --title "$TITLE" \
+              --notes "### 📻 Gaul FM Semarang - Android Development Build ($TAG)
+              
+              - **Versi**: 0.0.1 (Development Build)
+              - **Platform**: Android Standalone APK
+              - **Arsitektur**: React Native New Architecture + Expo SDK 54
+              - **Target Host Live Streaming**:
+                - Audio: Icecast Progressive Stream (\`http://27.50.19.173:9000/gaulfm.m3u\`)
+                - Visual Radio: MediaMTX WebRTC/WHEP (\`http://40.81.231.250:8889/gaulfm_webrtc/whep\`)
+              
+              #### Petunjuk Penginstalan:
+              1. Unduh \`GaulFM-v0.0.1-development.apk\` di bawah.
+              2. Buka file APK pada smartphone Android Anda.
+              3. Jika muncul peringatan keamanan, pilih **Tetap Instal** / **Izinkan sumber ini** (karena APK ditandatangani untuk mode development/testing).
+              4. Aplikasi siap digunakan untuk mendengarkan siaran live Gaul FM Semarang!" \
+              --prerelease
+          fi

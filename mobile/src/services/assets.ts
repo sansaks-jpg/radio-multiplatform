@@ -11,7 +11,6 @@ export const PRELOAD_ASSETS = [
   require("../../assets/banners/banner-3.png"),
   require("../../assets/banners/banner-4.png"),
   require("../../assets/logo.webp"),
-  require("../../assets/logo.png"),
   require("../../assets/icon.png"),
   require("../../assets/adaptive-icon.png"),
   require("../../assets/cta-gradient.png"),
