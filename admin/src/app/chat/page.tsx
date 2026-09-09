@@ -318,9 +318,9 @@ export default function LiveChatPage() {
   const pinnedComment = comments.find((c) => c.is_highlighted && !c.is_hidden);
 
   return (
-    <div className="mx-auto max-w-4xl h-[calc(100vh-5.5rem)] flex flex-col rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+    <div className="mx-auto w-full max-w-4xl h-full flex flex-col rounded-none sm:rounded-xl border-0 sm:border border-border bg-card overflow-hidden shadow-sm min-h-0">
       {/* ── YOUTUBE LIVE CHAT HEADER (Ultra Minimalist) ── */}
-      <div className="h-11 px-4 border-b border-border/80 flex items-center justify-between shrink-0 bg-muted/20 select-none">
+      <div className="h-11 px-3 sm:px-4 border-b border-border/80 flex items-center justify-between shrink-0 bg-muted/20 select-none">
         <div className="flex items-center gap-2.5">
           <span
             className={`h-2 w-2 rounded-full shrink-0 ${
@@ -350,7 +350,7 @@ export default function LiveChatPage() {
 
       {/* ── PINNED ON-AIR MESSAGE BANNER (Ala YouTube Pinned Message) ── */}
       {pinnedComment && (
-        <div className="shrink-0 bg-accent-soft/75 border-b border-accent/30 px-4 py-2 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+        <div className="shrink-0 bg-accent-soft/75 border-b border-accent/30 px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-2 sm:gap-3 text-xs animate-in fade-in duration-200">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-accent font-bold shrink-0 flex items-center gap-1">
               <Sparkles className="h-3.5 w-3.5" />
@@ -375,11 +375,11 @@ export default function LiveChatPage() {
       )}
 
       {/* ── LIVE CHAT STREAM FEED (Single Column Ala YouTube Live) ── */}
-      <div className="relative flex-1 min-h-0 bg-card">
+      <div className="relative flex-1 min-h-0 bg-card overflow-hidden">
         <div
           ref={chatScrollRef}
           onScroll={handleScroll}
-          className="h-full overflow-y-auto px-4 py-2 space-y-1 overscroll-contain text-xs"
+          className="h-full overflow-y-auto px-2.5 sm:px-4 py-2 space-y-1 overscroll-contain text-xs"
         >
           {loadingInitial ? (
             <div className="flex flex-col items-center justify-center h-full text-xs text-muted-foreground gap-2">
@@ -527,8 +527,8 @@ export default function LiveChatPage() {
       </div>
 
       {/* ── YOUTUBE LIVE COMPOSER INPUT (Clean Bottom Bar) ── */}
-      <div className="p-3 border-t border-border/80 bg-muted/20 shrink-0">
-        <form onSubmit={handleSendBroadcaster} className="flex items-center gap-2.5">
+      <div className="p-2 sm:p-3 border-t border-border/80 bg-muted/20 shrink-0">
+        <form onSubmit={handleSendBroadcaster} className="flex items-center gap-2 sm:gap-2.5">
           {/* Avatar Studio */}
           <div className="h-7 w-7 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-[10px] font-bold shrink-0 select-none">
             <Radio className="h-3.5 w-3.5" />
@@ -542,7 +542,7 @@ export default function LiveChatPage() {
             placeholder="Kirim pesan sebagai Studio Gaul FM..."
             maxLength={300}
             disabled={sending}
-            className="flex-1 h-9 px-4 text-xs bg-background border border-border rounded-full focus:outline-none focus:ring-1 focus:ring-brand placeholder:text-muted-foreground/60"
+            className="flex-1 h-9 px-3 sm:px-4 text-xs bg-background border border-border rounded-full focus:outline-none focus:ring-1 focus:ring-brand placeholder:text-muted-foreground/60"
           />
 
           <Button
@@ -550,7 +550,7 @@ export default function LiveChatPage() {
             disabled={!inputText.trim() || sending}
             variant="primary"
             size="sm"
-            className="h-9 px-4 rounded-full font-semibold gap-1.5 shrink-0"
+            className="h-9 px-3.5 sm:px-4 rounded-full font-semibold gap-1.5 shrink-0"
           >
             <Send className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{sending ? "..." : "Kirim"}</span>
