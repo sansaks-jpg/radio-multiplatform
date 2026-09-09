@@ -12,8 +12,6 @@ export interface LiveComment {
   created_at: string;
 }
 
-const initialSeedComments: LiveComment[] = [];
-
 // Global in-memory cache and event emitter across hot-reloads in Next.js Node runtime
 declare global {
   var __gaulfm_comments_bus: EventEmitter | undefined;

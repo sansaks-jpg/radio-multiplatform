@@ -8,17 +8,36 @@ import {
   Radio,
   RefreshCw,
   Users,
+  MessageSquare,
+  ArrowRight,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useAdminStore } from "@/hooks/useAdminStore";
 import { useToday } from "@/hooks/useToday";
-import { PageHeader, StatCard } from "@/components/ui/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DAY_NAMES, formatDateTime, formatRelative } from "@/lib/utils";
 import { resetDemoData } from "@/lib/data-store";
 import { useToast } from "@/components/ui/toast";
+
+const AVATAR_COLORS = [
+  "bg-emerald-100 text-emerald-800 border-emerald-300",
+  "bg-blue-100 text-blue-800 border-blue-300",
+  "bg-violet-100 text-violet-800 border-violet-300",
+  "bg-amber-100 text-amber-800 border-amber-300",
+  "bg-rose-100 text-rose-800 border-rose-300",
+  "bg-cyan-100 text-cyan-800 border-cyan-300",
+];
+
+function getAvatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
 
 export default function OverviewPage() {
   const data = useAdminStore();
@@ -45,127 +64,164 @@ export default function OverviewPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Listeners");
     XLSX.writeFile(wb, "gaulfm_listeners.xlsx");
-    toast.push("Export Excel berhasil");
+    toast.push("Export file Excel pendengar berhasil!");
   };
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <PageHeader
-        title="Overview"
-        description="Ringkasan studio Gaul FM — kelola siaran, jadwal, berita, dan data pendengar."
-        actions={
-          <>
-            <Button variant="outline" size="sm" onClick={exportUsers}>
-              <Download className="h-3.5 w-3.5" />
-              Export listeners
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                resetDemoData();
-                toast.push("Demo data di-reset", "info");
-              }}
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Reset demo
-            </Button>
-          </>
-        }
-      />
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
+      {/* ── HEADER HALAMAN ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+              Overview Studio
+            </h1>
+            <Badge tone="brand" className="text-[10px] font-bold">
+              87.8 FM
+            </Badge>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Pusat kendali siaran, jadwal on-air, berita portal, dan data pendengar aktif Gaul FM.
+          </p>
+        </div>
 
-      {/* Stats strip */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportUsers}
+            className="gap-1.5 shadow-2xs bg-card hover:bg-muted"
+          >
+            <Download className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>Export Listeners (.xlsx)</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              resetDemoData();
+              toast.push("Data demo berhasil di-reset", "info");
+            }}
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+            title="Reset data demo ke awal"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Reset Demo</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* ── METRIK RINGKASAN (STAT STRIP) ── */}
+      <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Now playing"
+          label="Sedang Siaran"
           value={data.nowPlaying.current_program}
-          hint={data.nowPlaying.current_host}
+          hint={`Penyiar: ${data.nowPlaying.current_host}`}
           tone="orange"
           icon={<Radio className="h-5 w-5" />}
         />
         <StatCard
-          label="Program minggu ini"
-          value={data.programs.length}
+          label="Program Minggu Ini"
+          value={`${data.programs.length} Acara`}
           hint={`${todayPrograms.length} slot hari ${DAY_NAMES[today]}`}
           tone="brand"
           icon={<CalendarDays className="h-5 w-5" />}
         />
         <StatCard
-          label="Berita tersinkron"
-          value={data.news.length}
+          label="Berita Tersinkron"
+          value={`${data.news.length} Artikel`}
           hint={
             data.lastNewsSyncAt
               ? `Sync ${formatRelative(data.lastNewsSyncAt)}`
-              : "Belum sync"
+              : "Siap sinkronisasi"
           }
           icon={<Newspaper className="h-5 w-5" />}
         />
         <StatCard
-          label="Pendengar terdaftar"
-          value={data.profiles.length}
+          label="Pendengar Terdaftar"
+          value={`${data.profiles.length} Akun`}
           hint={
             data.sheetsSyncStatus === "ok"
-              ? "Google Sheets · OK"
-              : "Sheets idle"
+              ? "Sinkron ke Google Sheets ✓"
+              : "Mode lokal / standby"
           }
           tone="live"
           icon={<Users className="h-5 w-5" />}
         />
       </div>
 
-      {/* Live console + schedule */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-3">
-        {/* Live control card — on-air hero */}
-        <Card className="on-air-glow card-gradient overflow-hidden lg:col-span-2">
-          <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+      {/* ── HERO ON-AIR + JADWAL HARI INI ── */}
+      <div className="grid gap-6 lg:grid-cols-12 items-start">
+        {/* HERO: Live Control Card (lg:col-span-8) */}
+        <Card className="lg:col-span-8 border border-orange-200/90 bg-gradient-to-br from-card via-card to-orange-50/35 shadow-xs overflow-hidden">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4 border-b border-border/60">
             <div>
-              <div className="mb-2 flex items-center gap-2">
-                <Badge tone="live" pulse>
-                  Live control
+              <div className="flex items-center gap-2 mb-1.5">
+                <Badge tone="live" pulse className="px-2 py-0.5 text-[10px]">
+                  LIVE ON AIR
                 </Badge>
-                <span className="text-xs text-muted-foreground">
-                  Updated {formatDateTime(data.nowPlaying.updated_at)}
+                <span className="text-xs text-muted-foreground font-medium">
+                  Update terakhir {formatDateTime(data.nowPlaying.updated_at)}
                 </span>
               </div>
-              <CardTitle className="text-xl font-extrabold tracking-tight">
+              <CardTitle className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
                 {data.nowPlaying.current_program}
               </CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Host · {data.nowPlaying.current_host}
-              </p>
+              <CardDescription className="text-sm font-semibold text-orange mt-0.5">
+                Host / Penyiar: {data.nowPlaying.current_host}
+              </CardDescription>
             </div>
+
             <Link href="/now-playing">
-              <Button variant="orange" size="sm">
-                Ubah on-air
+              <Button variant="orange" size="sm" className="gap-1.5 shadow-xs shrink-0">
+                <Radio className="h-3.5 w-3.5" />
+                <span>Ubah On-Air</span>
               </Button>
             </Link>
           </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <div className="h-28 w-28 shrink-0 overflow-hidden rounded-lg bg-muted">
+
+          <CardContent className="pt-5">
+            <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center">
+              {/* Cover Art Program */}
+              <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm flex items-center justify-center">
                 {data.nowPlaying.current_cover_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={data.nowPlaying.current_cover_url}
-                    alt=""
+                    alt={data.nowPlaying.current_program}
                     className="h-full w-full object-cover"
                   />
-                ) : null}
+                ) : (
+                  <Radio className="h-10 w-10 text-slate-400" />
+                )}
               </div>
-              <div className="flex min-w-0 flex-1 flex-col justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Perubahan di sini langsung terlihat di app mobile saat backend
-                  terhubung. Mode demo menyimpan ke localStorage.
+
+              {/* Deskripsi & Shortcut Aksi */}
+              <div className="flex-1 space-y-3 min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  Status on-air dan judul program di kartu ini langsung terkirim secara instan ke seluruh aplikasi mobile pendengar.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <Link href="/schedule">
-                    <Button variant="outline" size="sm">
-                      Kelola jadwal
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Link href="/chat">
+                    <Button variant="secondary" size="sm" className="gap-1.5 border border-border shadow-2xs">
+                      <MessageSquare className="h-3.5 w-3.5 text-brand" />
+                      <span>Live Chat Studio</span>
                     </Button>
                   </Link>
+
+                  <Link href="/schedule">
+                    <Button variant="secondary" size="sm" className="gap-1.5 border border-border shadow-2xs">
+                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>Kelola Jadwal</span>
+                    </Button>
+                  </Link>
+
                   <Link href="/news">
-                    <Button variant="outline" size="sm">
-                      Sync berita
+                    <Button variant="secondary" size="sm" className="gap-1.5 border border-border shadow-2xs">
+                      <Newspaper className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>Sync Berita</span>
                     </Button>
                   </Link>
                 </div>
@@ -174,107 +230,186 @@ export default function OverviewPage() {
           </CardContent>
         </Card>
 
-        {/* Today schedule */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Jadwal {DAY_NAMES[today]}</CardTitle>
+        {/* JADWAL HARI INI (lg:col-span-4) */}
+        <Card className="lg:col-span-4 border border-border shadow-xs">
+          <CardHeader className="pb-3 border-b border-border/60 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold">
+                Jadwal Siar {DAY_NAMES[today]}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {todayPrograms.length} segmen siaran hari ini
+              </CardDescription>
+            </div>
+            <Link href="/schedule" className="text-xs font-bold text-brand hover:underline">
+              Semua →
+            </Link>
           </CardHeader>
-          <CardContent className="space-y-2">
+
+          <CardContent className="pt-3.5 space-y-2">
             {todayPrograms.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Tidak ada program.</p>
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                Tidak ada program siaran hari ini.
+              </p>
             ) : (
-              todayPrograms.slice(0, 6).map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2 transition-colors hover:bg-muted"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{p.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {p.host}
-                    </p>
+              todayPrograms.slice(0, 5).map((p) => {
+                const isCurrent = p.name.toLowerCase() === data.nowPlaying.current_program.toLowerCase();
+                return (
+                  <div
+                    key={p.id}
+                    className={`flex items-center justify-between gap-2.5 rounded-lg px-3 py-2 transition-all border ${
+                      isCurrent
+                        ? "bg-orange-50/70 border-orange-200/80 shadow-2xs"
+                        : "bg-muted/40 border-transparent hover:bg-muted/70"
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-xs sm:text-sm font-bold text-foreground">
+                          {p.name}
+                        </p>
+                        {isCurrent && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-orange animate-ping shrink-0" />
+                        )}
+                      </div>
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {p.host}
+                      </p>
+                    </div>
+
+                    <span className="shrink-0 font-mono text-[11px] font-semibold text-muted-foreground bg-card border border-border/80 px-2 py-0.5 rounded shadow-2xs">
+                      {p.start_time}–{p.end_time}
+                    </span>
                   </div>
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                    {p.start_time}–{p.end_time}
-                  </span>
-                </div>
-              ))
+                );
+              })
             )}
+
             <Link
               href="/schedule"
-              className="mt-2 block text-center text-xs font-bold text-brand hover:underline"
+              className="mt-3 flex items-center justify-center gap-1 py-1.5 text-xs font-bold text-brand hover:text-brand/80 transition-colors border-t border-border/60"
             >
-              Lihat semua jadwal →
+              <span>Kelola Jadwal Lengkap 7 Hari</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </CardContent>
         </Card>
       </div>
 
-      {/* News + listeners */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent news */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle>Berita terbaru</CardTitle>
+      {/* ── BERITA TERBARU & PENDENGAR BARU ── */}
+      <div className="grid gap-6 lg:grid-cols-12 items-start">
+        {/* BERITA TERBARU (lg:col-span-8) */}
+        <Card className="lg:col-span-8 border border-border shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
+            <div>
+              <CardTitle className="text-base font-bold">
+                Berita & Konten Terbaru
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Artikel tersinkronisasi dari portal radiogaulfmsmg.com
+              </CardDescription>
+            </div>
             <Link href="/news">
-              <Button variant="ghost" size="sm">
-                Kelola
+              <Button variant="ghost" size="sm" className="text-xs font-semibold">
+                Kelola Berita
               </Button>
             </Link>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {data.news.slice(0, 4).map((n) => (
-              <div
-                key={n.id}
-                className="flex gap-3 rounded-lg p-2 transition-colors hover:bg-muted/40"
-              >
-                <div className="h-12 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                  {n.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={n.image_url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : null}
+
+          <CardContent className="pt-3.5 space-y-2.5">
+            {data.news.length === 0 ? (
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                Belum ada berita tersinkron. Klik Sync Berita untuk mengambil artikel WordPress.
+              </p>
+            ) : (
+              data.news.slice(0, 4).map((n) => (
+                <div
+                  key={n.id}
+                  className="flex items-center gap-3.5 rounded-lg p-2.5 transition-all hover:bg-muted/50 border border-transparent hover:border-border/60"
+                >
+                  <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100 border border-border/80 shadow-2xs">
+                    {n.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={n.image_url}
+                        alt={n.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-slate-300">
+                        <Newspaper className="h-5 w-5" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs sm:text-sm font-bold text-foreground hover:text-brand transition-colors">
+                      {n.title}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                        {n.category ?? "Umum"}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        sync {formatRelative(n.synced_at)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{n.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {n.category ?? "Umum"} · sync {formatRelative(n.synced_at)}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 
-        {/* Quick listeners */}
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle>Pendengar baru</CardTitle>
+        {/* PENDENGAR BARU (lg:col-span-4) */}
+        <Card className="lg:col-span-4 border border-border shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
+            <div>
+              <CardTitle className="text-base font-bold">
+                Pendengar Baru
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Pengguna terdaftar aplikasi mobile
+              </CardDescription>
+            </div>
             <Link href="/users">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="text-xs font-semibold">
                 Semua
               </Button>
             </Link>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {data.profiles.slice(0, 5).map((u) => (
-              <div key={u.id} className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand/15 text-xs font-extrabold text-brand">
-                  {(u.full_name ?? "?").charAt(0)}
+
+          <CardContent className="pt-3.5 space-y-3">
+            {data.profiles.length === 0 ? (
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                Belum ada data pendengar.
+              </p>
+            ) : (
+              data.profiles.slice(0, 5).map((u) => (
+                <div key={u.id} className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-muted/40 transition-colors">
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-extrabold border shadow-2xs shrink-0 ${getAvatarColor(
+                      u.full_name || "User"
+                    )}`}
+                  >
+                    {(u.full_name ?? "?").charAt(0).toUpperCase()}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs sm:text-sm font-bold text-foreground">
+                      {u.full_name}
+                    </p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {u.city || "Semarang"}
+                    </p>
+                  </div>
+
+                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border/60 shrink-0">
+                    {u.device_os || "Mobile"}
+                  </span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">
-                    {u.full_name}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {u.city ?? "—"} · {u.device_os}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

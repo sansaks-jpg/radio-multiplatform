@@ -48,20 +48,29 @@ export function StatCard({
   icon?: React.ReactNode;
   tone?: "default" | "brand" | "orange" | "live";
 }) {
-  const accent =
+  const iconBg =
     tone === "brand"
-      ? "border-l-4 border-l-brand bg-card"
+      ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80"
       : tone === "orange"
-        ? "border-l-4 border-l-orange bg-card"
+        ? "bg-orange-50 text-orange-700 border border-orange-200/80"
         : tone === "live"
-          ? "border-l-4 border-l-live bg-card"
-          : "bg-card";
+          ? "bg-red-50 text-red-700 border border-red-200/80"
+          : "bg-slate-100 text-slate-700 border border-slate-200/80";
+
+  const accentBorder =
+    tone === "brand"
+      ? "border-l-4 border-l-brand"
+      : tone === "orange"
+        ? "border-l-4 border-l-orange"
+        : tone === "live"
+          ? "border-l-4 border-l-live"
+          : "border-l-4 border-l-slate-300";
 
   return (
     <div
       className={cn(
-        "rounded-xl border-border p-4 transition-colors hover:bg-surface-1",
-        accent,
+        "rounded-xl border border-border bg-card p-4 transition-all hover:shadow-sm hover:border-border/80",
+        accentBorder,
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -69,7 +78,7 @@ export function StatCard({
           <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
             {label}
           </p>
-          <p className="mt-1 truncate text-xl font-extrabold tracking-tight sm:text-2xl">
+          <p className="mt-1 truncate text-xl font-extrabold tracking-tight text-foreground sm:text-2xl">
             {value}
           </p>
           {hint ? (
@@ -77,7 +86,7 @@ export function StatCard({
           ) : null}
         </div>
         {icon ? (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg shadow-xs", iconBg)}>
             {icon}
           </div>
         ) : null}
