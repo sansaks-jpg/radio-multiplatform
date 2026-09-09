@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View } from "react-native";
-import { WebView } from "react-native-webview";
+import { WebView, WebViewMessageEvent } from "react-native-webview";
+import * as ScreenOrientation from "expo-screen-orientation";
 import {
   VISUAL_RTMP_URL,
   VISUAL_WHEP_URL,
@@ -34,6 +35,13 @@ export function MediaMtxVisualPlayer({
         interruptionMode: "duckOthers",
       });
     } catch {}
+
+    // Kembalikan orientasi ke portrait saat player ditutup/unmount
+    return () => {
+      void ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT_UP
+      ).catch(() => {});
+    };
   }, []);
 
   // Jalankan pembersihan saat komponen di-unmount oleh React
@@ -49,6 +57,24 @@ export function MediaMtxVisualPlayer({
       }
     };
   }, []);
+
+  // Tangani sinyal fullscreen dari WebView untuk mengubah orientasi perangkat otomatis ke landscape
+  const handleMessage = async (event: WebViewMessageEvent) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.event === "fullscreen_toggled") {
+        if (data.isFullscreen) {
+          await ScreenOrientation.lockAsync(
+            ScreenOrientation.OrientationLock.LANDSCAPE
+          );
+        } else {
+          await ScreenOrientation.lockAsync(
+            ScreenOrientation.OrientationLock.PORTRAIT_UP
+          );
+        }
+      }
+    } catch {}
+  };
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -66,7 +92,6 @@ export function MediaMtxVisualPlayer({
       background: #000000;
       user-select: none;
       -webkit-user-select: none;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     #player-container {
       position: relative;
@@ -90,12 +115,12 @@ export function MediaMtxVisualPlayer({
       left: 0;
       right: 0;
       bottom: 0;
-      height: 60px;
+      height: 56px;
       display: flex;
       align-items: flex-end;
-      justify-content: space-between;
-      padding: 0 12px 10px 12px;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+      justify-content: flex-end;
+      padding: 0 14px 12px 14px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
       pointer-events: none;
       z-index: 20;
       transition: opacity 0.2s ease;
@@ -104,12 +129,6 @@ export function MediaMtxVisualPlayer({
       opacity: 0;
       pointer-events: none;
     }
-    .controls-left, .controls-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      pointer-events: auto;
-    }
     .ctrl-btn {
       width: 36px;
       height: 36px;
@@ -117,13 +136,14 @@ export function MediaMtxVisualPlayer({
       background: rgba(0, 0, 0, 0.55);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       outline: none;
       color: #ffffff;
+      pointer-events: auto;
       -webkit-tap-highlight-color: transparent;
       transition: transform 0.1s, background 0.15s;
     }
@@ -131,52 +151,19 @@ export function MediaMtxVisualPlayer({
       transform: scale(0.9);
       background: rgba(255, 255, 255, 0.25);
     }
-    .live-badge {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 7px;
-      border-radius: 4px;
-      background: #dc2626;
-      color: #ffffff;
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.05em;
-    }
-    .live-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: #ffffff;
-    }
   </style>
 </head>
 <body>
   <div id="player-container">
     <video id="video" autoplay playsinline></video>
 
-    <!-- Sleek YouTube-style Bottom Scrim Controls -->
+    <!-- Sleek Minimalist Fullscreen Toggle Only -->
     <div id="controls-overlay" class="controls-overlay">
-      <div class="controls-left">
-        <button id="mute-btn" class="ctrl-btn" onclick="toggleMute(event)" aria-label="Mute/Unmute">
-          <svg id="icon-sound" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-          </svg>
-        </button>
-        <div class="live-badge">
-          <span class="live-dot"></span>
-          <span>LIVE</span>
-        </div>
-      </div>
-
-      <div class="controls-right">
-        <button id="fs-btn" class="ctrl-btn" onclick="toggleFullscreen(event)" aria-label="Layar Penuh">
-          <svg id="icon-fs" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-          </svg>
-        </button>
-      </div>
+      <button id="fs-btn" class="ctrl-btn" onclick="toggleFullscreen(event)" aria-label="Layar Penuh">
+        <svg id="icon-fs" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -222,6 +209,11 @@ export function MediaMtxVisualPlayer({
       const isFs = isCurrentlyFullscreen();
 
       if (!isFs) {
+        // Otomatis lock ke landscape jika didukung oleh browser API
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(function() {});
+        }
+
         if (video && video.requestFullscreen) {
           video.requestFullscreen().catch(function() {
             var container = document.getElementById('player-container') || document.documentElement;
@@ -240,6 +232,11 @@ export function MediaMtxVisualPlayer({
           }
         }
       } else {
+        // Kembalikan orientasi
+        if (screen.orientation && screen.orientation.unlock) {
+          try { screen.orientation.unlock(); } catch(err) {}
+        }
+
         if (document.exitFullscreen) {
           document.exitFullscreen().catch(function() {});
         } else if (document.webkitExitFullscreen) {
@@ -263,11 +260,24 @@ export function MediaMtxVisualPlayer({
     }
     window.toggleFullscreen = toggleFullscreen;
 
-    document.addEventListener('fullscreenchange', updateFullscreenUi);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenUi);
+    function handleFullscreenChange() {
+      const isFs = isCurrentlyFullscreen();
+      updateFullscreenUi();
+      try {
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            event: 'fullscreen_toggled',
+            isFullscreen: isFs
+          }));
+        }
+      } catch(err) {}
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     if (video) {
-      video.addEventListener('webkitbeginfullscreen', updateFullscreenUi);
-      video.addEventListener('webkitendfullscreen', updateFullscreenUi);
+      video.addEventListener('webkitbeginfullscreen', handleFullscreenChange);
+      video.addEventListener('webkitendfullscreen', handleFullscreenChange);
     }
 
     // Controls overlay auto-hide
@@ -287,12 +297,11 @@ export function MediaMtxVisualPlayer({
     if (container) {
       container.addEventListener('click', function(e) {
         if (e.target.closest && e.target.closest('.ctrl-btn')) return;
-        // Unmute otomatis saat user tap di mana saja jika sebelumnya muted oleh OS
+        // Unmute otomatis saat user tap di mana saja jika sebelumnya ter-mute oleh browser
         if (video && video.muted) {
           video.muted = false;
           video.volume = 1.0;
           video.play().catch(function() {});
-          updateAudioUi();
         }
         if (overlay.classList.contains('hidden')) {
           resetHideTimer();
@@ -316,28 +325,6 @@ export function MediaMtxVisualPlayer({
 
     resetHideTimer();
 
-    function updateAudioUi() {
-      const icon = document.getElementById('icon-sound');
-      if (!icon || !video) return;
-      if (video.muted) {
-        icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>';
-      } else {
-        icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>';
-      }
-    }
-
-    function toggleMute(e) {
-      if (e) e.stopPropagation();
-      if (!video) return;
-      video.muted = !video.muted;
-      if (!video.muted) {
-        video.volume = 1.0;
-        video.play().catch(function() {});
-      }
-      updateAudioUi();
-      resetHideTimer();
-    }
-
     function playVideo() {
       if (isCleanedUp || !video) return;
       video.muted = false;
@@ -346,21 +333,16 @@ export function MediaMtxVisualPlayer({
       if (promise !== undefined) {
         promise.then(function() {
           video.muted = false;
-          updateAudioUi();
         }).catch(function() {
           if (isCleanedUp || !video) return;
           video.muted = false;
-          video.play().then(function() {
-            updateAudioUi();
-          }).catch(function() {
+          video.play().catch(function() {
             video.muted = true;
             video.play().catch(function() {});
-            updateAudioUi();
             var unmuteOnce = function() {
               if (video) {
                 video.muted = false;
                 video.volume = 1.0;
-                updateAudioUi();
               }
               window.removeEventListener('touchstart', unmuteOnce);
               window.removeEventListener('click', unmuteOnce);
@@ -610,7 +592,8 @@ export function MediaMtxVisualPlayer({
         scrollEnabled={false}
         bounces={false}
         overScrollMode="never"
-        injectedJavaScript="setTimeout(function(){ var v = document.getElementById('video'); if (v) { v.muted = false; v.volume = 1.0; v.play().catch(function(){}); if (typeof updateAudioUi === 'function') updateAudioUi(); } }, 200); true;"
+        onMessage={handleMessage}
+        injectedJavaScript="setTimeout(function(){ var v = document.getElementById('video'); if (v) { v.muted = false; v.volume = 1.0; v.play().catch(function(){}); } }, 200); true;"
       />
     </View>
   );
