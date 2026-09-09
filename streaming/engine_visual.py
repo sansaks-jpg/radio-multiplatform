@@ -38,11 +38,12 @@ def main():
         # Video: Direct copy with normalized timestamps (0% CPU, ultra smooth)
         "-c:v", "copy",
         
-        # Audio: Ultra-low latency Opus transcode (20ms frames, zero buffer)
+        # Audio: Studio Broadcast Opus (Fullband 20kHz, smooth music profile like YouTube)
         "-c:a", "libopus",
-        "-b:a", "96k",
-        "-application", "lowdelay",
-        "-frame_duration", "20",
+        "-b:a", "128k",
+        "-vbr", "on",
+        "-application", "audio",
+        "-cutoff", "20000",
         
         # Output RTSP via TCP without interleave latency
         "-max_interleave_delta", "0",

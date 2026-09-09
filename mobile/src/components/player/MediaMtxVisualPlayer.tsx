@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { WebView } from "react-native-webview";
+import { Ionicons } from "@expo/vector-icons";
 import {
   VISUAL_RTMP_URL,
   VISUAL_WHEP_URL,
@@ -86,6 +87,26 @@ export function MediaMtxVisualPlayer({
         video.play().catch(function() {});
       }
     });
+
+    function toggleFullscreen() {
+      const el = video;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (el.requestFullscreen) {
+          el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+        } else if (el.webkitEnterFullscreen) {
+          el.webkitEnterFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+    window.toggleFullscreen = toggleFullscreen;
 
     // Fungsi pembersihan menyeluruh (WebRTC, HLS, Audio/Video Decoder, HTTP session)
     function cleanup() {
@@ -183,6 +204,15 @@ export function MediaMtxVisualPlayer({
               clearTimeout(whepFallbackTimer);
               whepFallbackTimer = null;
             }
+            try {
+              if (pc && pc.getReceivers) {
+                pc.getReceivers().forEach(function(r) {
+                  if ('playoutDelayHint' in r) {
+                    r.playoutDelayHint = 0.35; // 350ms smoothing buffer setara YouTube live
+                  }
+                });
+              }
+            } catch(e) {}
             currentStream = event.streams[0];
             video.srcObject = event.streams[0];
             playVideo();
@@ -314,6 +344,18 @@ export function MediaMtxVisualPlayer({
         setSupportMultipleWindows={false}
         originWhitelist={["*"]}
       />
+
+      {/* ── Tombol Fullscreen (Layar Penuh) ── */}
+      <Pressable
+        onPress={() => {
+          webViewRef.current?.injectJavaScript("if (typeof window.toggleFullscreen === 'function') { window.toggleFullscreen(); } true;");
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Layar penuh (Fullscreen)"
+        className="absolute bottom-2.5 right-2.5 rounded-lg bg-black/70 p-2 active:opacity-75 z-30 border border-white/20 shadow-md flex-row items-center gap-1"
+      >
+        <Ionicons name="expand" size={15} color="#FFFFFF" />
+      </Pressable>
     </View>
   );
 }
