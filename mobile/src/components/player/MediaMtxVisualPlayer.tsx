@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { WebView } from "react-native-webview";
-import { Ionicons } from "@expo/vector-icons";
 import {
   VISUAL_RTMP_URL,
   VISUAL_WHEP_URL,
@@ -55,16 +54,131 @@ export function MediaMtxVisualPlayer({
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
-    html, body { width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-    video { width: 100%; height: 100%; object-fit: contain; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000000;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #player-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #000000;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000000;
+    }
+    /* Sleek YouTube-style Bottom Scrim Controls */
+    .controls-overlay {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 60px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 12px 10px 12px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+      pointer-events: none;
+      z-index: 20;
+      transition: opacity 0.2s ease;
+    }
+    .controls-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .controls-left, .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+    }
+    .ctrl-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      outline: none;
+      color: #ffffff;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s, background 0.15s;
+    }
+    .ctrl-btn:active {
+      transform: scale(0.9);
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: #dc2626;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+    .live-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #ffffff;
+    }
   </style>
 </head>
 <body>
-  <video id="video" autoplay playsinline></video>
+  <div id="player-container">
+    <video id="video" autoplay playsinline></video>
+
+    <!-- Sleek YouTube-style Bottom Scrim Controls -->
+    <div id="controls-overlay" class="controls-overlay">
+      <div class="controls-left">
+        <button id="mute-btn" class="ctrl-btn" onclick="toggleMute(event)" aria-label="Mute/Unmute">
+          <svg id="icon-sound" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+        <div class="live-badge">
+          <span class="live-dot"></span>
+          <span>LIVE</span>
+        </div>
+      </div>
+
+      <div class="controls-right">
+        <button id="fs-btn" class="ctrl-btn" onclick="toggleFullscreen(event)" aria-label="Layar Penuh">
+          <svg id="icon-fs" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const whepUrl = "${whepUrl}";
@@ -78,6 +192,152 @@ export function MediaMtxVisualPlayer({
     let isCleanedUp = false;
     let whepFallbackTimer = null;
 
+    function isCurrentlyFullscreen() {
+      return !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        (video && video.webkitDisplayingFullscreen)
+      );
+    }
+
+    function updateFullscreenUi() {
+      const isFs = isCurrentlyFullscreen();
+      const fsIcon = document.getElementById('icon-fs');
+      if (fsIcon) {
+        if (isFs) {
+          fsIcon.innerHTML = '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>';
+        } else {
+          fsIcon.innerHTML = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>';
+        }
+      }
+    }
+
+    function toggleFullscreen(e) {
+      if (e) {
+        try { e.stopPropagation(); } catch(err) {}
+        try { e.preventDefault(); } catch(err) {}
+      }
+
+      const isFs = isCurrentlyFullscreen();
+
+      if (!isFs) {
+        if (video && video.requestFullscreen) {
+          video.requestFullscreen().catch(function() {
+            var container = document.getElementById('player-container') || document.documentElement;
+            if (container.requestFullscreen) container.requestFullscreen();
+          });
+        } else if (video && video.webkitEnterFullscreen) {
+          video.webkitEnterFullscreen();
+        } else if (video && video.webkitRequestFullscreen) {
+          video.webkitRequestFullscreen();
+        } else {
+          var container = document.getElementById('player-container') || document.documentElement;
+          if (container.requestFullscreen) {
+            container.requestFullscreen();
+          } else if (container.webkitRequestFullscreen) {
+            container.webkitRequestFullscreen();
+          }
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(function() {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (video && video.webkitExitFullscreen) {
+          video.webkitExitFullscreen();
+        }
+      }
+
+      setTimeout(updateFullscreenUi, 250);
+      setTimeout(updateFullscreenUi, 600);
+
+      try {
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            event: 'fullscreen_toggled',
+            isFullscreen: !isFs
+          }));
+        }
+      } catch(err) {}
+    }
+    window.toggleFullscreen = toggleFullscreen;
+
+    document.addEventListener('fullscreenchange', updateFullscreenUi);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenUi);
+    if (video) {
+      video.addEventListener('webkitbeginfullscreen', updateFullscreenUi);
+      video.addEventListener('webkitendfullscreen', updateFullscreenUi);
+    }
+
+    // Controls overlay auto-hide
+    let hideTimer = null;
+    const overlay = document.getElementById('controls-overlay');
+
+    function resetHideTimer() {
+      if (!overlay) return;
+      overlay.classList.remove('hidden');
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(function() {
+        overlay.classList.add('hidden');
+      }, 2500);
+    }
+
+    const container = document.getElementById('player-container');
+    if (container) {
+      container.addEventListener('click', function(e) {
+        if (e.target.closest && e.target.closest('.ctrl-btn')) return;
+        // Unmute otomatis saat user tap di mana saja jika sebelumnya muted oleh OS
+        if (video && video.muted) {
+          video.muted = false;
+          video.volume = 1.0;
+          video.play().catch(function() {});
+          updateAudioUi();
+        }
+        if (overlay.classList.contains('hidden')) {
+          resetHideTimer();
+        } else {
+          overlay.classList.add('hidden');
+        }
+      });
+
+      // Double tap to toggle fullscreen
+      let lastTap = 0;
+      container.addEventListener('touchend', function(e) {
+        if (e.target.closest && e.target.closest('.ctrl-btn')) return;
+        const now = Date.now();
+        const diff = now - lastTap;
+        if (diff < 300 && diff > 0) {
+          toggleFullscreen(e);
+        }
+        lastTap = now;
+      });
+    }
+
+    resetHideTimer();
+
+    function updateAudioUi() {
+      const icon = document.getElementById('icon-sound');
+      if (!icon || !video) return;
+      if (video.muted) {
+        icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>';
+      } else {
+        icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>';
+      }
+    }
+
+    function toggleMute(e) {
+      if (e) e.stopPropagation();
+      if (!video) return;
+      video.muted = !video.muted;
+      if (!video.muted) {
+        video.volume = 1.0;
+        video.play().catch(function() {});
+      }
+      updateAudioUi();
+      resetHideTimer();
+    }
+
     function playVideo() {
       if (isCleanedUp || !video) return;
       video.muted = false;
@@ -86,16 +346,21 @@ export function MediaMtxVisualPlayer({
       if (promise !== undefined) {
         promise.then(function() {
           video.muted = false;
+          updateAudioUi();
         }).catch(function() {
           if (isCleanedUp || !video) return;
           video.muted = false;
-          video.play().catch(function() {
+          video.play().then(function() {
+            updateAudioUi();
+          }).catch(function() {
             video.muted = true;
             video.play().catch(function() {});
+            updateAudioUi();
             var unmuteOnce = function() {
               if (video) {
                 video.muted = false;
                 video.volume = 1.0;
+                updateAudioUi();
               }
               window.removeEventListener('touchstart', unmuteOnce);
               window.removeEventListener('click', unmuteOnce);
@@ -106,34 +371,6 @@ export function MediaMtxVisualPlayer({
         });
       }
     }
-
-    // Tap di mana saja pada video untuk menyalakan audio jika ter-mute oleh kebijakan OS
-    video.addEventListener('click', function() {
-      if (video.muted) {
-        video.muted = false;
-        video.play().catch(function() {});
-      }
-    });
-
-    function toggleFullscreen() {
-      const el = video;
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        if (el.requestFullscreen) {
-          el.requestFullscreen();
-        } else if (el.webkitRequestFullscreen) {
-          el.webkitRequestFullscreen();
-        } else if (el.webkitEnterFullscreen) {
-          el.webkitEnterFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
-      }
-    }
-    window.toggleFullscreen = toggleFullscreen;
 
     // Fungsi pembersihan menyeluruh (WebRTC, HLS, Audio/Video Decoder, HTTP session)
     function cleanup() {
@@ -354,13 +591,13 @@ export function MediaMtxVisualPlayer({
 
   return (
     <View
-      className="relative w-full overflow-hidden bg-black"
-      style={{ minHeight: 215, aspectRatio: 16 / 9 }}
+      className="relative w-full bg-black overflow-hidden"
+      style={{ width: "100%", aspectRatio: 16 / 9 }}
     >
       <WebView
         ref={webViewRef}
         source={{ html: htmlContent, baseUrl: "http://40.81.231.250:8888/" }}
-        style={{ flex: 1, width: "100%", minHeight: 215, backgroundColor: "#000000" }}
+        style={{ width: "100%", height: "100%", backgroundColor: "#000000" }}
         allowsInlineMediaPlayback
         allowsFullscreenVideo
         mixedContentMode="always"
@@ -370,20 +607,11 @@ export function MediaMtxVisualPlayer({
         androidLayerType="hardware"
         setSupportMultipleWindows={false}
         originWhitelist={["*"]}
-        injectedJavaScript="setTimeout(function(){ var v = document.getElementById('video'); if (v) { v.muted = false; v.volume = 1.0; v.play().catch(function(){}); } }, 200); true;"
+        scrollEnabled={false}
+        bounces={false}
+        overScrollMode="never"
+        injectedJavaScript="setTimeout(function(){ var v = document.getElementById('video'); if (v) { v.muted = false; v.volume = 1.0; v.play().catch(function(){}); if (typeof updateAudioUi === 'function') updateAudioUi(); } }, 200); true;"
       />
-
-      {/* ── Tombol Fullscreen (Layar Penuh) ── */}
-      <Pressable
-        onPress={() => {
-          webViewRef.current?.injectJavaScript("if (typeof window.toggleFullscreen === 'function') { window.toggleFullscreen(); } true;");
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Layar penuh (Fullscreen)"
-        className="absolute bottom-2.5 right-2.5 rounded-lg bg-black/70 p-2 active:opacity-75 z-30 border border-white/20 shadow-md flex-row items-center gap-1"
-      >
-        <Ionicons name="expand" size={15} color="#FFFFFF" />
-      </Pressable>
     </View>
   );
 }

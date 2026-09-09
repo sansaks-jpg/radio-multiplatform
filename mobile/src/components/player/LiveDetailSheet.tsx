@@ -314,8 +314,12 @@ export function LiveDetailSheet({
           <View className="min-h-11 min-w-11" />
         </View>
 
-        {/* ── Banner collapses while typing ── */}
-        <View className="mx-4 overflow-hidden rounded-card bg-surface">
+        {/* ── Banner: Full width edge-to-edge on visual radio, card on audio mode ── */}
+        <View
+          className={`${
+            isVisualActive ? "w-full" : "mx-4 rounded-card"
+          } overflow-hidden bg-surface`}
+        >
           {!keyboardOpen ? (
             isVisualActive ? (
               <MediaMtxVisualPlayer onCloseVisual={handleToggleVisual} />
@@ -366,7 +370,7 @@ export function LiveDetailSheet({
             )
           ) : null}
 
-          <View className="flex-row items-center gap-3 p-3">
+          <View className="flex-row items-center gap-3 px-4 py-3">
             {keyboardOpen && cover ? (
               <View className="h-11 w-11 overflow-hidden rounded-md bg-surface-2">
                 <Image
@@ -432,7 +436,7 @@ export function LiveDetailSheet({
           </View>
 
           {!keyboardOpen ? (
-            <View className="border-t border-line/30 px-3 py-2.5">
+            <View className="border-t border-line/30 px-4 py-2.5">
               <Pressable
                 onPress={() => setProgramInfoOpen(true)}
                 accessibilityRole="button"
