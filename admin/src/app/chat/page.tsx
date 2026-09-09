@@ -13,10 +13,6 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import type { LiveComment } from "@/lib/comments-bus";
 
@@ -32,7 +28,7 @@ function formatTime(iso: string) {
   }
 }
 
-// Warna avatar konsisten berdasarkan palet studio Overview
+// Warna avatar konsisten berdasarkan palet studio
 const AVATAR_COLORS = [
   "bg-brand-soft text-brand",
   "bg-accent-soft text-accent",
@@ -48,7 +44,7 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-export default function LiveChatStudioPage() {
+export default function LiveChatPage() {
   const toast = useToast();
 
   const [comments, setComments] = useState<LiveComment[]>([]);
@@ -57,8 +53,7 @@ export default function LiveChatStudioPage() {
   const [connected, setConnected] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
 
-  // Auto-scroll control
-  const [autoScroll, setAutoScroll] = useState(true);
+  // Floating jump-to-bottom control
   const [hasNewMessageBelow, setHasNewMessageBelow] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const composerInputRef = useRef<HTMLInputElement>(null);
@@ -99,73 +94,72 @@ export default function LiveChatStudioPage() {
 
     if (success) {
       setCopiedId(id);
-      toast.push("Pesan disalin!");
+      toast.push("Pesan berhasil disalin");
       setTimeout(() => setCopiedId(null), 2000);
-    } else {
-      window.prompt("Salin:", text);
     }
   };
 
-  // Scroll to bottom helper
-  const scrollToBottom = useCallback((smooth = true) => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTo({
-        top: chatScrollRef.current.scrollHeight,
-        behavior: smooth ? "smooth" : "auto",
-      });
+  // Auto-scroll ke paling bawah
+  const scrollToBottom = useCallback((force = false) => {
+    if (!chatScrollRef.current) return;
+    const el = chatScrollRef.current;
+    if (force) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
       setHasNewMessageBelow(false);
+    } else {
+      el.scrollTop = el.scrollHeight;
     }
   }, []);
 
-  // Handle manual scroll
+  // Deteksi manual scroll pengguna
   const handleScroll = () => {
     if (!chatScrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = chatScrollRef.current;
-    const isBottom = scrollHeight - scrollTop - clientHeight < 50;
-    if (isBottom) {
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 60;
+    if (isAtBottom) {
       setHasNewMessageBelow(false);
-      setAutoScroll(true);
-    } else {
-      setAutoScroll(false);
     }
   };
 
-  // Fetch comments
-  const fetchComments = useCallback(async (showLoading = false) => {
-    if (showLoading) setLoadingInitial(true);
+  // Fetch initial comments
+  const fetchComments = useCallback(async (isManual = false) => {
     try {
-      const res = await fetch("/api/comments?forAdmin=true&limit=50");
-      const json = await res.json();
-      if (json.success && Array.isArray(json.comments)) {
-        setComments(json.comments.slice(-50));
+      if (isManual) setLoadingInitial(true);
+      const res = await fetch("/api/comments?limit=50");
+      const data = await res.json();
+      if (data.comments) {
+        setComments(data.comments);
+        if (isManual) {
+          toast.push("Komentar diperbarui");
+        }
+        setTimeout(() => scrollToBottom(true), 60);
       }
     } catch (err) {
-      console.error("Error fetching comments:", err);
-      toast.push("Gagal memuat chat", "error");
+      console.error("Gagal memuat komentar:", err);
+      if (isManual) {
+        toast.push("Gagal memuat pesan", "error");
+      }
     } finally {
       setLoadingInitial(false);
     }
-  }, [toast]);
+  }, [scrollToBottom, toast]);
 
-  // Connect SSE
+  // Setup Server-Sent Events (SSE)
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch("/api/comments?forAdmin=true&limit=50", { signal: controller.signal })
+    fetch("/api/comments?limit=50", { signal: controller.signal })
       .then((res) => res.json())
-      .then((json) => {
-        if (json.success && Array.isArray(json.comments)) {
-          setComments(json.comments.slice(-50));
-          setTimeout(() => scrollToBottom(false), 80);
+      .then((data) => {
+        if (data.comments) {
+          setComments(data.comments);
+          setLoadingInitial(false);
+          setTimeout(() => scrollToBottom(true), 80);
         }
       })
       .catch((err) => {
-        if ((err as Error).name !== "AbortError") {
-          console.error("Error fetching comments:", err);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
+        if (err.name !== "AbortError") {
+          console.error("Error initial comments:", err);
           setLoadingInitial(false);
         }
       });
@@ -234,7 +228,7 @@ export default function LiveChatStudioPage() {
     };
   }, [scrollToBottom]);
 
-  // Send studio message
+  // Kirim pesan resmi studio
   const handleSendBroadcaster = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const text = inputText.trim();
@@ -272,7 +266,7 @@ export default function LiveChatStudioPage() {
     }
   };
 
-  // Toggle Highlight (On Air)
+  // Toggle Sorotan On-Air
   const handleToggleHighlight = async (id: string) => {
     const target = comments.find((c) => c.id === id);
     const nextState = !target?.is_highlighted;
@@ -296,7 +290,7 @@ export default function LiveChatStudioPage() {
     }
   };
 
-  // Toggle Hidden
+  // Toggle Sembunyikan Pesan (Moderasi)
   const handleToggleHidden = async (id: string) => {
     const target = comments.find((c) => c.id === id);
     const nextState = !target?.is_hidden;
@@ -320,247 +314,249 @@ export default function LiveChatStudioPage() {
     }
   };
 
-  const activeCommentsCount = comments.filter((c) => !c.is_hidden).length;
   const onAirCount = comments.filter((c) => c.is_highlighted && !c.is_hidden).length;
+  const pinnedComment = comments.find((c) => c.is_highlighted && !c.is_hidden);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-12">
-      <PageHeader
-        title="Live Chat Studio"
-        badge={
-          <Badge tone={connected ? "brand" : "accent"} pulse={connected}>
-            {connected ? "Terhubung Real-Time" : "Menghubungkan"}
-          </Badge>
-        }
-        description="Moderasi interaksi pendengar secara langsung, tandai komentar on-air ke layar aplikasi pendengar, dan sapa pendengar dari studio."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant={autoScroll ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => {
-                const next = !autoScroll;
-                setAutoScroll(next);
-                if (next) scrollToBottom(true);
-              }}
-            >
-              <span>{autoScroll ? "Auto-scroll Aktif" : "Auto-scroll Jeda"}</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => void fetchComments(true)}
-              title="Muat ulang komentar"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${loadingInitial ? "animate-spin" : ""}`} />
-              <span>Refresh</span>
-            </Button>
-          </div>
-        }
-      />
-
-      <Card className="flex flex-col h-[calc(100vh-16rem)] min-h-[520px] overflow-hidden">
-        {/* Card Header Bar */}
-        <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 py-3 px-4 shrink-0">
-          <div className="flex items-center gap-2">
-            <span
-              className={`h-2 w-2 rounded-full shrink-0 ${
-                connected ? "bg-brand animate-pulse" : "bg-accent"
-              }`}
-              title={connected ? "SSE Terhubung Real-Time" : "Menghubungkan"}
-            />
-            <CardTitle className="text-sm">Interaksi Pendengar</CardTitle>
-            <span className="text-xs text-muted-foreground font-mono">
-              ({activeCommentsCount} pesan)
+    <div className="mx-auto max-w-4xl h-[calc(100vh-5.5rem)] flex flex-col rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+      {/* ── YOUTUBE LIVE CHAT HEADER (Ultra Minimalist) ── */}
+      <div className="h-11 px-4 border-b border-border/80 flex items-center justify-between shrink-0 bg-muted/20 select-none">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`h-2 w-2 rounded-full shrink-0 ${
+              connected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+            }`}
+            title={connected ? "Live Connected" : "Connecting"}
+          />
+          <h1 className="text-xs font-bold tracking-tight text-foreground uppercase">
+            Live Chat
+          </h1>
+          {onAirCount > 0 && (
+            <span className="text-[11px] font-semibold text-accent flex items-center gap-1 ml-1 animate-pulse">
+              ⭐ {onAirCount} On Air
             </span>
-            {onAirCount > 0 && (
-              <Badge tone="accent" pulse className="ml-1 text-[10px] font-semibold">
-                ⭐ {onAirCount} Disorot On Air
-              </Badge>
-            )}
-          </div>
-          <span className="text-xs text-muted-foreground">
-            Maks 50 pesan live
-          </span>
-        </CardHeader>
-
-        {/* ── LIVE CHAT STREAM FEED ── */}
-        <div className="relative flex-1 min-h-0 bg-card">
-          <div
-            ref={chatScrollRef}
-            onScroll={handleScroll}
-            className="h-full overflow-y-auto px-2 sm:px-4 py-2 space-y-0.5 divide-y divide-border/20 overscroll-contain"
-          >
-            {loadingInitial ? (
-              <div className="flex flex-col items-center justify-center h-full text-xs text-muted-foreground gap-2">
-                <RefreshCw className="h-5 w-5 animate-spin text-brand" />
-                <span>Menghubungkan ke live chat studio...</span>
-              </div>
-            ) : comments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center px-4 text-xs text-muted-foreground">
-                <Radio className="h-6 w-6 mb-2 text-muted-foreground/60" />
-                <p className="font-semibold text-foreground text-sm">Belum ada obrolan</p>
-                <p className="mt-0.5">Kirim pesan dari studio di bawah untuk menyapa pendengar!</p>
-              </div>
-            ) : (
-              comments.map((item) => {
-                const isStudio = item.is_broadcaster;
-                const isHighlighted = item.is_highlighted;
-                const isHidden = item.is_hidden;
-
-                return (
-                  <div
-                    key={item.id}
-                    className={`group flex items-start gap-2.5 px-2.5 sm:px-3 py-2 transition-colors hover:bg-muted ${
-                      isHighlighted
-                        ? "bg-accent-soft border-l-2 border-accent"
-                        : isStudio
-                        ? "bg-brand-soft border-l-2 border-brand"
-                        : isHidden
-                        ? "opacity-35 line-through bg-muted/30"
-                        : ""
-                    }`}
-                  >
-                    {/* Avatar Bulat Mini */}
-                    <div
-                      className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                        isStudio
-                          ? "bg-brand text-brand-foreground"
-                          : isHighlighted
-                          ? "bg-accent text-accent-foreground"
-                          : getAvatarColor(item.user_name)
-                      }`}
-                    >
-                      {isStudio ? <Radio className="h-3.5 w-3.5" /> : item.user_name.slice(0, 2).toUpperCase()}
-                    </div>
-
-                    {/* Isi Obrolan Mengalir Bersih */}
-                    <div className="flex-1 min-w-0 text-xs sm:text-sm leading-snug">
-                      <span
-                        className={`font-bold mr-1.5 ${
-                          isStudio
-                            ? "text-brand"
-                            : isHighlighted
-                            ? "text-accent"
-                            : "text-foreground"
-                        }`}
-                      >
-                        {item.user_name}
-                      </span>
-
-                      {isStudio && (
-                        <span className="inline-block bg-brand-soft text-brand text-[9px] font-bold px-1.5 py-0.2 rounded mr-1.5 uppercase tracking-wider">
-                          Studio
-                        </span>
-                      )}
-
-                      {isHighlighted && (
-                        <span className="inline-block bg-accent-soft text-accent text-[9px] font-bold px-1.5 py-0.2 rounded mr-1.5 uppercase tracking-wider animate-pulse">
-                          ⭐ On Air
-                        </span>
-                      )}
-
-                      <span className="text-foreground/90 break-words whitespace-pre-wrap">
-                        {item.message}
-                      </span>
-
-                      <span className="text-[10px] text-muted-foreground/70 font-mono ml-2 inline-block">
-                        {formatTime(item.created_at)}
-                      </span>
-                    </div>
-
-                    {/* Tombol Aksi Moderasi Cepat */}
-                    <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
-                      {/* Tombol Sorot On Air */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleHighlight(item.id)}
-                        className={`h-6 w-6 rounded flex items-center justify-center transition-colors ${
-                          isHighlighted
-                            ? "bg-accent text-accent-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-accent hover:bg-accent-soft"
-                        }`}
-                        title={isHighlighted ? "Lepas dari On Air" : "Sorot On Air di HP pendengar"}
-                      >
-                        <Sparkles className="h-3 w-3" />
-                      </button>
-
-                      {/* Tombol Salin */}
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(item.message, item.id)}
-                        className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        title="Salin salam pendengar"
-                      >
-                        {copiedId === item.id ? (
-                          <Check className="h-3 w-3 text-success" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </button>
-
-                      {/* Tombol Sembunyikan */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleHidden(item.id)}
-                        className={`h-6 w-6 rounded flex items-center justify-center transition-colors ${
-                          isHidden
-                            ? "text-success hover:bg-success-soft"
-                            : "text-muted-foreground hover:text-danger hover:bg-danger-soft"
-                        }`}
-                        title={isHidden ? "Pulihkan pesan" : "Sembunyikan pesan"}
-                      >
-                        {isHidden ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Floating Button "Ada Pesan Baru Masuk" */}
-          {hasNewMessageBelow && (
-            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20">
-              <button
-                type="button"
-                onClick={() => scrollToBottom(true)}
-                className="bg-brand text-brand-foreground text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-bounce"
-              >
-                <ArrowDown className="h-3.5 w-3.5" />
-                Pesan Baru
-              </button>
-            </div>
           )}
         </div>
 
-        {/* ── COMPOSER INPUT MENEMPEL DI BAWAH ── */}
-        <footer className="p-3 border-t border-border/60 bg-surface-1 shrink-0">
-          <form onSubmit={handleSendBroadcaster} className="flex items-center gap-2">
-            <Input
-              ref={composerInputRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ketik pesan resmi studio ke pendengar..."
-              maxLength={300}
-              disabled={sending}
-              className="h-9 text-xs sm:text-sm bg-background border-border focus:border-brand flex-1"
-            />
+        <button
+          type="button"
+          onClick={() => void fetchComments(true)}
+          className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          title="Muat ulang komentar"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loadingInitial ? "animate-spin" : ""}`} />
+        </button>
+      </div>
 
-            <Button
-              type="submit"
-              disabled={!inputText.trim() || sending}
-              variant="primary"
-              size="sm"
-              className="h-9 px-4 text-xs font-bold gap-1.5 shrink-0"
+      {/* ── PINNED ON-AIR MESSAGE BANNER (Ala YouTube Pinned Message) ── */}
+      {pinnedComment && (
+        <div className="shrink-0 bg-accent-soft/75 border-b border-accent/30 px-4 py-2 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-accent font-bold shrink-0 flex items-center gap-1">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="text-[11px] uppercase tracking-wider">Disorot On Air:</span>
+            </span>
+            <span className="font-semibold text-foreground truncate">
+              {pinnedComment.user_name}:
+            </span>
+            <span className="text-foreground/90 truncate">
+              {pinnedComment.message}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleToggleHighlight(pinnedComment.id)}
+            className="text-xs font-semibold text-muted-foreground hover:text-foreground px-2 py-0.5 rounded hover:bg-muted transition-colors shrink-0"
+            title="Lepas dari On Air"
+          >
+            Lepas
+          </button>
+        </div>
+      )}
+
+      {/* ── LIVE CHAT STREAM FEED (Single Column Ala YouTube Live) ── */}
+      <div className="relative flex-1 min-h-0 bg-card">
+        <div
+          ref={chatScrollRef}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto px-4 py-2 space-y-1 overscroll-contain text-xs"
+        >
+          {loadingInitial ? (
+            <div className="flex flex-col items-center justify-center h-full text-xs text-muted-foreground gap-2">
+              <RefreshCw className="h-5 w-5 animate-spin text-brand" />
+              <span>Menghubungkan ke live chat...</span>
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center px-4 text-xs text-muted-foreground">
+              <Radio className="h-6 w-6 mb-2 text-muted-foreground/50" />
+              <p className="font-semibold text-foreground text-sm">Belum ada obrolan</p>
+              <p className="mt-0.5">Kirim pesan di bawah untuk menyapa pendengar.</p>
+            </div>
+          ) : (
+            comments.map((item) => {
+              const isStudio = item.is_broadcaster;
+              const isHighlighted = item.is_highlighted;
+              const isHidden = item.is_hidden;
+
+              return (
+                <div
+                  key={item.id}
+                  className={`group relative flex items-start gap-2.5 px-2 py-1.5 rounded-md transition-colors ${
+                    isHighlighted
+                      ? "bg-accent-soft/40 border-l-2 border-accent"
+                      : isStudio
+                      ? "bg-brand-soft/30 border-l-2 border-brand"
+                      : isHidden
+                      ? "opacity-35 line-through hover:opacity-60"
+                      : "hover:bg-muted/50"
+                  }`}
+                >
+                  {/* Avatar Mini 24px */}
+                  <div
+                    className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 select-none ${
+                      isStudio
+                        ? "bg-brand text-brand-foreground"
+                        : isHighlighted
+                        ? "bg-accent text-accent-foreground"
+                        : getAvatarColor(item.user_name)
+                    }`}
+                  >
+                    {isStudio ? <Radio className="h-3 w-3" /> : item.user_name.slice(0, 2).toUpperCase()}
+                  </div>
+
+                  {/* Konten Pesan Inline Mengalir Ala YouTube */}
+                  <div className="flex-1 min-w-0 leading-relaxed break-words">
+                    {/* Timestamp */}
+                    <span className="text-[10px] text-muted-foreground/70 font-mono mr-1.5 select-none">
+                      {formatTime(item.created_at)}
+                    </span>
+
+                    {/* Nama Pengirim */}
+                    <span
+                      className={`font-semibold mr-1.5 ${
+                        isStudio
+                          ? "text-brand font-bold"
+                          : isHighlighted
+                          ? "text-accent font-bold"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {item.user_name}
+                    </span>
+
+                    {/* Badge Studio */}
+                    {isStudio && (
+                      <span className="inline-block bg-brand-soft text-brand text-[9px] font-bold px-1.5 py-0.2 rounded mr-1.5 uppercase tracking-wider align-middle">
+                        Studio
+                      </span>
+                    )}
+
+                    {/* Badge On Air */}
+                    {isHighlighted && (
+                      <span className="inline-block bg-accent-soft text-accent text-[9px] font-bold px-1.5 py-0.2 rounded mr-1.5 uppercase tracking-wider align-middle animate-pulse">
+                        ⭐ On Air
+                      </span>
+                    )}
+
+                    {/* Teks Pesan */}
+                    <span className="text-foreground/90 whitespace-pre-wrap">
+                      {item.message}
+                    </span>
+                  </div>
+
+                  {/* Quick Action Buttons saat Hover (YouTube Live Style) */}
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0 pl-2">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleHighlight(item.id)}
+                      className={`h-6 w-6 rounded flex items-center justify-center transition-colors ${
+                        isHighlighted
+                          ? "text-accent bg-accent-soft"
+                          : "text-muted-foreground hover:text-accent hover:bg-muted"
+                      }`}
+                      title={isHighlighted ? "Lepas dari On Air" : "Sorot On Air di HP pendengar"}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(item.message, item.id)}
+                      className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      title="Salin pesan pendengar"
+                    >
+                      {copiedId === item.id ? (
+                        <Check className="h-3.5 w-3.5 text-success" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleHidden(item.id)}
+                      className={`h-6 w-6 rounded flex items-center justify-center transition-colors ${
+                        isHidden
+                          ? "text-success hover:bg-success-soft"
+                          : "text-muted-foreground hover:text-danger hover:bg-danger-soft"
+                      }`}
+                      title={isHidden ? "Pulihkan pesan" : "Sembunyikan pesan"}
+                    >
+                      {isHidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Floating Button "Ada Pesan Baru Masuk" (Ala YouTube) */}
+        {hasNewMessageBelow && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20">
+            <button
+              type="button"
+              onClick={() => scrollToBottom(true)}
+              className="bg-card text-foreground border border-border shadow-md text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-muted transition-colors animate-bounce"
             >
-              <Send className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{sending ? "Mengirim…" : "Kirim"}</span>
-            </Button>
-          </form>
-        </footer>
-      </Card>
+              <ArrowDown className="h-3.5 w-3.5 text-brand" />
+              <span>Pesan Baru</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── YOUTUBE LIVE COMPOSER INPUT (Clean Bottom Bar) ── */}
+      <div className="p-3 border-t border-border/80 bg-muted/20 shrink-0">
+        <form onSubmit={handleSendBroadcaster} className="flex items-center gap-2.5">
+          {/* Avatar Studio */}
+          <div className="h-7 w-7 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-[10px] font-bold shrink-0 select-none">
+            <Radio className="h-3.5 w-3.5" />
+          </div>
+
+          {/* Input Pill */}
+          <input
+            ref={composerInputRef}
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Kirim pesan sebagai Studio Gaul FM..."
+            maxLength={300}
+            disabled={sending}
+            className="flex-1 h-9 px-4 text-xs bg-background border border-border rounded-full focus:outline-none focus:ring-1 focus:ring-brand placeholder:text-muted-foreground/60"
+          />
+
+          <Button
+            type="submit"
+            disabled={!inputText.trim() || sending}
+            variant="primary"
+            size="sm"
+            className="h-9 px-4 rounded-full font-semibold gap-1.5 shrink-0"
+          >
+            <Send className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{sending ? "..." : "Kirim"}</span>
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
