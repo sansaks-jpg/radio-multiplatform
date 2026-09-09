@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Text, View, type ListRenderItem } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -11,6 +11,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { NewsCard } from "../../components/news/NewsCard";
+import { NewsCategoryChips } from "../../components/news/NewsCategoryChips";
 
 /**
  * News feed: featured hero + compact rows, lean WP payload, tuned FlatList.
@@ -22,6 +23,29 @@ export function NewsFeedScreen() {
   const items = useMemo(
     () => flattenNewsPages(news.data?.pages),
     [news.data?.pages],
+  );
+
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  /** Unique categories from articles loaded so far, in first-seen order. */
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    const list: string[] = [];
+    for (const item of items) {
+      if (item.category && !seen.has(item.category)) {
+        seen.add(item.category);
+        list.push(item.category);
+      }
+    }
+    return list;
+  }, [items]);
+
+  const filteredItems = useMemo(
+    () =>
+      selectedCategory
+        ? items.filter((item) => item.category === selectedCategory)
+        : items,
+    [items, selectedCategory],
   );
 
   const openDetail = useCallback(
@@ -69,9 +93,18 @@ export function NewsFeedScreen() {
           </Text>
         </View>
         <OfflineBanner message="Mode offline — menampilkan berita tersimpan" />
+        {categories.length > 0 ? (
+          <View className="mt-4">
+            <NewsCategoryChips
+              categories={categories}
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
+          </View>
+        ) : null}
       </View>
     ),
-    [],
+    [categories, selectedCategory],
   );
 
   return (
@@ -82,7 +115,7 @@ export function NewsFeedScreen() {
           paddingHorizontal: 16,
           paddingBottom: 24,
         }}
-        data={items}
+        data={filteredItems}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         ListHeaderComponent={listHeader}
@@ -105,6 +138,14 @@ export function NewsFeedScreen() {
             </View>
           ) : news.isError ? (
             <ErrorState onRetry={() => void news.refetch()} />
+          ) : selectedCategory && items.length > 0 ? (
+            <EmptyState
+              icon="funnel-outline"
+              title="Tidak ada berita"
+              message={`Belum ada berita untuk kategori "${selectedCategory}".`}
+              actionTitle="Tampilkan semua berita"
+              onAction={() => setSelectedCategory(null)}
+            />
           ) : (
             <EmptyState
               icon="newspaper-outline"

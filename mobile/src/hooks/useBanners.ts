@@ -25,6 +25,7 @@ export function useBanners() {
   return useQuery({
     queryKey: ["banners"],
     queryFn: fetchBanners,
+    initialData: mockBanners,
     staleTime: 5 * 60_000,
   });
 }

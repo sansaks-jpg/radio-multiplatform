@@ -55,7 +55,7 @@ export function HomeNewsPreview({ items }: HomeNewsPreviewProps) {
   if (items.length === 0) return null;
 
   return (
-    <View className="mt-8">
+    <View className="mt-2 mb-6">
       <SectionHeader title="Berita terbaru" />
 
       <FlatList
@@ -63,7 +63,7 @@ export function HomeNewsPreview({ items }: HomeNewsPreviewProps) {
         data={items}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingRight: spacing.base, marginTop: 12 }}
+        contentContainerStyle={{ paddingRight: spacing.base, marginTop: 14 }}
         ItemSeparatorComponent={() => <View style={{ width: CARD_GAP }} />}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => {
@@ -75,10 +75,10 @@ export function HomeNewsPreview({ items }: HomeNewsPreviewProps) {
               onPress={() => openDetail(item.id)}
               accessibilityRole="button"
               accessibilityLabel={item.title}
-              className="overflow-hidden rounded-2xl bg-surface active:opacity-95"
-              style={{ width: cardWidth }}
+              className="overflow-hidden rounded-[24px] bg-surface border shadow-sm active:opacity-90"
+              style={{ width: cardWidth, borderColor: `${colors.line}40` }}
             >
-              <View className="relative h-32 w-full bg-surface-3">
+              <View className="relative h-[150px] w-full bg-surface-3">
                 {item.image_url ? (
                   <Image
                     source={{ uri: item.image_url }}
@@ -90,27 +90,29 @@ export function HomeNewsPreview({ items }: HomeNewsPreviewProps) {
                   <View className="h-full w-full items-center justify-center">
                     <Ionicons
                       name="newspaper-outline"
-                      size={28}
+                      size={32}
                       color={colors.textDim}
                     />
                   </View>
                 )}
-                <View className="absolute inset-x-0 bottom-0 h-1/2 bg-black/60" />
+                
+                {/* Gradient to make text readable */}
+                <View className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
                 {item.category ? (
-                  <View className="absolute left-2.5 top-2.5">
+                  <View className="absolute left-3 top-3">
                     <Text
-                      className="rounded-sm bg-brand/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-onbrand"
-                      style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                      className="rounded-full bg-brand px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white"
+                      style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
                     >
                       {item.category}
                     </Text>
                   </View>
                 ) : null}
 
-                <View className="absolute inset-x-0 bottom-0 p-3">
+                <View className="absolute inset-x-0 bottom-0 px-4 pb-3">
                   <Text
-                    className="text-[13px] font-extrabold leading-4 text-white"
+                    className="text-[14px] font-extrabold leading-5 text-white"
                     numberOfLines={2}
                     style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
                   >
@@ -119,11 +121,11 @@ export function HomeNewsPreview({ items }: HomeNewsPreviewProps) {
                 </View>
               </View>
 
-              <View className="flex-row items-center gap-1 px-3 py-2">
-                <Ionicons name="time-outline" size={10} color={colors.textDim} />
+              <View className="flex-row items-center gap-1.5 px-4 py-3">
+                <Ionicons name="time-outline" size={12} color={colors.textDim} />
                 <Text
-                  className="text-[10px] text-text-dim"
-                  style={{ fontFamily: "PlusJakartaSans_400Regular" }}
+                  className="text-[11px] font-medium text-text-dim"
+                  style={{ fontFamily: "PlusJakartaSans_500Medium" }}
                 >
                   {formatDistanceToNow(item.published_at)}
                 </Text>

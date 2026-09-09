@@ -4,10 +4,16 @@ import { registerRootComponent } from "expo";
 import App from "./App";
 
 // Register the react-native-track-player background service on native
-// builds only. Expo Go does not ship the RNTP native module — guard the
-// require so its Capability enum (which dereferences NativeModules) is
-// never evaluated there, otherwise Metro throws at runtime.
-if (Platform.OS !== "web") {
+// builds only (requires custom native development build).
+// In Expo Go, NativeModules.TrackPlayerModule is null — guard so Metro does
+// not evaluate Capability enum access or throw CAPABILITY_PLAY error.
+import Constants from "expo-constants";
+
+const isExpoGo = Constants.appOwnership === "expo";
+const hasRntp =
+  Platform.OS !== "web" && !isExpoGo && Boolean(NativeModules.TrackPlayerModule?.setupPlayer);
+
+if (hasRntp) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const TrackPlayerModule = require("react-native-track-player");

@@ -1,6 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import { Image } from "expo-image";
+import logoSource from "../../../assets/logo.webp";
 
 /**
  * Official Radio Gaul logo, used as-is (mobile/assets/logo.webp).
@@ -11,9 +12,6 @@ import { Image } from "expo-image";
  */
 const CANVAS_AR = 1600 / 899;
 const VISIBLE_Y = 579 / 899;
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const logoSource = require("../../../assets/logo.webp");
 
 interface BrandLogoProps {
   /** sm: header bars · md: compact headers · lg: splash / auth / about. */

@@ -72,6 +72,61 @@ export function isOnAirNow(
   return startsToday || endedToday;
 }
 
+export type PartOfDay = "pagi" | "siang" | "sore" | "malam";
+
+/** Bagian hari dari jam WIB (0-23) — dipakai untuk greeting & pengelompokan jadwal. */
+export function partOfDay(hour: number): PartOfDay {
+  if (hour >= 4 && hour < 11) return "pagi";
+  if (hour >= 11 && hour < 15) return "siang";
+  if (hour >= 15 && hour < 19) return "sore";
+  return "malam";
+}
+
+export const PART_OF_DAY_LABEL: Record<PartOfDay, string> = {
+  pagi: "Pagi",
+  siang: "Siang",
+  sore: "Sore",
+  malam: "Malam",
+};
+
+/**
+ * Progress siaran program yang sedang mengudara.
+ * Return null jika program tidak sedang on air sekarang.
+ */
+export function getProgramProgress(
+  program: Pick<Program, "day_of_week" | "start_time" | "end_time">,
+  now: Date = new Date(),
+): { elapsedPct: number; remainingMinutes: number } | null {
+  if (!isOnAirNow(program, now)) return null;
+  const start = toMinutes(program.start_time);
+  const end = toMinutes(program.end_time);
+  const { totalMinutes } = getWibParts(now);
+
+  const total = end > start ? end - start : 24 * 60 - start + end;
+  const elapsed =
+    end > start
+      ? totalMinutes - start
+      : totalMinutes >= start
+        ? totalMinutes - start
+        : 24 * 60 - start + totalMinutes;
+
+  const clamped = Math.max(0, Math.min(total, elapsed));
+  return {
+    elapsedPct: total > 0 ? clamped / total : 0,
+    remainingMinutes: Math.max(0, total - clamped),
+  };
+}
+
+/** "125" → "2 jam 5 menit"; "40" → "40 menit". */
+export function formatDurationMinutes(totalMinutes: number): string {
+  const mins = Math.max(0, Math.round(totalMinutes));
+  if (mins < 1) return "< 1 menit";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m} menit`;
+  return m > 0 ? `${h} jam ${m} menit` : `${h} jam`;
+}
+
 export function getMinutesToProgram(
   program: Pick<Program, "day_of_week" | "start_time" | "end_time">,
   now: Date = new Date(),

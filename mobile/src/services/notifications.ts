@@ -227,8 +227,7 @@ export async function registerPushToken(): Promise<string | null> {
 
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ??
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (Constants as any).easConfig?.projectId;
+      (Constants as unknown as { easConfig?: { projectId?: string } }).easConfig?.projectId;
     const token = projectId
       ? await Notifications.getExpoPushTokenAsync({ projectId })
       : await Notifications.getExpoPushTokenAsync();

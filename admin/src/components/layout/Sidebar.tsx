@@ -9,6 +9,7 @@ import {
   Newspaper,
   Radio,
   Users,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -17,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 const navigation = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
   { name: "Now Playing", href: "/now-playing", icon: Radio },
+  { name: "Streaming", href: "/streams", icon: Video },
   { name: "Schedule", href: "/schedule", icon: CalendarDays },
   { name: "News Sync", href: "/news", icon: Newspaper },
   { name: "Banners", href: "/banners", icon: ImageIcon },

@@ -22,6 +22,19 @@ serve(async (req) => {
       );
     }
 
+    const authHeader = req.headers.get("Authorization");
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const isServiceRole = authHeader === `Bearer ${supabaseServiceKey}`;
+    const isCronAuthorized = Boolean(cronSecret && authHeader === `Bearer ${cronSecret}`);
+
+    // Reject unauthorized callers
+    if (!isServiceRole && !isCronAuthorized && Deno.env.get("ENVIRONMENT") === "production") {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized invocation." }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 1. Fetch posts from WordPress REST API

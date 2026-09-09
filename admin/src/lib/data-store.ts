@@ -14,6 +14,7 @@ import type {
   NowPlaying,
   Profile,
   Program,
+  StreamSettings,
 } from "./types";
 import { uid } from "./utils";
 
@@ -65,6 +66,7 @@ function hydrate() {
         profiles: parsed.profiles ?? createSeedSnapshot().profiles,
         banners: parsed.banners ?? createSeedSnapshot().banners,
         nowPlaying: parsed.nowPlaying ?? createSeedSnapshot().nowPlaying,
+        streamSettings: parsed.streamSettings ?? createSeedSnapshot().streamSettings,
       };
     }
   } catch {
@@ -226,3 +228,33 @@ export function setSheetsStatus(status: AdminSnapshot["sheetsSyncStatus"]) {
   snapshot = { ...snapshot, sheetsSyncStatus: status };
   emit();
 }
+
+/* ---------- Stream Settings ---------- */
+
+export function updateStreamSettings(
+  patch: Partial<StreamSettings>,
+): StreamSettings {
+  const current = snapshot.streamSettings ?? createSeedSnapshot().streamSettings;
+  const updated: StreamSettings = {
+    ...current,
+    ...patch,
+    updated_at: new Date().toISOString(),
+  };
+  snapshot = {
+    ...snapshot,
+    streamSettings: updated,
+  };
+  emit();
+  return updated;
+}
+
+export function resetStreamSettings(): StreamSettings {
+  const defaults = createSeedSnapshot().streamSettings;
+  snapshot = {
+    ...snapshot,
+    streamSettings: { ...defaults, updated_at: new Date().toISOString() },
+  };
+  emit();
+  return snapshot.streamSettings;
+}
+

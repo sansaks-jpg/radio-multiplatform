@@ -33,6 +33,8 @@ interface ScreenProps {
    */
   keyboardAvoiding?: boolean;
   dockInset?: "tabs" | "dock" | "none";
+  /** If false, removes 16px horizontal padding for full-bleed edge-to-edge elements (banners, maps, etc.) */
+  padded?: boolean;
 }
 
 const DOCK_PAD: Record<NonNullable<ScreenProps["dockInset"]>, number> = {
@@ -41,7 +43,7 @@ const DOCK_PAD: Record<NonNullable<ScreenProps["dockInset"]>, number> = {
   none: spacing.xl,
 };
 
-/** Base screen: safe area + theme bg + 16px horizontal padding. */
+/** Base screen: safe area + theme bg + optional 16px horizontal padding. */
 export function Screen({
   children,
   scroll = false,
@@ -52,6 +54,7 @@ export function Screen({
   scrollRef,
   keyboardAvoiding = false,
   dockInset = "tabs",
+  padded = true,
 }: ScreenProps) {
   const colors = useThemeStore((s) => s.colors);
   const insets = useSafeAreaInsets();
@@ -73,7 +76,7 @@ export function Screen({
 
   const scrollContentStyle: StyleProp<ViewStyle> = [
     {
-      paddingHorizontal: spacing.base,
+      paddingHorizontal: padded ? spacing.base : 0,
       paddingBottom: bottomPad + keyboardPad,
     },
     contentStyle,

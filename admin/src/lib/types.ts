@@ -64,12 +64,34 @@ export interface Banner {
   is_active: boolean;
 }
 
+export interface StreamSettings {
+  // Audio streaming (Icecast)
+  audioPrimaryUrl: string;
+  audioFallbackUrl: string;
+  audioMountPoint: string;
+  audioBitrate: string;
+  audioFormat: string;
+  audioAutoReconnect: boolean;
+
+  // Visual streaming (MediaMTX / vMix / WebRTC / HLS)
+  visualRtmpServer: string;
+  visualStreamKey: string;
+  visualWhepUrl: string;
+  visualHlsUrl: string;
+  visualEnabled: boolean;
+
+  // Timestamps
+  updated_at: string;
+}
+
 export interface AdminSnapshot {
   nowPlaying: NowPlaying;
   programs: Program[];
   news: NewsItem[];
   profiles: Profile[];
   banners: Banner[];
+  streamSettings: StreamSettings;
   sheetsSyncStatus: "ok" | "error" | "idle";
   lastNewsSyncAt: string | null;
 }
+

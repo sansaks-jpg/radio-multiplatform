@@ -20,6 +20,14 @@ import type {
 let player: AudioPlayer | null = null;
 let events: EngineEvents = {};
 let setupDone = false;
+let statusSubscription: ReturnType<AudioPlayer["addListener"]> | null = null;
+
+function cleanupSubscription(): void {
+  if (statusSubscription) {
+    statusSubscription.remove();
+    statusSubscription = null;
+  }
+}
 
 function onStatusUpdate(status: AudioStatus): void {
   if (status.isBuffering) {
@@ -52,8 +60,18 @@ async function setup(ev: EngineEvents = {}): Promise<void> {
 async function loadAndPlay(track: LiveTrackMeta): Promise<void> {
   if (!player) {
     player = createAudioPlayer({ uri: track.url });
-    player.addListener("playbackStatusUpdate", onStatusUpdate);
+    cleanupSubscription();
+    statusSubscription = player.addListener(
+      "playbackStatusUpdate",
+      onStatusUpdate,
+    );
   } else {
+    if (!statusSubscription) {
+      statusSubscription = player.addListener(
+        "playbackStatusUpdate",
+        onStatusUpdate,
+      );
+    }
     player.replace({ uri: track.url });
   }
   try {
@@ -78,8 +96,15 @@ async function pause(): Promise<void> {
 
 async function stop(): Promise<void> {
   if (player) {
-    player.pause();
-    player.replace(null);
+    cleanupSubscription();
+    try {
+      player.pause();
+      player.replace(null);
+      player.remove();
+    } catch (err) {
+      console.warn("[GaulFM] Error during expo-audio stop/cleanup:", err);
+    }
+    player = null;
   }
 }
 

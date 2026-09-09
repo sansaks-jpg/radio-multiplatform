@@ -18,13 +18,9 @@ import { useOnboardingStore } from "../stores/onboardingStore";
 import { BrandLogo } from "../components/ui/BrandLogo";
 import { Button } from "../components/ui/Button";
 
-// Local bundled onboarding artwork assets (offline-first & instant first-launch paint)
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const slide1 = require("../../assets/onboarding/slide-1.jpg");
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const slide2 = require("../../assets/onboarding/slide-2.jpg");
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const slide3 = require("../../assets/onboarding/slide-3.jpg");
+import slide1 from "../../assets/onboarding/slide-1.jpg";
+import slide2 from "../../assets/onboarding/slide-2.jpg";
+import slide3 from "../../assets/onboarding/slide-3.jpg";
 
 interface OnboardingSlide {
   key: string;

@@ -38,7 +38,7 @@ export function DaySelector({ selected, onSelect }: DaySelectorProps) {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{
         paddingHorizontal: 20,
-        gap: 8,
+        gap: 10,
         alignItems: "center",
       }}
     >
@@ -52,18 +52,18 @@ export function DaySelector({ selected, onSelect }: DaySelectorProps) {
             accessibilityRole="button"
             accessibilityLabel={`Jadwal ${DAY_SHORT_ID[day]} tanggal ${dates[i]}`}
             accessibilityState={{ selected: isSelected }}
-            className={`min-h-[72px] w-[56px] items-center justify-center rounded-2xl active:opacity-85 ${
+            className={`h-[82px] w-[60px] items-center justify-center rounded-[24px] active:opacity-85 border ${
               isSelected
-                ? "bg-brand"
+                ? "bg-brand border-brand shadow-sm shadow-brand/40"
                 : isToday
-                  ? "bg-orange/12"
-                  : "bg-surface"
+                  ? "bg-orange/10 border-orange/30"
+                  : "bg-surface border-line/30"
             }`}
           >
             <Text
               className={`text-[11px] font-bold uppercase tracking-wide ${
                 isSelected
-                  ? "text-onbrand/80"
+                  ? "text-onbrand/90"
                   : isToday
                     ? "text-orange"
                     : "text-text-dim"
@@ -73,7 +73,7 @@ export function DaySelector({ selected, onSelect }: DaySelectorProps) {
               {isToday ? "Ini" : DAY_SHORT_ID[day]}
             </Text>
             <Text
-              className={`mt-1 text-xl font-extrabold ${
+              className={`mt-1.5 text-[22px] font-extrabold ${
                 isSelected
                   ? "text-onbrand"
                   : isToday
@@ -86,12 +86,12 @@ export function DaySelector({ selected, onSelect }: DaySelectorProps) {
             </Text>
             {isToday ? (
               <View
-                className={`mt-1.5 h-1.5 w-1.5 rounded-full ${
+                className={`mt-2 h-1.5 w-1.5 rounded-full ${
                   isSelected ? "bg-onbrand" : "bg-orange"
                 }`}
               />
             ) : (
-              <View className="mt-1.5 h-1.5 w-1.5" />
+              <View className="mt-2 h-1.5 w-1.5" />
             )}
           </Pressable>
         );

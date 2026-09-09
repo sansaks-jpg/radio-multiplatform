@@ -55,7 +55,7 @@ export function MarqueeText({
       false
     );
     return () => cancelAnimation(translateX);
-  }, [overflow, reduceMotion, textW, containerW, speed]);
+  }, [overflow, reduceMotion, textW, containerW, speed, translateX]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],

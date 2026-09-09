@@ -1,19 +1,22 @@
 import type { Banner } from "../types";
 
+const banner1 = require("../../assets/banners/banner-1.png");
+const banner2 = require("../../assets/banners/banner-2.png");
+const banner3 = require("../../assets/banners/banner-3.png");
+const banner4 = require("../../assets/banners/banner-4.png");
+
 /**
- * Dashboard banners — images from radiogaulfmsmg.com.
- * CTAs only go to unique destinations (YouTube, IG, web article).
- * Never link_to tab routes (schedule / news / profile) — those already
- * live in the bottom tab bar.
+ * Dashboard banners — assets from Gaul FM Semarang.
+ * Supports auto-scrolling full-bleed carousel at the top of the Home screen.
  */
 export const mockBanners: Banner[] = [
   {
     id: "b-1",
     type: "program",
-    title: "87.8 Gaul FM - Visual Radio",
-    subtitle: "Streaming live di YouTube — The Best Visual Radio Station",
-    image_url:
-      "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg",
+    title: "Gaul FM 87.8 Semarang",
+    subtitle: "The Best Visual Radio Station — Hits Music & Lifestyle",
+    image_url: "",
+    image_source: banner1,
     cta_label: "Tonton live",
     link_to: null,
     link_url: "https://www.youtube.com/@radiogaulfm_smg",
@@ -22,40 +25,40 @@ export const mockBanners: Banner[] = [
   },
   {
     id: "b-2",
-    type: "event",
-    title: "Pollux Hotel Group Appreciation Lunch 2026",
-    subtitle: "Kolaborasi MICE di Semarang — baca di Info Gaul",
-    image_url:
-      "https://radiogaulfmsmg.com/wp-content/uploads/2026/07/kembali-ke-semarang-1.jpg.jpeg",
-    cta_label: "Baca di web",
+    type: "program",
+    title: "Gaul FM Visual Radio",
+    subtitle: "Streaming live setiap hari — Lagu hits favoritmu",
+    image_url: "",
+    image_source: banner2,
+    cta_label: "Buka YouTube",
     link_to: null,
-    link_url: "https://radiogaulfmsmg.com/",
+    link_url: "https://www.youtube.com/@radiogaulfm_smg",
     sort_order: 1,
     is_active: true,
   },
   {
     id: "b-3",
-    type: "program",
-    title: "Studio Gaul FM Semarang",
-    subtitle: "Radio anak muda 15-29 — CHR hits tiap hari",
-    image_url:
-      "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-26-at-12.28.41.jpeg",
-    cta_label: null,
+    type: "event",
+    title: "Gaulista Community",
+    subtitle: "Radio anak muda hits 15-29 tahun di Semarang",
+    image_url: "",
+    image_source: banner3,
+    cta_label: "Instagram",
     link_to: null,
-    link_url: null,
+    link_url: "https://www.instagram.com/radiogaulfm_smg/",
     sort_order: 2,
     is_active: true,
   },
   {
     id: "b-4",
     type: "ad",
-    title: "Follow @radiogaulfm_smg",
-    subtitle: "Instagram · TikTok · YouTube — update buat Gaulista",
-    image_url:
-      "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg",
-    cta_label: "Instagram",
+    title: "radiogaulfmsmg.com",
+    subtitle: "Kunjungi portal web resmi Radio Gaul FM Semarang",
+    image_url: "",
+    image_source: banner4,
+    cta_label: "Kunjungi Web",
     link_to: null,
-    link_url: "https://www.instagram.com/radiogaulfm_smg/",
+    link_url: "https://radiogaulfmsmg.com/",
     sort_order: 3,
     is_active: true,
   },

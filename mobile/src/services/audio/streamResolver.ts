@@ -7,9 +7,9 @@ const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, unknown>;
  * the .m3u playlist resolves to the Icecast-style progressive stream.
  */
 export const PLAYLIST_URL: string =
-  (extra.streamPlaylistUrl as string) ?? "http://27.50.19.173:9000/gaulfm.m3u";
+  (extra.streamPlaylistUrl as string) ?? "http://40.81.231.250:8000/live";
 export const FALLBACK_STREAM_URL: string =
-  (extra.streamFallbackUrl as string) ?? "http://27.50.19.173:9000/gaulfm";
+  (extra.streamFallbackUrl as string) ?? "http://40.81.231.250:8000/live";
 
 /**
  * Resolve the playlist once (fetch → first non-comment line) with a hard

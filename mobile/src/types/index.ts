@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from "@react-navigation/native";
+
 /**
  * Shared domain types — mirror the Supabase schema in PRD §5
  * (tables: now_playing, programs, news, profiles) plus navigation params.
@@ -67,6 +69,8 @@ export interface Banner {
   title: string;
   subtitle: string | null;
   image_url: string;
+  /** Optional bundled local image require() asset */
+  image_source?: number | string | Record<string, unknown>;
   cta_label: string | null;
   /** Tab to navigate to when tapped. */
   link_to: "schedule" | "news" | "profile" | null;
@@ -78,8 +82,6 @@ export interface Banner {
 }
 
 /* ---------------- Navigation param lists ---------------- */
-
-import type { NavigatorScreenParams } from "@react-navigation/native";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -125,6 +127,7 @@ export type NewsStackParamList = {
 /** Profile tab stack — ProfileHome hub, AppSettings (gear), About. */
 export type ProfileStackParamList = {
   ProfileHome: undefined;
+  EditProfile: undefined;
   AppSettings: undefined;
   About: undefined;
 };

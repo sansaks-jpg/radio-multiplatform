@@ -1,4 +1,6 @@
 import "./global.css";
+import "react-native-gesture-handler";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import React, { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient } from "@tanstack/react-query";
@@ -76,19 +78,21 @@ export default function App() {
   if (!ready) return null;
 
   return (
-    <SafeAreaProvider>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister: asyncStoragePersister,
-          maxAge: DAY_MS,
-          dehydrateOptions: {
-            shouldDehydrateQuery: (query) => query.queryKey[0] === "news",
-          },
-        }}
-      >
-        <ThemeRoot />
-      </PersistQueryClientProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister: asyncStoragePersister,
+            maxAge: DAY_MS,
+            dehydrateOptions: {
+              shouldDehydrateQuery: (query) => query.queryKey[0] === "news",
+            },
+          }}
+        >
+          <ThemeRoot />
+        </PersistQueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

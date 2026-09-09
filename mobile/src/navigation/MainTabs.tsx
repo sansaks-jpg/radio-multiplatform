@@ -25,6 +25,7 @@ import { NewsFeedScreen } from "../screens/news/NewsFeedScreen";
 import { NewsDetailScreen } from "../screens/news/NewsDetailScreen";
 import { ProfileScreen } from "../screens/profile/ProfileScreen";
 import { AppSettingsScreen } from "../screens/profile/AppSettingsScreen";
+import { EditProfileScreen } from "../screens/profile/EditProfileScreen";
 import { AboutScreen } from "../screens/profile/AboutScreen";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -63,6 +64,7 @@ function ProfileNavigator() {
   return (
     <ProfileStackNav.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStackNav.Screen name="ProfileHome" component={ProfileScreen} />
+      <ProfileStackNav.Screen name="EditProfile" component={EditProfileScreen} />
       <ProfileStackNav.Screen name="AppSettings" component={AppSettingsScreen} />
       <ProfileStackNav.Screen name="About" component={AboutScreen} />
     </ProfileStackNav.Navigator>

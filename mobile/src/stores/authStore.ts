@@ -11,6 +11,7 @@ export interface RegisterPayload {
   fullName: string;
   email: string;
   whatsapp: string;
+  city?: string;
   password: string;
 }
 
@@ -62,11 +63,34 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
     .select("*")
     .eq("id", userId)
     .maybeSingle();
-  if (error) {
-    console.warn("[GaulFM] fetchProfile:", error.message);
+  if (error || !data) {
+    if (error) console.warn("[GaulFM] fetchProfile:", error.message);
     return null;
   }
-  return (data as Profile | null) ?? null;
+  const row = data as Record<string, unknown>;
+  return {
+    id: String(row.id ?? userId),
+    full_name: (row.full_name as string) ?? null,
+    email: (row.email as string) ?? null,
+    whatsapp: ((row.whatsapp_number ?? row.whatsapp) as string) ?? null,
+    device_os: (row.device_os as string) ?? null,
+    device_model: (row.device_model as string) ?? null,
+    city: ((row.location_city ?? row.city) as string) ?? null,
+    latitude:
+      typeof row.location_lat === "number"
+        ? row.location_lat
+        : typeof row.latitude === "number"
+          ? row.latitude
+          : null,
+    longitude:
+      typeof row.location_lng === "number"
+        ? row.location_lng
+        : typeof row.longitude === "number"
+          ? row.longitude
+          : null,
+    push_token: (row.push_token as string) ?? null,
+    last_login: (row.last_login as string) ?? null,
+  };
 }
 
 async function updateLastLoginAndTracking(
@@ -85,9 +109,15 @@ async function updateLastLoginAndTracking(
 
   if (isRegistration) {
     const location = await captureLocationOnce();
-    if (location.latitude != null) updateData.latitude = location.latitude;
-    if (location.longitude != null) updateData.longitude = location.longitude;
-    if (location.city) updateData.city = location.city;
+    if (location.latitude != null) {
+      updateData.location_lat = location.latitude;
+    }
+    if (location.longitude != null) {
+      updateData.location_lng = location.longitude;
+    }
+    if (location.city) {
+      updateData.location_city = location.city;
+    }
   }
 
   const pushToken = await registerPushToken();
@@ -114,7 +144,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
           const { session, profile } = JSON.parse(stored);
           set({ session, profile });
         }
-      } catch (err) {
+      } catch {
         // ignore JSON parse errors
       }
       set({ initializing: false });
@@ -170,9 +200,9 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     return null;
   },
 
-  signUp: async ({ fullName, email, whatsapp, password }) => {
+  signUp: async ({ fullName, email, whatsapp, city, password }) => {
     if (!isSupabaseConfigured) {
-      const profile = { ...demoProfile(email), full_name: fullName, whatsapp };
+      const profile = { ...demoProfile(email), full_name: fullName, whatsapp, city: city || "Semarang" };
       const session = demoSession(email);
       set({ session, profile });
       AsyncStorage.setItem("demo_auth", JSON.stringify({ session, profile })).catch(() => {});
@@ -183,7 +213,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, whatsapp } },
+      options: { data: { full_name: fullName, whatsapp, city } },
     });
     if (error) {
       return error.message.toLowerCase().includes("already")
@@ -199,7 +229,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         id: data.user.id,
         full_name: fullName,
         email,
-        whatsapp,
+        whatsapp_number: whatsapp,
+        location_city: city,
         last_login: new Date().toISOString(),
       });
       if (upsertError) console.warn("[GaulFM] profile upsert:", upsertError.message);

@@ -27,51 +27,6 @@ function initials(name: string | null | undefined): string {
     .join("");
 }
 
-type IconTone = "brand" | "orange" | "live";
-
-function InfoRow({
-  icon,
-  tone = "brand",
-  label,
-  value,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  tone?: IconTone;
-  label: string;
-  value: string | null | undefined;
-}) {
-  const colors = useThemeStore((s) => s.colors);
-  const toneMap: Record<IconTone, { bg: string; fg: string }> = {
-    brand: { bg: "bg-brand/10", fg: colors.brand },
-    orange: { bg: "bg-orange/10", fg: colors.orange },
-    live: { bg: "bg-live/10", fg: colors.live },
-  };
-  const t = toneMap[tone];
-  return (
-    <View className="flex-row items-center gap-3 py-3.5">
-      <View
-        className={`h-10 w-10 items-center justify-center rounded-lg ${t.bg}`}
-      >
-        <Ionicons name={icon} size={18} color={t.fg} />
-      </View>
-      <View className="flex-1">
-        <Text
-          className="text-[11px] font-semibold uppercase tracking-wide text-text-dim"
-          style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-        >
-          {label}
-        </Text>
-        <Text
-          className="mt-0.5 text-sm font-medium text-text"
-          style={{ fontFamily: "PlusJakartaSans_500Medium" }}
-        >
-          {value && value.length > 0 ? value : "Belum tersedia"}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 function SectionHeader({ title }: { title: string }) {
   return (
     <View className="mb-2 mt-6 flex-row items-center gap-2 px-1">
@@ -83,6 +38,44 @@ function SectionHeader({ title }: { title: string }) {
         {title}
       </Text>
     </View>
+  );
+}
+
+// Komponen Menu Item untuk list navigasi
+function MenuItem({
+  icon,
+  label,
+  iconColor,
+  iconBg,
+  textColor,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  iconColor: string;
+  iconBg: string;
+  textColor?: string;
+  onPress: () => void;
+}) {
+  const colors = useThemeStore((s) => s.colors);
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      className="flex-row items-center gap-4 px-4 py-4 active:opacity-70"
+    >
+      <View className={`h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
+        <Ionicons name={icon} size={22} color={iconColor} />
+      </View>
+      <Text
+        className="flex-1 text-[15px] font-semibold"
+        style={{ fontFamily: "PlusJakartaSans_600SemiBold", color: textColor || colors.text }}
+      >
+        {label}
+      </Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
+    </Pressable>
   );
 }
 
@@ -102,23 +95,14 @@ export function ProfileScreen() {
 
   return (
     <Screen scroll dockInset="dock">
-      {/* Header — larger title, settings gear more prominent */}
-      <View className="mt-1 flex-row items-center justify-between">
+      {/* Header */}
+      <View className="mt-1 mb-2 flex-row items-center justify-between">
         <Text
           className="text-[28px] font-extrabold tracking-tight text-text"
           style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
         >
           Profil
         </Text>
-        <Pressable
-          onPress={() => navigation.navigate("AppSettings")}
-          accessibilityRole="button"
-          accessibilityLabel="Pengaturan aplikasi"
-          hitSlop={8}
-          className="h-11 w-11 items-center justify-center rounded-full bg-surface-2 active:opacity-70"
-        >
-          <Ionicons name="settings-outline" size={22} color={colors.text} />
-        </Pressable>
       </View>
 
       {initializing ? (
@@ -133,184 +117,177 @@ export function ProfileScreen() {
         </View>
       ) : (
         <>
-          {/* Identity card — more prominent, better avatar */}
-          <View className="mt-6 items-center rounded-2xl bg-surface p-6">
-            <View className="h-24 w-24 items-center justify-center rounded-full bg-brand">
-              <Text
-                className="text-3xl font-extrabold text-onbrand"
-                style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-              >
-            {initials(typedProfile?.full_name)}
-          </Text>
-        </View>
-        <Text
-          className="mt-4 text-2xl font-extrabold text-text"
-          style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-        >
-          {typedProfile?.full_name ?? "Pendengar Gaul"}
-        </Text>
-        {typedProfile?.email ? (
-          <Text
-            className="mt-1.5 text-sm text-text-dim"
-            style={{ fontFamily: "PlusJakartaSans_400Regular" }}
-          >
-            {typedProfile.email}
-          </Text>
-        ) : null}
-        {typedProfile?.city ? (
-          <View className="mt-3 flex-row items-center gap-1.5 rounded-full bg-orange/10 px-3 py-1.5">
-            <Ionicons name="location-outline" size={12} color={colors.orange} />
-            <Text
-              className="text-xs font-semibold text-orange"
-              style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-            >
-              {typedProfile.city}
-            </Text>
-          </View>
-        ) : null}
-      </View>
-
-      <SectionHeader title="Akun" />
-      <Card>
-        <InfoRow
-          icon="person-outline"
-          label="Nama"
-          value={typedProfile?.full_name}
-        />
-        <View className="h-px bg-line/40" />
-        <InfoRow icon="mail-outline" label="Email" value={typedProfile?.email} />
-        <View className="h-px bg-line/40" />
-        <InfoRow
-          icon="logo-whatsapp"
-          tone="orange"
-          label="WhatsApp"
-          value={typedProfile?.whatsapp}
-        />
-      </Card>
-
-      <SectionHeader title="Lainnya" />
-      <Card className="p-0">
-        <Pressable
-          onPress={() => navigation.navigate("About")}
-          accessibilityRole="button"
-          accessibilityLabel="Tentang Gaul FM"
-          className="flex-row items-center gap-3 px-4 py-4 active:opacity-70"
-        >
-          <View className="h-11 w-11 items-center justify-center rounded-lg bg-brand/10">
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color={colors.brand}
-            />
-          </View>
-          <Text
-            className="flex-1 text-base font-semibold text-text"
-            style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-          >
-            Tentang Gaul FM
-          </Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
-        </Pressable>
-      </Card>
-
-      <SectionHeader title="Sesi" />
-      <Card className="p-0">
-        <Pressable
-          onPress={() => setLogoutOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Keluar dari akun"
-          className="flex-row items-center gap-3 px-4 py-4 active:opacity-70"
-        >
-          <View className="h-11 w-11 items-center justify-center rounded-lg bg-live/10">
-            <Ionicons name="log-out-outline" size={20} color={colors.live} />
-          </View>
-          <Text
-            className="flex-1 text-base font-semibold text-live"
-            style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-          >
-            Keluar
-          </Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
-        </Pressable>
-      </Card>
-
-      {/* Media sosial */}
-      <SocialLinks />
-
-      <View className="h-6" />
-
-      {/* Custom logout confirmation — dark themed, no native Alert chrome */}
-      <Modal
-        visible={logoutOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setLogoutOpen(false)}
-        statusBarTranslucent
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Tutup dialog"
-          onPress={() => setLogoutOpen(false)}
-          className="flex-1 items-center justify-center bg-black/70 px-6"
-        >
-          <Pressable
-            onPress={(e) => e.stopPropagation()}
-            className="w-full max-w-sm overflow-hidden rounded-2xl bg-surface"
-          >
-            <View className="items-center px-6 pb-4 pt-7">
-              <View className="h-14 w-14 items-center justify-center rounded-full bg-live/12">
-                <Ionicons
-                  name="log-out-outline"
-                  size={26}
-                  color={colors.live}
-                />
-              </View>
-              <Text
-                className="mt-4 text-center text-lg font-extrabold text-text"
-                style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-              >
-                Keluar dari akun?
-              </Text>
-              <Text
-                className="mt-1.5 text-center text-sm leading-5 text-text-dim"
-                style={{ fontFamily: "PlusJakartaSans_400Regular" }}
-              >
-                Kamu perlu login ulang untuk mengakses profil dan pengingat
-                program.
-              </Text>
-            </View>
-            <View className="flex-row gap-2.5 px-5 pb-5">
-              <Pressable
-                onPress={() => setLogoutOpen(false)}
-                accessibilityRole="button"
-                accessibilityLabel="Batal"
-                className="min-h-12 flex-1 items-center justify-center rounded-md border border-line/60 bg-surface-2 active:opacity-80"
-              >
+          {/* Identity Hero Card */}
+          <View className="mt-4 items-center rounded-[28px] bg-surface p-8 shadow-sm">
+            <View className="relative">
+              <View className="h-[100px] w-[100px] items-center justify-center rounded-full bg-brand/20 border-4 border-surface shadow-sm">
                 <Text
-                  className="text-sm font-bold text-text"
-                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                >
-                  Batal
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => void handleSignOut()}
-                accessibilityRole="button"
-                accessibilityLabel="Keluar"
-                className="min-h-12 flex-1 items-center justify-center rounded-md bg-live active:opacity-90"
-              >
-                <Text
-                  className="text-sm font-extrabold text-white"
+                  className="text-4xl font-extrabold text-brand"
                   style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
                 >
-                  Keluar
+                  {initials(typedProfile?.full_name)}
                 </Text>
-              </Pressable>
+              </View>
             </View>
-          </Pressable>
-        </Pressable>
-        </Modal>
-      </>
+
+            <Text
+              className="mt-5 text-[22px] font-extrabold text-text text-center"
+              style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+            >
+              {typedProfile?.full_name ?? "Pendengar Gaul"}
+            </Text>
+
+            {typedProfile?.email && (
+              <Text
+                className="mt-1 text-[13px] text-text-dim text-center"
+                style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+              >
+                {typedProfile.email}
+              </Text>
+            )}
+
+            <View className="mt-5 flex-row flex-wrap justify-center gap-2">
+              {typedProfile?.city && (
+                <View className="flex-row items-center gap-1.5 rounded-full bg-orange/15 px-3 py-1.5">
+                  <Ionicons name="location" size={14} color={colors.orange} />
+                  <Text
+                    className="text-xs font-bold text-orange"
+                    style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                  >
+                    {typedProfile.city}
+                  </Text>
+                </View>
+              )}
+              {typedProfile?.whatsapp && (
+                <View className="flex-row items-center gap-1.5 rounded-full bg-green-500/15 px-3 py-1.5">
+                  <Ionicons name="logo-whatsapp" size={14} color="#10b981" />
+                  <Text
+                    className="text-xs font-bold"
+                    style={{ fontFamily: "PlusJakartaSans_700Bold", color: "#10b981" }}
+                  >
+                    {typedProfile.whatsapp}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          <SectionHeader title="Akun & Aplikasi" />
+          <Card className="p-0 overflow-hidden">
+            <MenuItem
+              icon="person-outline"
+              label="Edit Profil"
+              iconColor={colors.brand}
+              iconBg="bg-brand/15"
+              onPress={() => navigation.navigate("EditProfile")}
+            />
+            <View className="h-px bg-line/40 ml-[72px]" />
+            <MenuItem
+              icon="settings-outline"
+              label="Pengaturan Aplikasi"
+              iconColor={colors.brand}
+              iconBg="bg-brand/15"
+              onPress={() => navigation.navigate("AppSettings")}
+            />
+            <View className="h-px bg-line/40 ml-[72px]" />
+            <MenuItem
+              icon="information-circle-outline"
+              label="Tentang Gaul FM"
+              iconColor={colors.brand}
+              iconBg="bg-brand/15"
+              onPress={() => navigation.navigate("About")}
+            />
+          </Card>
+
+          <SectionHeader title="Sesi" />
+          <Card className="p-0 overflow-hidden">
+            <MenuItem
+              icon="log-out-outline"
+              label="Keluar"
+              iconColor={colors.live}
+              iconBg="bg-live/15"
+              textColor={colors.live}
+              onPress={() => setLogoutOpen(true)}
+            />
+          </Card>
+
+          {/* Media sosial */}
+          <SocialLinks />
+
+          <View className="h-6" />
+
+          {/* Custom logout confirmation — dark themed */}
+          <Modal
+            visible={logoutOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setLogoutOpen(false)}
+            statusBarTranslucent
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Tutup dialog"
+              onPress={() => setLogoutOpen(false)}
+              className="flex-1 items-center justify-center bg-black/70 px-6"
+            >
+              <Pressable
+                onPress={(e) => e.stopPropagation()}
+                className="w-full max-w-sm overflow-hidden rounded-[28px] bg-surface"
+              >
+                <View className="items-center px-6 pb-4 pt-8">
+                  <View className="h-16 w-16 items-center justify-center rounded-full bg-live/15 mb-2">
+                    <Ionicons
+                      name="log-out-outline"
+                      size={28}
+                      color={colors.live}
+                    />
+                  </View>
+                  <Text
+                    className="mt-3 text-center text-[20px] font-extrabold text-text"
+                    style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                  >
+                    Keluar dari akun?
+                  </Text>
+                  <Text
+                    className="mt-2 text-center text-[13px] leading-5 text-text-dim px-2"
+                    style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+                  >
+                    Kamu perlu login ulang untuk mengakses profil dan pengingat
+                    program.
+                  </Text>
+                </View>
+                <View className="flex-row gap-3 px-6 pb-6 pt-2">
+                  <Pressable
+                    onPress={() => setLogoutOpen(false)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Batal"
+                    className="min-h-[52px] flex-1 items-center justify-center rounded-xl bg-surface-2 active:opacity-80"
+                  >
+                    <Text
+                      className="text-[14px] font-bold text-text"
+                      style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                    >
+                      Batal
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => void handleSignOut()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Keluar"
+                    className="min-h-[52px] flex-1 items-center justify-center rounded-xl bg-live active:opacity-90 shadow-sm shadow-live/30"
+                  >
+                    <Text
+                      className="text-[14px] font-extrabold text-white"
+                      style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                    >
+                      Keluar
+                    </Text>
+                  </Pressable>
+                </View>
+              </Pressable>
+            </Pressable>
+          </Modal>
+        </>
       )}
     </Screen>
   );
@@ -355,24 +332,24 @@ function SocialLinks() {
   }, []);
 
   return (
-    <View className="mt-10 items-center">
+    <View className="mt-10 items-center pb-6">
       <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-brand/15">
         <Ionicons name="radio" size={24} color={colors.brand} />
       </View>
       <Text
-        className="text-sm font-extrabold tracking-tight text-text"
+        className="text-[14px] font-extrabold tracking-tight text-text"
         style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
       >
         Gaul FM Semarang
       </Text>
       <Text
-        className="mt-0.5 text-xs text-text-dim"
-        style={{ fontFamily: "PlusJakartaSans_400Regular" }}
+        className="mt-1 text-[12px] text-text-dim"
+        style={{ fontFamily: "PlusJakartaSans_500Medium" }}
       >
         Ikuti kami di media sosial
       </Text>
 
-      <View className="mt-4 flex-row items-center gap-4">
+      <View className="mt-5 flex-row items-center gap-4">
         {SOCIALS.map((item) => (
           <Pressable
             key={item.key}
@@ -380,19 +357,12 @@ function SocialLinks() {
             accessibilityRole="link"
             accessibilityLabel={`Buka ${item.label}`}
             hitSlop={8}
-            className="h-11 w-11 items-center justify-center rounded-full bg-surface-2 active:opacity-70"
+            className="h-12 w-12 items-center justify-center rounded-full bg-surface-2 active:opacity-70 shadow-sm"
           >
-            <Ionicons name={item.icon} size={20} color={colors.brand} />
+            <Ionicons name={item.icon} size={22} color={colors.brand} />
           </Pressable>
         ))}
       </View>
-
-      <Text
-        className="mt-3 text-[11px] text-text-dim"
-        style={{ fontFamily: "PlusJakartaSans_500Medium" }}
-      >
-        @radiogaulfm_smg
-      </Text>
     </View>
   );
 }

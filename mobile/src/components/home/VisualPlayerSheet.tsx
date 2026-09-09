@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -11,7 +11,8 @@ import {
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useThemeStore } from "../../stores/themeStore";
+import { usePlayerControls } from "../../hooks/usePlayerControls";
+import { usePlayerStore } from "../../stores/playerStore";
 import { openYouTube, type YouTubeVisual } from "../../services/youtube";
 
 interface VisualPlayerSheetProps {
@@ -32,9 +33,55 @@ export function VisualPlayerSheet({
   visual,
   onClose,
 }: VisualPlayerSheetProps) {
-  const colors = useThemeStore((s) => s.colors);
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
+  const { play, pause } = usePlayerControls();
+
+  // Flag penanda apakah audio radio aktif tepat sebelum modal dibuka
+  const wasPlayingBeforeRef = useRef(false);
+  const prevVisibleRef = useRef(visible);
+
+  // Simpan play dan pause ke ref stabil agar pergantian referensi callback
+  // tidak memicu re-eksekusi efek saat sheet sedang terbuka
+  const playRef = useRef(play);
+  playRef.current = play;
+  const pauseRef = useRef(pause);
+  pauseRef.current = pause;
+
+  useEffect(() => {
+    const wasVisible = prevVisibleRef.current;
+    prevVisibleRef.current = visible;
+
+    // Transisi: Modal DIBUKA (false -> true)
+    if (!wasVisible && visible) {
+      const currentStatus = usePlayerStore.getState().status;
+      const isRadioActive =
+        currentStatus === "playing" || currentStatus === "buffering";
+      wasPlayingBeforeRef.current = isRadioActive;
+
+      if (isRadioActive) {
+        void pauseRef.current();
+      }
+      setLoading(true);
+    }
+    // Transisi: Modal DITUTUP (true -> false)
+    else if (wasVisible && !visible) {
+      if (wasPlayingBeforeRef.current) {
+        wasPlayingBeforeRef.current = false;
+        void playRef.current();
+      }
+    }
+  }, [visible]);
+
+  // Cleanup saat unmount (jika layar tertutup saat modal masih aktif)
+  useEffect(() => {
+    return () => {
+      if (wasPlayingBeforeRef.current) {
+        wasPlayingBeforeRef.current = false;
+        void playRef.current();
+      }
+    };
+  }, []);
 
   if (!visual) return null;
 
@@ -145,29 +192,31 @@ export function VisualPlayerSheet({
               </Text>
             </View>
           ) : null}
-          <WebView
-            source={{
-              html,
-              baseUrl: "https://www.youtube.com",
-            }}
-            style={{ flex: 1, backgroundColor: "#000" }}
-            allowsFullscreenVideo
-            allowsInlineMediaPlayback={false}
-            mediaPlaybackRequiresUserAction={false}
-            javaScriptEnabled
-            domStorageEnabled
-            startInLoadingState={false}
-            onLoadEnd={() => setLoading(false)}
-            onLoadStart={() => setLoading(true)}
-            // Android: hardware layer for video
-            androidLayerType={
-              Platform.OS === "android" ? "hardware" : undefined
-            }
-            setSupportMultipleWindows={false}
-            originWhitelist={["*"]}
-            // Allow fullscreen video
-            allowsProtectedContent
-          />
+          {visible ? (
+            <WebView
+              source={{
+                html,
+                baseUrl: "https://www.youtube.com",
+              }}
+              style={{ flex: 1, backgroundColor: "#000" }}
+              allowsFullscreenVideo
+              allowsInlineMediaPlayback={false}
+              mediaPlaybackRequiresUserAction={false}
+              javaScriptEnabled
+              domStorageEnabled
+              startInLoadingState={false}
+              onLoadEnd={() => setLoading(false)}
+              onLoadStart={() => setLoading(true)}
+              // Android: hardware layer for video
+              androidLayerType={
+                Platform.OS === "android" ? "hardware" : undefined
+              }
+              setSupportMultipleWindows={false}
+              originWhitelist={["*"]}
+              // Allow fullscreen video
+              allowsProtectedContent
+            />
+          ) : null}
         </View>
 
         <Text
@@ -177,7 +226,7 @@ export function VisualPlayerSheet({
             paddingBottom: insets.bottom + 12,
           }}
         >
-          Visual dari YouTube · audio radio tetap lewat player Gaul FM
+          Siaran visual YouTube resmi · Audio radio dijeda otomatis selama menonton
         </Text>
       </View>
     </Modal>

@@ -37,10 +37,14 @@ interface LiveDetailSheetProps {
 
 const MAX_LEN = 200;
 
-function avatarUrl(seed: string, isDark: boolean) {
-  const bg = isDark ? "0a0f0b" : "e8eeea";
-  const shape = isDark ? "94f8ae" : "007a3e";
-  return `https://api.dicebear.com/9.x/thumbs/png?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}&shapeColor=${shape}`;
+function initials(name: string | null | undefined): string {
+  if (!name) return "GF";
+  return name
+    .split(/[\s_]+/) // split by space or underscore (for dummy names like "Gita_Semarang")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 }
 
 function CommentRow({
@@ -85,12 +89,13 @@ function CommentRow({
         item.is_highlighted ? "rounded-card bg-orange/8 p-2" : "pr-6"
       }`}
     >
-      <View className="h-9 w-9 overflow-hidden rounded-full bg-surface-2">
-        <Image
-          source={{ uri: avatarUrl(item.avatar_seed, isDark) }}
-          style={{ width: 36, height: 36 }}
-          contentFit="cover"
-        />
+      <View className="h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand/20 border border-surface">
+        <Text
+          className="text-[11px] font-extrabold text-brand"
+          style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+        >
+          {initials(item.user_name)}
+        </Text>
       </View>
       <View className="min-w-0 flex-1">
         <View className="flex-row flex-wrap items-center gap-1.5">
@@ -158,6 +163,8 @@ export function LiveDetailSheet({
   const [inputFocused, setInputFocused] = useState(false);
   const [programInfoOpen, setProgramInfoOpen] = useState(false);
   const [isVisualActive, setIsVisualActive] = useState(false);
+  // Melacak apakah radio sedang aktif sebelum visual dibuka
+  const wasPlayingBeforeVisual = React.useRef(false);
 
   const isPlaying = status === "playing";
   const isBuffering = status === "buffering";
@@ -175,22 +182,38 @@ export function LiveDetailSheet({
 
   const handleToggleVisual = useCallback(() => {
     if (!isVisualActive) {
+      // Catat apakah sebelum visual dibuka, audio radio sedang berputar
+      wasPlayingBeforeVisual.current =
+        status === "playing" || status === "buffering";
       void pause();
       setIsVisualActive(true);
     } else {
       setIsVisualActive(false);
-      void play();
+      // Pulihkan siaran audio jika sebelumnya aktif
+      if (wasPlayingBeforeVisual.current) {
+        void play();
+        wasPlayingBeforeVisual.current = false;
+      }
     }
-  }, [isVisualActive, pause, play]);
+  }, [isVisualActive, status, pause, play]);
 
   useEffect(() => {
     if (!visible) {
       setDraftMessage("");
       setInputFocused(false);
       setProgramInfoOpen(false);
-      setIsVisualActive(false);
+
+      // Jika sheet ditutup saat visual radio sedang aktif,
+      // nonaktifkan visual dan lanjutkan kembali siaran audio radio jika sebelumnya aktif
+      if (isVisualActive) {
+        setIsVisualActive(false);
+        if (wasPlayingBeforeVisual.current) {
+          void play();
+          wasPlayingBeforeVisual.current = false;
+        }
+      }
     }
-  }, [visible]);
+  }, [visible, isVisualActive, play]);
 
   // Auto-play sekali saat sheet dibuka — jangan re-trigger saat user pause.
   useEffect(() => {
@@ -392,33 +415,47 @@ export function LiveDetailSheet({
             </View>
 
             <Pressable
-              onPress={() => void toggle()}
+              onPress={() => {
+                if (isVisualActive) {
+                  handleToggleVisual();
+                  return;
+                }
+                void toggle();
+              }}
               disabled={isBuffering}
               accessibilityRole="button"
-              accessibilityLabel={isPlaying ? "Stop siaran" : "Putar siaran"}
-              className="h-12 w-12 items-center justify-center rounded-full bg-orange active:opacity-90"
-              style={glow.orange}
+              accessibilityLabel={
+                isVisualActive
+                  ? "Tutup visual radio, lanjutkan audio"
+                  : isPlaying
+                  ? "Stop siaran"
+                  : "Putar siaran"
+              }
+              className={`h-12 w-12 items-center justify-center rounded-full active:opacity-90 ${
+                isVisualActive ? "bg-surface-3" : "bg-orange"
+              }`}
+              style={isVisualActive ? undefined : glow.orange}
             >
               {isBuffering ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Ionicons
-                  name={isPlaying ? "stop" : "play"}
-                  size={22}
-                  color="#FFFFFF"
-                  style={{ marginLeft: isPlaying ? 0 : 2 }}
+                  name={isVisualActive ? "close" : isPlaying ? "stop" : "play"}
+                  size={20}
+                  color={isVisualActive ? colors.textDim : "#FFFFFF"}
+                  style={{ marginLeft: isPlaying || isVisualActive ? 0 : 2 }}
                 />
               )}
             </Pressable>
           </View>
 
           {!keyboardOpen ? (
-            <View className="flex-row gap-2 border-t border-line/30 px-3 py-2.5">
+            <View className="border-t border-line/30 px-3 py-2.5">
               <Pressable
                 onPress={() => setProgramInfoOpen(true)}
                 accessibilityRole="button"
                 accessibilityLabel="Lihat detail program dan penyiar"
-                className="min-h-10 flex-1 flex-row items-center justify-center gap-1.5 rounded-md bg-surface-2 active:opacity-85"
+                className="min-h-10 w-full flex-row items-center justify-center gap-1.5 rounded-md bg-surface-2 active:opacity-85"
               >
                 <Ionicons
                   name="information-circle-outline"
@@ -429,22 +466,9 @@ export function LiveDetailSheet({
                   className="text-xs font-bold text-brand"
                   style={{ fontFamily: "PlusJakartaSans_700Bold" }}
                 >
-                  Detail program
+                  Detail program & penyiar
                 </Text>
               </Pressable>
-              <View className="min-h-10 flex-row items-center justify-center gap-1.5 rounded-md bg-surface-2 px-3">
-                <Ionicons
-                  name="headset-outline"
-                  size={15}
-                  color={colors.textDim}
-                />
-                <Text
-                  className="text-xs font-semibold text-text-dim"
-                  style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-                >
-                  {listenerLabel} dengar
-                </Text>
-              </View>
             </View>
           ) : null}
         </View>
@@ -577,12 +601,14 @@ export function LiveDetailSheet({
               />
             </Pressable>
           </View>
-          <Text
-            className="mt-1.5 text-right text-[10px] text-text-dim"
-            style={{ fontFamily: "PlusJakartaSans_500Medium" }}
-          >
-            {draftMessage.length}/{MAX_LEN}
-          </Text>
+          {inputFocused || draftMessage.length > 0 ? (
+            <Text
+              className="mt-1.5 text-right text-[10px] text-text-dim"
+              style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+            >
+              {draftMessage.length}/{MAX_LEN}
+            </Text>
+          ) : null}
         </View>
 
         {/* ── Program detail panel ── */}

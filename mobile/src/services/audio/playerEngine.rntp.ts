@@ -16,6 +16,14 @@ const LIVE_TRACK_ID = "gaulfm-live";
 
 let setupDone = false;
 let engineEvents: EngineEvents = {};
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+function clearPollingTimer(): void {
+  if (pollTimer !== null) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
 
 function mapPlaybackState(state: State): EngineState {
   switch (state) {
@@ -114,6 +122,9 @@ async function setup(events: EngineEvents = {}): Promise<void> {
 
 
 async function loadAndPlay(track: LiveTrackMeta): Promise<void> {
+  // Bersihkan polling timer yang mungkin sedang aktif dari operasi sebelumnya
+  clearPollingTimer();
+
   // Always reset queue and add fresh track to guarantee new stream URL (failover / dynamic M3U)
   await TrackPlayer.reset();
   await TrackPlayer.add({
@@ -128,17 +139,17 @@ async function loadAndPlay(track: LiveTrackMeta): Promise<void> {
 
   // Poll as fallback for devices where Event.PlaybackState is delayed
   const t0 = Date.now();
-  const poll = setInterval(async () => {
+  pollTimer = setInterval(async () => {
     try {
       const { state } = await TrackPlayer.getPlaybackState();
       if (state === State.Playing) {
         engineEvents.onStateChange?.("playing");
-        clearInterval(poll);
+        clearPollingTimer();
       } else if (Date.now() - t0 > 10_000) {
-        clearInterval(poll);
+        clearPollingTimer();
       }
     } catch {
-      clearInterval(poll);
+      clearPollingTimer();
     }
   }, 500);
 }
@@ -159,14 +170,19 @@ async function updateMetadata(meta: Omit<LiveTrackMeta, "url">): Promise<void> {
 export const engine: PlayerEngine = {
   setup,
   loadAndPlay,
-  play: () => TrackPlayer.play(),
+  play: async () => {
+    clearPollingTimer();
+    await TrackPlayer.play();
+  },
   // stop() closes the connection so the next play() reconnects fresh/live.
   // Manually fire onStateChange since Event.PlaybackState may not fire on this device.
   pause: async () => {
+    clearPollingTimer();
     await TrackPlayer.stop();
     engineEvents.onStateChange?.("paused");
   },
   stop: async () => {
+    clearPollingTimer();
     // Reset akan menghapus track dan dismiss notifikasi sepenuhnya (RemoteStop).
     await TrackPlayer.reset();
   },

@@ -26,7 +26,7 @@ interface FormErrors {
 
 function AmbientGlow() {
   return (
-    <View pointerEvents="none" className="absolute inset-0">
+    <View pointerEvents="none" className="absolute inset-0 overflow-hidden">
       <View className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-orange/10" />
       <View className="absolute -right-14 -top-14 h-48 w-48 rounded-full bg-orange/10" />
       <View className="absolute -bottom-28 -left-28 h-80 w-80 rounded-full bg-brand/10" />
@@ -69,18 +69,26 @@ export function LoginScreen() {
     <View className="flex-1 bg-bg">
       <AmbientGlow />
       <AuthFormLayout>
-        <View className="items-center">
+        <View className="items-center mt-6">
           <BrandLogo size="lg" />
-          <Text className="mt-1 text-sm font-medium text-text-dim">
-            Dengerin Semarang, di mana aja.
+        </View>
+
+        <View className="mt-8 mb-8 items-center">
+          <Text 
+            className="text-[28px] font-extrabold tracking-tight text-text text-center"
+            style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+          >
+            Selamat Datang
+          </Text>
+          <Text 
+            className="mt-2 text-sm text-text-dim text-center"
+            style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+          >
+            Masuk untuk melanjutkan ke Gaul FM
           </Text>
         </View>
 
-        <View className="mt-6 gap-4 rounded-card border border-line/60 bg-surface p-5">
-          <Text className="text-center text-lg font-extrabold tracking-tight text-text">
-            Masuk ke akun kamu
-          </Text>
-
+        <View className="gap-5">
           <TextInput
             label="Email"
             icon="mail-outline"
@@ -111,16 +119,19 @@ export function LoginScreen() {
               onPress={() => navigation.navigate("ForgotPassword")}
               accessibilityRole="link"
               hitSlop={8}
-              className="mt-1 min-h-11 items-end justify-center"
+              className="mt-2 min-h-11 items-end justify-center"
             >
-              <Text className="text-xs font-semibold text-orange">
+              <Text 
+                className="text-sm font-semibold text-orange"
+                style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+              >
                 Lupa password?
               </Text>
             </Pressable>
           </View>
 
           {errors.form ? (
-            <View className="flex-row items-center gap-2 rounded-2xl border border-live/40 bg-live/10 px-4 py-3">
+            <View className="flex-row items-center gap-2 rounded-xl border border-live/40 bg-live/10 px-4 py-3 mt-1">
               <Ionicons
                 name="alert-circle-outline"
                 size={18}
@@ -132,23 +143,35 @@ export function LoginScreen() {
             </View>
           ) : null}
 
-          <Button
-            title="Masuk"
-            variant="cta"
-            onPress={() => void submit()}
-            loading={loading}
-          />
+          <View className="mt-2">
+            <Button
+              title="Masuk"
+              variant="cta"
+              onPress={() => void submit()}
+              loading={loading}
+            />
+          </View>
         </View>
 
-        <View className="mt-8 flex-row items-center justify-center gap-1 pb-4">
-          <Text className="text-sm text-text-dim">Belum punya akun?</Text>
+        <View className="mt-10 flex-row items-center justify-center gap-1 pb-4">
+          <Text 
+            className="text-sm text-text-dim"
+            style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+          >
+            Belum punya akun?
+          </Text>
           <Pressable
             onPress={() => navigation.navigate("Register")}
             accessibilityRole="link"
             hitSlop={8}
             className="min-h-11 justify-center px-1"
           >
-            <Text className="text-sm font-bold text-brand">Daftar sekarang</Text>
+            <Text 
+              className="text-sm font-bold text-brand"
+              style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+            >
+              Daftar sekarang
+            </Text>
           </Pressable>
         </View>
       </AuthFormLayout>

@@ -5,6 +5,7 @@ import type {
   NowPlaying,
   Profile,
   Program,
+  StreamSettings,
 } from "./types";
 
 const COVERS = [
@@ -287,6 +288,21 @@ export const seedBanners: Banner[] = [
   },
 ];
 
+export const seedStreamSettings: StreamSettings = {
+  audioPrimaryUrl: "http://27.50.19.173:9000/gaulfm.m3u",
+  audioFallbackUrl: "http://27.50.19.173:9000/gaulfm",
+  audioMountPoint: "/gaulfm",
+  audioBitrate: "128 kbps",
+  audioFormat: "AAC / MP3",
+  audioAutoReconnect: true,
+  visualRtmpServer: "rtmp://40.81.231.250:1935",
+  visualStreamKey: "gaulfm_webrtc",
+  visualWhepUrl: "http://40.81.231.250:8889/gaulfm_webrtc/whep",
+  visualHlsUrl: "http://40.81.231.250:8888/gaulfm_webrtc/index.m3u8",
+  visualEnabled: true,
+  updated_at: new Date().toISOString(),
+};
+
 export function createSeedSnapshot(): AdminSnapshot {
   return {
     nowPlaying: { ...seedNowPlaying },
@@ -294,6 +310,7 @@ export function createSeedSnapshot(): AdminSnapshot {
     news: seedNews.map((n) => ({ ...n })),
     profiles: seedProfiles.map((p) => ({ ...p })),
     banners: seedBanners.map((b) => ({ ...b })),
+    streamSettings: { ...seedStreamSettings },
     sheetsSyncStatus: "ok",
     lastNewsSyncAt: seedNews[0]?.synced_at ?? null,
   };

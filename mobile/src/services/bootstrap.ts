@@ -4,6 +4,7 @@ import { useThemeStore } from "../stores/themeStore";
 import { useNotificationPreferenceStore } from "../stores/notificationPreferenceStore";
 import { configureNotificationHandler } from "./notifications";
 import { engine } from "./audio/playerEngine";
+import { preloadAppAssets } from "./assets";
 
 /**
  * App bootstrap — runs once at cold start, gated by the native splash.
@@ -19,6 +20,11 @@ import { engine } from "./audio/playerEngine";
  */
 export async function bootstrapApp(): Promise<void> {
   await Promise.all([
+    // Assets — preload and decode all banners, logos, and onboarding artwork before splash hides.
+    preloadAppAssets().catch((err) =>
+      console.warn("[GaulFM] bootstrap assets:", err),
+    ),
+
     // Theme — needs to resolve before first styled render.
     useThemeStore
       .getState()

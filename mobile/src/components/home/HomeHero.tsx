@@ -6,23 +6,21 @@ import { useThemeStore } from "../../stores/themeStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { usePlayerControls } from "../../hooks/usePlayerControls";
 import { useIcecastStats } from "../../hooks/useIcecastStats";
+import { formatDurationMinutes, getProgramProgress } from "../../utils/datetime";
 import type { Program } from "../../types";
 
 interface HomeHeroProps {
   matchedProgram?: Program | null;
   onOpenDetail: () => void;
+  now?: Date;
 }
 
 /**
  * Dashboard hero — immersive now-playing card (DESIGN.md Sonic Pulse).
  * Full-bleed cover art, pulsing LIVE chip, listener count, glowing play CTA.
- * Tap artwork/text → live chat sheet; play button toggles stream.
- *
- * UX redesign: Play button at bottom-right (thumb zone), not center.
- * Better visual hierarchy: status chips top, info bottom-left, CTA bottom-right.
- * Distinct off-air state when stream is not healthy.
+ * UX redesign: Play button floating over the bottom right edge of the artwork.
  */
-export function HomeHero({ matchedProgram = null, onOpenDetail }: HomeHeroProps) {
+export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroProps) {
   const colors = useThemeStore((s) => s.colors);
   const glow = useThemeStore((s) => s.glow);
   const status = usePlayerStore((s) => s.status);
@@ -42,17 +40,20 @@ export function HomeHero({ matchedProgram = null, onOpenDetail }: HomeHeroProps)
   const timeRange = matchedProgram
     ? `${matchedProgram.start_time}–${matchedProgram.end_time} WIB`
     : null;
+  const progress = matchedProgram ? getProgramProgress(matchedProgram, now) : null;
 
   return (
-    <View className="overflow-hidden rounded-2xl bg-surface">
-      {/* Artwork zone — pressable for detail */}
+    <View 
+      className="overflow-visible rounded-[28px] bg-surface border shadow-sm relative"
+      style={{ borderColor: `${colors.line}40` }}
+    >
       <Pressable
         onPress={onOpenDetail}
         accessibilityRole="button"
         accessibilityLabel={`Buka live chat: ${title}`}
         className="active:opacity-95"
       >
-        <View className="h-64 w-full bg-surface-3">
+        <View className="h-[210px] w-full overflow-hidden rounded-t-[28px] bg-surface-3 relative">
           {cover ? (
             <Image
               source={{ uri: cover }}
@@ -68,98 +69,48 @@ export function HomeHero({ matchedProgram = null, onOpenDetail }: HomeHeroProps)
             </View>
           )}
 
-          {/* Gradient scrim */}
-          <View className="absolute inset-x-0 bottom-0 h-2/5 bg-black/55" />
-
-          {/* Top row — LIVE badge + listeners + chat hint */}
+          {/* Gradient scrims for text visibility and badge */}
+          <View className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-black/60 to-transparent" />
+          
           <View className="absolute left-4 right-4 top-4 flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
+            <View
+              className={`flex-row items-center gap-1.5 rounded-full px-3 py-1.5 ${
+                streamHealthy ? "bg-live" : "bg-black/60"
+              }`}
+            >
               <View
-                className={`flex-row items-center gap-1.5 rounded-full px-3 py-1.5 ${
-                  streamHealthy ? "bg-live" : "bg-surface-3/80"
-                }`}
-              >
-                <View
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor: "#FFFFFF",
-                  }}
-                />
-                <Text
-                  className="text-[10px] font-extrabold uppercase tracking-widest text-white"
-                  style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-                >
-                  {streamHealthy ? "Live" : "Off"}
-                </Text>
-              </View>
-
-              {listeners ? (
-                <View className="flex-row items-center gap-1 rounded-full bg-black/50 px-2.5 py-1.5">
-                  <Ionicons name="headset-outline" size={11} color="#FFFFFF" />
-                  <Text
-                    className="text-[10px] font-bold text-white"
-                    style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                  >
-                    {listeners}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-
-            <View className="flex-row items-center gap-1 rounded-full bg-black/50 px-2.5 py-1.5">
-              <Ionicons name="chatbubbles-outline" size={11} color={colors.brand} />
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "#FFFFFF",
+                }}
+              />
               <Text
-                className="text-[10px] font-bold text-white"
-                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                className="text-[10px] font-extrabold uppercase tracking-widest text-white"
+                style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
               >
-                Live chat
+                {streamHealthy ? "Live" : "Off"}
               </Text>
             </View>
-
-            <View className="flex-row items-center gap-1 rounded-full bg-brand/20 border border-brand/40 px-2 py-1">
-              <Ionicons name="videocam" size={11} color={colors.brand} />
-              <Text
-                className="text-[10px] font-bold text-brand"
-                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-              >
-                Visual
-              </Text>
-            </View>
+            
+            {listeners ? (
+               <View className="flex-row items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-md">
+                 <Ionicons name="headset" size={12} color="#FFFFFF" />
+                 <Text
+                   className="text-[11px] font-bold text-white"
+                   style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                 >
+                   {listeners}
+                 </Text>
+               </View>
+            ) : null}
           </View>
         </View>
       </Pressable>
 
-      {/* Bottom info + Play button strip */}
-      <View className="flex-row items-end justify-between p-4 bg-surface">
-        <Pressable
-          onPress={onOpenDetail}
-          className="min-w-0 flex-1 pr-3 active:opacity-80"
-        >
-          <Text
-            className="text-[10px] font-bold uppercase tracking-widest text-brand"
-            style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-          >
-            {streamHealthy ? "Sedang mengudara" : "Siaran off"}
-          </Text>
-          <Text
-            className="mt-1 text-xl font-extrabold leading-6 text-text"
-            numberOfLines={2}
-            style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-          >
-            {title}
-          </Text>
-          <Text
-            className="mt-0.5 text-sm text-text-dim"
-            numberOfLines={1}
-            style={{ fontFamily: "PlusJakartaSans_400Regular" }}
-          >
-            {host}
-            {timeRange ? ` · ${timeRange}` : ""}
-          </Text>
-        </Pressable>
-
+      {/* Floating Play Button */}
+      <View className="absolute top-[182px] right-5 z-20">
         <Pressable
           onPress={(e) => {
             e.stopPropagation?.();
@@ -168,15 +119,15 @@ export function HomeHero({ matchedProgram = null, onOpenDetail }: HomeHeroProps)
           disabled={buffering}
           accessibilityRole="button"
           accessibilityLabel={playing ? "Stop siaran" : "Putar siaran"}
-          className="h-16 w-16 shrink-0 items-center justify-center rounded-full bg-orange active:opacity-90 active:scale-95"
+          className="h-14 w-14 items-center justify-center rounded-full bg-orange active:opacity-80 active:scale-95 shadow-md shadow-orange/40"
           style={streamHealthy ? glow.orange : undefined}
         >
           {buffering ? (
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Ionicons
               name={playing ? "stop" : "play"}
-              size={30}
+              size={26}
               color="#FFFFFF"
               style={{ marginLeft: playing ? 0 : 3 }}
             />
@@ -184,15 +135,74 @@ export function HomeHero({ matchedProgram = null, onOpenDetail }: HomeHeroProps)
         </Pressable>
       </View>
 
-      {/* Error bar — shown only when stream fails */}
-      {hasError ? (
-        <View className="flex-row items-center justify-center gap-1.5 border-t border-line/40 px-4 py-3 bg-surface">
-          <Ionicons name="warning-outline" size={14} color={colors.live} />
+      {/* Progress Bar (Attached to bottom of image) */}
+      <View className="h-1 w-full bg-surface-3">
+        {progress ? (
+          <View
+            className="h-full bg-orange"
+            style={{ width: `${Math.max(2, Math.round(progress.elapsedPct * 100))}%` }}
+          />
+        ) : null}
+      </View>
+
+      {/* Bottom Info Section */}
+      <Pressable 
+        onPress={onOpenDetail}
+        className="px-5 pt-4 pb-5 active:opacity-80"
+      >
+        <View className="pr-16">
           <Text
-            className="text-xs font-medium text-live"
-            style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+            className="text-[22px] font-extrabold leading-7 text-text"
+            numberOfLines={2}
+            style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
           >
-            Tidak dapat terhubung — ketuk tombol play untuk coba lagi
+            {title}
+          </Text>
+          
+          <View className="mt-1.5 flex-row items-center flex-wrap gap-x-2 gap-y-1">
+            <Text
+              className="text-[13px] font-medium text-text-dim"
+              style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+            >
+              {host}
+            </Text>
+            
+            {timeRange ? (
+              <>
+                <View className="h-1 w-1 rounded-full bg-line" />
+                <Text
+                  className="text-[12px] font-medium text-text-dim"
+                  style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+                >
+                  {timeRange}
+                </Text>
+              </>
+            ) : null}
+          </View>
+
+          {progress ? (
+            <View className="mt-2.5 flex-row items-center gap-1.5">
+              <Ionicons name="time-outline" size={14} color={colors.orange} />
+              <Text
+                className="text-[12px] font-bold text-orange"
+                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+              >
+                {formatDurationMinutes(progress.remainingMinutes)} lagi selesai
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </Pressable>
+
+      {/* Error bar */}
+      {hasError ? (
+        <View className="flex-row items-center justify-center gap-2 rounded-b-[28px] bg-live/10 px-4 py-3">
+          <Ionicons name="warning-outline" size={16} color={colors.live} />
+          <Text
+            className="text-[12px] font-semibold text-live"
+            style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+          >
+            Koneksi terputus — coba ketuk play lagi
           </Text>
         </View>
       ) : null}

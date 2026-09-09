@@ -29,6 +29,10 @@ interface UserPayload {
 export async function POST(request: Request) {
   try {
     const webhookSecret = process.env.WEBHOOK_SECRET;
+    if (process.env.NODE_ENV === "production" && !webhookSecret) {
+      console.error("[GaulFM Admin] WEBHOOK_SECRET is not configured in production.");
+      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+    }
     if (webhookSecret) {
       const authHeader = request.headers.get("authorization") || request.headers.get("x-webhook-secret");
       if (authHeader !== webhookSecret && authHeader !== `Bearer ${webhookSecret}`) {
@@ -40,12 +44,12 @@ export async function POST(request: Request) {
     // Handle Supabase Webhook payload format: { record: { ... } } or raw payload { ... }
     const user: UserPayload = body?.record ?? body;
 
-    const fullName = user.full_name || "—";
-    const email = user.email || "—";
-    const whatsapp = user.whatsapp_number || user.whatsapp || "—";
-    const deviceOs = user.device_os || "—";
-    const deviceModel = user.device_model || "—";
-    const city = user.location_city || user.city || "—";
+    const fullName = String(user.full_name || "—").slice(0, 100);
+    const email = String(user.email || "—").slice(0, 100);
+    const whatsapp = String(user.whatsapp_number || user.whatsapp || "—").slice(0, 30);
+    const deviceOs = String(user.device_os || "—").slice(0, 50);
+    const deviceModel = String(user.device_model || "—").slice(0, 50);
+    const city = String(user.location_city || user.city || "—").slice(0, 100);
     const lat = user.location_lat ?? user.latitude ?? "";
     const lng = user.location_lng ?? user.longitude ?? "";
     const createdAt = user.created_at || new Date().toISOString();
@@ -74,7 +78,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // Demo mode: Return simulated OK
+    // Demo mode: Return simulated OK without leaking sensitive coordinates or phone numbers in response
     console.log("[GaulFM Admin] Demo Mode User Sync /api/sync-sheets:", {
       fullName,
       email,
@@ -91,16 +95,10 @@ export async function POST(request: Request) {
       mode: "demo",
       message: "Data pendengar berhasil diterima (mode demo / local storage)",
       synced_at: new Date().toISOString(),
-      record: {
+      user: {
         fullName,
-        email,
-        whatsapp,
         city,
         deviceOs,
-        deviceModel,
-        lat,
-        lng,
-        createdAt,
       },
     });
   } catch (error: unknown) {

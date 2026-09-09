@@ -1,20 +1,20 @@
-import React, { useCallback, useMemo } from "react";
-import { Pressable, View } from "react-native";
-import { Image } from "expo-image";
+import React, { useCallback, useMemo, useState } from "react";
+import { Pressable, View, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, type NavigationProp } from "@react-navigation/native";
 import { useAuthStore } from "../../stores/authStore";
 import { useThemeStore } from "../../stores/themeStore";
 import type { MainTabParamList } from "../../types";
 import { BrandLogo } from "./BrandLogo";
 
-/** Dicebear thumbs avatar — pure photo circle, no border (matches live chat). */
-function profileAvatarUrl(
-  seed: string,
-  isDark: boolean,
-): string {
-  const bg = isDark ? "0a0f0b" : "e8eeea";
-  const shape = isDark ? "94f8ae" : "007a3e";
-  return `https://api.dicebear.com/9.x/thumbs/png?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}&shapeColor=${shape}`;
+function initials(name: string | null | undefined): string {
+  if (!name) return "GF";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 }
 
 interface TopNavbarProps {
@@ -22,11 +22,11 @@ interface TopNavbarProps {
 }
 
 /**
- * Shared top bar — app logo + profile photo avatar (no border).
+ * Shared top bar — app logo + profile initials.
  * Used on Home, Jadwal, and Berita. Avatar opens Profile tab.
  */
 export function TopNavbar({ className = "" }: TopNavbarProps) {
-  const mode = useThemeStore((s) => s.mode);
+  const colors = useThemeStore((s) => s.colors);
   const profile = useAuthStore((s) => s.profile);
   const navigation = useNavigation<NavigationProp<MainTabParamList>>();
 
@@ -35,12 +35,6 @@ export function TopNavbar({ className = "" }: TopNavbarProps) {
   }, [navigation]);
 
   const label = profile?.full_name?.trim() || "Profil";
-  const isDark = mode === "dark";
-  const seed = profile?.id || profile?.email || profile?.full_name || "gaul";
-  const uri = useMemo(
-    () => profileAvatarUrl(seed, isDark),
-    [seed, isDark],
-  );
 
   return (
     <View
@@ -54,15 +48,14 @@ export function TopNavbar({ className = "" }: TopNavbarProps) {
         accessibilityRole="button"
         accessibilityLabel={`Buka profil, ${label}`}
         hitSlop={8}
-        className="h-10 w-10 overflow-hidden rounded-full active:opacity-80"
+        className="h-10 w-10 overflow-hidden rounded-full bg-brand/20 items-center justify-center active:opacity-80 border-2 border-surface"
       >
-        <Image
-          source={{ uri }}
-          style={{ width: 40, height: 40 }}
-          contentFit="cover"
-          transition={150}
-          cachePolicy="memory-disk"
-        />
+        <Text
+          className="text-[14px] font-extrabold text-brand"
+          style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+        >
+          {initials(profile?.full_name)}
+        </Text>
       </Pressable>
     </View>
   );

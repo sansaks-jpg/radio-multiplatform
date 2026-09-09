@@ -6,6 +6,7 @@ import {
   Text,
 } from "react-native";
 import { useThemeStore } from "../../stores/themeStore";
+import ctaGradient from "../../../assets/cta-gradient.png";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "cta";
 
@@ -33,9 +34,6 @@ const VARIANT_CLASSES: Record<
     label: "text-brand",
   },
 };
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const ctaGradient = require("../../../assets/cta-gradient.png");
 
 /** Sonic Pulse buttons — primary green, cta orange streaming. */
 export function Button({

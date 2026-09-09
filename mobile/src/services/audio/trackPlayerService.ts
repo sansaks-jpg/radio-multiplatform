@@ -37,14 +37,15 @@ async function ensureSetup(): Promise<void> {
 /** Start (or restart) the live stream with Now Playing metadata. */
 export async function playLive(nowPlaying?: NowPlaying): Promise<void> {
   const generation = ++currentOperationGeneration;
-  await ensureSetup();
-  if (generation !== currentOperationGeneration) return;
-
   const store = usePlayerStore.getState();
   const np = nowPlaying ?? store.nowPlaying;
 
+  // Set buffering state synchronously so UI & sheets immediately reflect active operation
   store.setStatus("buffering");
   store.markStarted();
+
+  await ensureSetup();
+  if (generation !== currentOperationGeneration) return;
 
   // Selalu resolve URL jika belum ada
   const startedAt = Date.now();

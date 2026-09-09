@@ -102,39 +102,73 @@ ALTER TABLE public.news ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
 
--- 1. now_playing: Public read, authenticated/service role write
+-- 1. now_playing: Public read, admin/service role write
 CREATE POLICY "Allow public read on now_playing"
     ON public.now_playing FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated full control on now_playing"
-    ON public.now_playing FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+CREATE POLICY "Allow admin and service role full control on now_playing"
+    ON public.now_playing FOR ALL 
+    USING (
+        auth.jwt()->'app_metadata'->>'role' = 'admin' 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
 
--- 2. programs: Public read, authenticated/service role write
+-- 2. programs: Public read, admin/service role write
 CREATE POLICY "Allow public read on programs"
     ON public.programs FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated full control on programs"
-    ON public.programs FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+CREATE POLICY "Allow admin and service role full control on programs"
+    ON public.programs FOR ALL 
+    USING (
+        auth.jwt()->'app_metadata'->>'role' = 'admin' 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
 
--- 3. news: Public read, service role write
+-- 3. news: Public read, admin/service role write
 CREATE POLICY "Allow public read on news"
     ON public.news FOR SELECT USING (true);
-CREATE POLICY "Allow service role full control on news"
-    ON public.news FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+CREATE POLICY "Allow admin and service role full control on news"
+    ON public.news FOR ALL 
+    USING (
+        auth.jwt()->'app_metadata'->>'role' = 'admin' 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
 
--- 4. banners: Public read active, authenticated/service role write
+-- 4. banners: Public read, admin/service role write
 CREATE POLICY "Allow public read on banners"
     ON public.banners FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated full control on banners"
-    ON public.banners FOR ALL USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+CREATE POLICY "Allow admin and service role full control on banners"
+    ON public.banners FOR ALL 
+    USING (
+        auth.jwt()->'app_metadata'->>'role' = 'admin' 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
 
--- 5. profiles: User can read/update own profile; service role can read/manage all
-CREATE POLICY "Users can view own profile"
-    ON public.profiles FOR SELECT USING (auth.uid() = id);
+-- 5. profiles: User can view/update own profile; admins & service role can view/manage all
+CREATE POLICY "Users and admins can view profiles"
+    ON public.profiles FOR SELECT 
+    USING (
+        auth.uid() = id 
+        OR auth.jwt()->'app_metadata'->>'role' = 'admin' 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
 CREATE POLICY "Users can update own profile"
-    ON public.profiles FOR UPDATE USING (auth.uid() = id);
+    ON public.profiles FOR UPDATE 
+    USING (
+        auth.uid() = id 
+        OR auth.jwt()->'app_metadata'->>'role' = 'admin' 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
 CREATE POLICY "Users can insert own profile"
-    ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "Service role has full access on profiles"
-    ON public.profiles FOR ALL USING (auth.jwt()->>'role' = 'service_role');
+    ON public.profiles FOR INSERT 
+    WITH CHECK (
+        auth.uid() = id 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
+CREATE POLICY "Admin and service role can delete profile"
+    ON public.profiles FOR DELETE 
+    USING (
+        auth.jwt()->'app_metadata'->>'role' = 'admin' 
+        OR auth.jwt()->>'role' = 'service_role'
+    );
 
 -- =============================================================================
 -- TRIGGERS: AUTO-SYNC AUTH.USERS -> PROFILES

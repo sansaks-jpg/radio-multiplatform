@@ -1,6 +1,11 @@
 import { useEffect } from "react";
-import { AppState } from "react-native";
+import { AppState, NativeModules, Platform } from "react-native";
+import Constants from "expo-constants";
 import { usePlayerStore } from "../stores/playerStore";
+
+const isExpoGo = Constants.appOwnership === "expo";
+const hasRntp =
+  Platform.OS !== "web" && !isExpoGo && Boolean(NativeModules.TrackPlayerModule?.setupPlayer);
 
 /**
  * Syncs Zustand player state when the app returns to foreground.
@@ -17,10 +22,14 @@ export function useRemoteEventHandlers(): void {
   const setStatus = usePlayerStore((s) => s.setStatus);
 
   useEffect(() => {
+    if (!hasRntp) return;
+
     const appSub = AppState.addEventListener("change", async (next) => {
       if (next !== "active") return;
       try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const TrackPlayer = require("react-native-track-player").default;
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { State } = require("react-native-track-player");
         if (!TrackPlayer || typeof TrackPlayer.getPlaybackState !== "function") return;
         const result = await TrackPlayer.getPlaybackState();
