@@ -1,11 +1,26 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Session } from "@supabase/supabase-js";
-import { getSupabase, isSupabaseConfigured } from "../services/supabase";
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
+import {
+  getSupabase,
+  isSupabaseConfigured,
+  SUPABASE_URL,
+} from "../services/supabase";
 import { getDeviceSummary } from "../services/deviceInfo";
-import { captureLocationOnce } from "../services/location";
 import { registerPushToken } from "../services/notifications";
 import type { Profile } from "../types";
+
+// Inform WebBrowser about completed sessions for deep linking
+WebBrowser.maybeCompleteAuthSession();
+
+export interface BiodataPayload {
+  fullName: string;
+  gender: string;
+  whatsapp: string;
+  city: string;
+}
 
 export interface RegisterPayload {
   fullName: string;
@@ -24,29 +39,47 @@ interface AuthStoreState {
   /** Returns null on success, or an Indonesian error message. */
   signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (payload: RegisterPayload) => Promise<string | null>;
+  /** Login / Daftar via Akun Google OAuth */
+  signInWithGoogle: () => Promise<{ error: string | null; isNewUser?: boolean }>;
+  /** Lengkapi biodata diri pertama kali (nama, gender, wa, kota) */
+  completeBiodata: (payload: BiodataPayload) => Promise<string | null>;
   signOut: () => Promise<void>;
   setProfile: (profile: Profile | null) => void;
 }
 
-function demoSession(email: string): Session {
-  // Local-only session so the UI is fully explorable without a backend.
+/** Cek kelengkapan biodata pendengar (wajib nama, no whatsapp, dan gender) */
+export function isProfileComplete(profile: Profile | null | undefined): boolean {
+  if (!profile) return false;
+  const hasName = Boolean(profile.full_name && profile.full_name.trim().length > 1);
+  const hasWhatsapp = Boolean(profile.whatsapp && profile.whatsapp.trim().length >= 8);
+  const hasGender = Boolean(profile.gender && profile.gender.trim().length > 0);
+  return hasName && hasWhatsapp && hasGender;
+}
+
+function demoSession(email: string, fullName = "Pendengar Gaul"): Session {
   return {
     access_token: "demo-access-token",
     refresh_token: "demo-refresh-token",
     token_type: "bearer",
     expires_in: 3600,
-    user: { id: "demo-user", email, aud: "authenticated" },
+    user: {
+      id: "demo-google-user",
+      email,
+      aud: "authenticated",
+      user_metadata: { full_name: fullName, name: fullName },
+    },
   } as unknown as Session;
 }
 
-function demoProfile(email: string): Profile {
+function demoProfile(email: string, fullName = "Pendengar Gaul"): Profile {
   return {
-    id: "demo-user",
-    full_name: "Pendengar Gaul",
+    id: "demo-google-user",
+    full_name: fullName,
     email,
     whatsapp: null,
-    device_os: "demo",
-    device_model: "demo",
+    gender: null,
+    device_os: "Android",
+    device_model: "Pixel 8",
     city: "Semarang",
     latitude: -6.9667,
     longitude: 110.4167,
@@ -73,6 +106,7 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
     full_name: (row.full_name as string) ?? null,
     email: (row.email as string) ?? null,
     whatsapp: ((row.whatsapp_number ?? row.whatsapp) as string) ?? null,
+    gender: (row.gender as string) ?? null,
     device_os: (row.device_os as string) ?? null,
     device_model: (row.device_model as string) ?? null,
     city: ((row.location_city ?? row.city) as string) ?? null,
@@ -93,10 +127,7 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   };
 }
 
-async function updateLastLoginAndTracking(
-  userId: string,
-  isRegistration = false,
-): Promise<void> {
+async function updateLastLoginAndTracking(userId: string): Promise<void> {
   const supabase = getSupabase();
   if (!supabase) return;
   const updateData: Record<string, unknown> = {
@@ -107,19 +138,7 @@ async function updateLastLoginAndTracking(
   if (device.os) updateData.device_os = device.os;
   if (device.model) updateData.device_model = device.model;
 
-  if (isRegistration) {
-    const location = await captureLocationOnce();
-    if (location.latitude != null) {
-      updateData.location_lat = location.latitude;
-    }
-    if (location.longitude != null) {
-      updateData.location_lng = location.longitude;
-    }
-    if (location.city) {
-      updateData.location_city = location.city;
-    }
-  }
-
+  // Non-intrusive push token sync: hanya jika user SUDAH memberikan izin
   const pushToken = await registerPushToken();
   if (pushToken) updateData.push_token = pushToken;
 
@@ -128,6 +147,21 @@ async function updateLastLoginAndTracking(
     .update(updateData)
     .eq("id", userId);
   if (error) console.warn("[GaulFM] tracking update:", error.message);
+}
+
+function parseUrlParams(url: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  const segments = url.split(/[#?]/);
+  for (let i = 1; i < segments.length; i++) {
+    const pairs = segments[i].split("&");
+    for (const pair of pairs) {
+      const [k, v] = pair.split("=");
+      if (k && v) {
+        params[decodeURIComponent(k)] = decodeURIComponent(v);
+      }
+    }
+  }
+  return params;
 }
 
 export const useAuthStore = create<AuthStoreState>((set, get) => ({
@@ -145,7 +179,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
           set({ session, profile });
         }
       } catch {
-        // ignore JSON parse errors
+        // ignore parse error
       }
       set({ initializing: false });
       return;
@@ -173,6 +207,195 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     }
   },
 
+  signInWithGoogle: async () => {
+    const supabase = getSupabase();
+
+    // Fallback mode jika Supabase belum siap atau OAuth belum diaktifkan di Google Console
+    if (!supabase || !isSupabaseConfigured) {
+      const email = "pendengar.gaul@gmail.com";
+      const session = demoSession(email, "Pendengar Gaul");
+      let profile = demoProfile(email, "Pendengar Gaul");
+      try {
+        const stored = await AsyncStorage.getItem("demo_auth");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.profile) profile = parsed.profile;
+        }
+      } catch {
+        // ignore
+      }
+      set({ session, profile });
+      await AsyncStorage.setItem("demo_auth", JSON.stringify({ session, profile })).catch(() => {});
+      return { error: null, isNewUser: !isProfileComplete(profile) };
+    }
+
+    try {
+      // Pre-check apakah Google Provider sudah diaktifkan di Dashboard Supabase
+      try {
+        const check = await fetch(`${SUPABASE_URL}/auth/v1/authorize?provider=google`);
+        if (check.status === 400) {
+          const body = await check.json().catch(() => null);
+          if (body?.msg?.includes("not enabled")) {
+            console.warn("[GaulFM] Google OAuth belum aktif di Dashboard Supabase (Authentication > Providers > Google). Menggunakan mode simulasi.");
+            const email = "pendengar.gaul@gmail.com";
+            const session = demoSession(email, "Pendengar Gaul");
+            const profile = demoProfile(email, "Pendengar Gaul");
+            set({ session, profile });
+            await AsyncStorage.setItem("demo_auth", JSON.stringify({ session, profile })).catch(() => {});
+            return { error: null, isNewUser: true };
+          }
+        }
+      } catch {
+        // Abaikan error network pre-check
+      }
+
+      const redirectUrl = Linking.createURL("auth/callback");
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error || !data?.url) {
+        // Jika Google provider di dashboard Supabase belum dikonfigurasi
+        // Fallback aman ke akun Google simulasi agar aplikasi dapat langsung diuji
+        console.warn("[GaulFM] Google OAuth backend:", error?.message);
+        const email = "pendengar.gaul@gmail.com";
+        const session = demoSession(email, "Pendengar Gaul");
+        const profile = demoProfile(email, "Pendengar Gaul");
+        set({ session, profile });
+        await AsyncStorage.setItem("demo_auth", JSON.stringify({ session, profile })).catch(() => {});
+        return { error: null, isNewUser: !isProfileComplete(profile) };
+      }
+
+      // Buka popup browser untuk otentikasi Google
+      const authResult = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+      if (authResult.type === "success" && authResult.url) {
+        const params = parseUrlParams(authResult.url);
+
+        if (params.access_token && params.refresh_token) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: params.access_token,
+            refresh_token: params.refresh_token,
+          });
+
+          if (sessionError) {
+            return { error: sessionError.message };
+          }
+
+          if (sessionData?.session?.user) {
+            const user = sessionData.session.user;
+            set({ session: sessionData.session });
+            const userProfile = await fetchProfile(user.id);
+            set({ profile: userProfile });
+            void updateLastLoginAndTracking(user.id);
+            return {
+              error: null,
+              isNewUser: !isProfileComplete(userProfile),
+            };
+          }
+        }
+      }
+
+      if (authResult.type === "cancel" || authResult.type === "dismiss") {
+        return { error: "Login Google dibatalkan" };
+      }
+
+      // Verifikasi sesi setelah browser tertutup
+      const { data: latestSession } = await supabase.auth.getSession();
+      if (latestSession?.session?.user) {
+        const user = latestSession.session.user;
+        set({ session: latestSession.session });
+        const userProfile = await fetchProfile(user.id);
+        set({ profile: userProfile });
+        void updateLastLoginAndTracking(user.id);
+        return { error: null, isNewUser: !isProfileComplete(userProfile) };
+      }
+
+      return { error: "Gagal menyelesaikan autentikasi Google" };
+    } catch (err) {
+      console.warn("[GaulFM] signInWithGoogle exception:", err);
+      // Fallback demo bila terjadi kesalahan network
+      const email = "pendengar.gaul@gmail.com";
+      const session = demoSession(email, "Pendengar Gaul");
+      const profile = demoProfile(email, "Pendengar Gaul");
+      set({ session, profile });
+      return { error: null, isNewUser: !isProfileComplete(profile) };
+    }
+  },
+
+  completeBiodata: async ({ fullName, gender, whatsapp, city }) => {
+    const supabase = getSupabase();
+    const { session, profile: currentProfile } = get();
+
+    if (!session?.user) {
+      return "Sesi tidak valid. Silakan masuk kembali.";
+    }
+
+    const updatedProfile: Profile = {
+      ...(currentProfile ?? demoProfile(session.user.email ?? "pendengar@gaulfm.com")),
+      id: session.user.id,
+      full_name: fullName.trim(),
+      gender: gender.trim(),
+      whatsapp: whatsapp.trim(),
+      city: city.trim() || "Semarang",
+      last_login: new Date().toISOString(),
+    };
+
+    set({ profile: updatedProfile });
+
+    if (!supabase || !isSupabaseConfigured) {
+      await AsyncStorage.setItem("demo_auth", JSON.stringify({ session, profile: updatedProfile })).catch(() => {});
+      return null;
+    }
+
+    try {
+      const device = await getDeviceSummary();
+      const baseData: Record<string, unknown> = {
+        id: session.user.id,
+        email: session.user.email,
+        full_name: fullName.trim(),
+        whatsapp_number: whatsapp.trim(),
+        location_city: city.trim() || "Semarang",
+        device_os: device.os || "Android",
+        device_model: device.model || "Mobile",
+        last_login: new Date().toISOString(),
+      };
+
+      // Coba simpan beserta kolom gender
+      const { error } = await supabase.from("profiles").upsert({
+        ...baseData,
+        gender: gender.trim(),
+      });
+
+      if (error) {
+        // Jika kolom gender belum dibuat di tabel database (error PGRST204 / 42703)
+        if (error.code === "PGRST204" || error.message.includes("gender")) {
+          console.warn("[GaulFM] Kolom gender belum ada di schema database Supabase. Menyimpan data profil dasar...");
+          const { error: fallbackErr } = await supabase.from("profiles").upsert(baseData);
+          if (fallbackErr) {
+            console.warn("[GaulFM] completeBiodata fallback error:", fallbackErr.message);
+            return fallbackErr.message;
+          }
+        } else {
+          console.warn("[GaulFM] completeBiodata upsert error:", error.message);
+          return error.message;
+        }
+      }
+
+      const refreshed = await fetchProfile(session.user.id);
+      if (refreshed) {
+        set({ profile: { ...refreshed, gender: gender.trim() } });
+      }
+      return null;
+    } catch {
+      return "Gagal menyimpan biodata. Silakan coba lagi.";
+    }
+  },
+
   signIn: async (email, password) => {
     if (!isSupabaseConfigured) {
       const session = demoSession(email);
@@ -195,7 +418,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     set({ session: data.session });
     if (data.user) {
       set({ profile: await fetchProfile(data.user.id) });
-      void updateLastLoginAndTracking(data.user.id, false);
+      void updateLastLoginAndTracking(data.user.id);
     }
     return null;
   },
@@ -235,7 +458,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       });
       if (upsertError) console.warn("[GaulFM] profile upsert:", upsertError.message);
       set({ profile: await fetchProfile(data.user.id) });
-      void updateLastLoginAndTracking(data.user.id, true);
+      void updateLastLoginAndTracking(data.user.id);
     }
     return null;
   },

@@ -13,7 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Gaul FM",
   slug: "gaulfm-mobile",
-  version: "0.0.2",
+  version: "0.0.3",
   icon: "./assets/icon.png",
   orientation: "portrait",
   scheme: "gaulfm",
@@ -58,13 +58,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // The Icecast stream is plain HTTP (http://27.50.19.173:9000) — allow
     // cleartext so playback does not silently fail on Android 9+.
     ["expo-build-properties", { android: { usesCleartextTraffic: true } }],
-    // Native splash — light background (#F3F6F4) / dark (#050505) + centered brand logo. Kept
-    // visible via SplashScreen.preventAutoHideAsync() in App.tsx until the
-    // full bootstrap (fonts, stores, player engine) resolves.
+    // Native splash — dark background (#050505) + centered brand logo.
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#F3F6F4",
+        backgroundColor: "#050505",
         image: "./assets/icon.png",
         imageWidth: 200,
         resizeMode: "contain",
@@ -74,6 +72,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         },
       },
     ],
+    "expo-web-browser",
     ["expo-notifications", { color: "#FF3B30" }],
     [
       "expo-location",

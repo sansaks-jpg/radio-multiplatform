@@ -40,6 +40,7 @@ export interface Profile {
   full_name: string | null;
   email: string | null;
   whatsapp: string | null;
+  gender?: string | null;
   device_os: string | null;
   device_model: string | null;
   city: string | null;

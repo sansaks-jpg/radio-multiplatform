@@ -63,3 +63,18 @@ VALUES
     ('b-2', 'Jadwal Siaran Gaul FM', 'Gaul Morning Show, Gaul Waktu Setempat & Asupan Gaul', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-2.png', 'Lihat Jadwal', 'schedule', NULL, 'program', 1, true),
     ('b-3', 'Gaulista Community', 'Radio anak muda hits 15-29 tahun di Semarang', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-3.png', 'Instagram', NULL, 'https://www.instagram.com/radiogaulfm_smg/', 'event', 2, true),
     ('b-4', 'radiogaulfmsmg.com', 'Kunjungi portal web resmi Radio Gaul FM Semarang', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-4.png', 'Kunjungi Web', NULL, 'https://radiogaulfmsmg.com', 'ad', 3, true);
+
+-- -----------------------------------------------------------------------------
+-- 5. Seed: announcers (Official Gaul Squad Master Profiles)
+-- -----------------------------------------------------------------------------
+DELETE FROM public.announcers;
+INSERT INTO public.announcers (id, name, nickname, photo_url, bio, instagram, sort_order, is_active)
+VALUES 
+    ('ann-1', 'Attaya', 'Attaya', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 1, true),
+    ('ann-2', 'Ega Ratu', 'Ega', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 2, true),
+    ('ann-3', 'Kara Ferina', 'Kara', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 3, true),
+    ('ann-4', 'Nafa', 'Nafa', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 4, true),
+    ('ann-5', 'Nanda', 'Nanda', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 5, true),
+    ('ann-6', 'Rizky', 'Rizky', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 6, true),
+    ('ann-7', 'Tyas', 'Tyas', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/tyas.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 7, true);
+

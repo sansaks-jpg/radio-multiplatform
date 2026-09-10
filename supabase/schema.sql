@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     email VARCHAR(255) UNIQUE NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     whatsapp_number VARCHAR(30),
+    gender VARCHAR(20),             -- 'Laki-laki', 'Perempuan'
     device_os VARCHAR(50),          -- 'Android', 'iOS', 'web'
     device_model TEXT,              -- e.g. 'Samsung Galaxy S24'
     location_city VARCHAR(100),     -- e.g. 'Semarang'

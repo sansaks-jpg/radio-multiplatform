@@ -218,12 +218,7 @@ export async function registerPushToken(): Promise<string | null> {
     await ensureAndroidChannel(Notifications);
 
     const existing = await Notifications.getPermissionsAsync();
-    let status = existing.status;
-    if (status !== "granted") {
-      const requested = await Notifications.requestPermissionsAsync();
-      status = requested.status;
-    }
-    if (status !== "granted") return null;
+    if (existing.status !== "granted") return null;
 
     const projectId =
       Constants.expoConfig?.extra?.eas?.projectId ??

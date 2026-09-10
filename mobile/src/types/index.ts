@@ -70,6 +70,7 @@ export interface Profile {
   full_name: string | null;
   email: string | null;
   whatsapp: string | null;
+  gender: string | null;
   device_os: string | null;
   device_model: string | null;
   city: string | null;
@@ -110,12 +111,14 @@ export type RootStackParamList = {
   /** First-launch onboarding carousel — shown once per install. */
   Onboarding: undefined;
   Auth: undefined;
+  CompleteProfile: undefined;
   Main: undefined;
 };
 
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  CompleteProfile: undefined;
   ForgotPassword: undefined;
   ResetPassword: { accessToken?: string } | undefined;
 };

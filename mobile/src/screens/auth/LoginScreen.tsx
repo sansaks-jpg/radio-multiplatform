@@ -1,10 +1,5 @@
-import React, { useRef, useState } from "react";
-import {
-  Pressable,
-  Text,
-  TextInput as RNTextInput,
-  View,
-} from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -13,16 +8,6 @@ import type { AuthStackParamList } from "../../types";
 import { useAuthStore } from "../../stores/authStore";
 import { AuthFormLayout } from "../../components/ui/AuthFormLayout";
 import { BrandLogo } from "../../components/ui/BrandLogo";
-import { TextInput } from "../../components/ui/TextInput";
-import { Button } from "../../components/ui/Button";
-
-const EMAIL_RE = /\S+@\S+\.\S+/;
-
-interface FormErrors {
-  email?: string;
-  password?: string;
-  form?: string;
-}
 
 function AmbientGlow() {
   return (
@@ -35,31 +20,38 @@ function AmbientGlow() {
   );
 }
 
+/** Official Google 'G' Icon Component */
+function GoogleIcon() {
+  return (
+    <View className="h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm">
+      <Ionicons name="logo-google" size={18} color="#EA4335" />
+    </View>
+  );
+}
+
 export function LoginScreen() {
   const colors = useThemeStore((s) => s.colors);
   const navigation =
     useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-  const signIn = useAuthStore((s) => s.signIn);
+  const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
 
-  const passwordRef = useRef<RNTextInput>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const submit = async () => {
-    const next: FormErrors = {};
-    if (!EMAIL_RE.test(email.trim())) next.email = "Format email tidak valid";
-    if (password.length === 0) next.password = "Password wajib diisi";
-    setErrors(next);
-    if (next.email || next.password) return;
-
+  const handleGoogleLogin = async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
-      const failure = await signIn(email.trim(), password);
-      if (failure) setErrors({ form: failure });
+      const result = await signInWithGoogle();
+      if (result.error) {
+        if (!result.error.toLowerCase().includes("batal")) {
+          setErrorMessage(result.error);
+        }
+      } else if (result.isNewUser) {
+        navigation.navigate("CompleteProfile");
+      }
     } catch {
-      setErrors({ form: "Gagal masuk. Terjadi kesalahan jaringan." });
+      setErrorMessage("Gagal masuk dengan Google. Periksa koneksi kamu.");
     } finally {
       setLoading(false);
     }
@@ -69,117 +61,81 @@ export function LoginScreen() {
     <View className="flex-1 bg-bg">
       <AmbientGlow />
       <AuthFormLayout>
-        <View className="items-center mt-6">
+        <View className="items-center mt-8">
           <BrandLogo size="lg" />
         </View>
 
-        <View className="mt-8 mb-8 items-center">
-          <Text 
+        <View className="mt-8 mb-6 items-center">
+          <Text
             className="text-[28px] font-extrabold tracking-tight text-text text-center"
             style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
           >
             Selamat Datang
           </Text>
-          <Text 
-            className="mt-2 text-sm text-text-dim text-center"
+          <Text
+            className="mt-2 text-sm text-text-dim text-center px-6"
             style={{ fontFamily: "PlusJakartaSans_500Medium" }}
           >
-            Masuk untuk melanjutkan ke Gaul FM
+            Masuk dengan akun Google untuk mendengarkan siaran live dan berinteraksi di Gaul FM Semarang.
           </Text>
         </View>
 
-        <View className="gap-5">
-          <TextInput
-            label="Email"
-            icon="mail-outline"
-            placeholder="nama@email.com"
-            keyboardType="email-address"
-            autoComplete="email"
-            value={email}
-            onChangeText={setEmail}
-            error={errors.email}
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-          />
-
-          <View>
-            <TextInput
-              ref={passwordRef}
-              label="Password"
-              icon="lock-closed-outline"
-              placeholder="••••••••"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              error={errors.password}
-              returnKeyType="done"
-              onSubmitEditing={() => void submit()}
-            />
-            <Pressable
-              onPress={() => navigation.navigate("ForgotPassword")}
-              accessibilityRole="link"
-              hitSlop={8}
-              className="mt-2 min-h-11 items-end justify-center"
-            >
-              <Text 
-                className="text-sm font-semibold text-orange"
-                style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-              >
-                Lupa password?
-              </Text>
-            </Pressable>
+        {errorMessage ? (
+          <View className="mb-4 flex-row items-center gap-2 rounded-xl border border-live/40 bg-live/10 px-4 py-3">
+            <Ionicons name="alert-circle-outline" size={18} color={colors.live} />
+            <Text className="flex-1 text-sm font-medium text-live">
+              {errorMessage}
+            </Text>
           </View>
+        ) : null}
 
-          {errors.form ? (
-            <View className="flex-row items-center gap-2 rounded-xl border border-live/40 bg-live/10 px-4 py-3 mt-1">
-              <Ionicons
-                name="alert-circle-outline"
-                size={18}
-                color={colors.live}
-              />
-              <Text className="flex-1 text-sm font-medium text-live">
-                {errors.form}
-              </Text>
-            </View>
-          ) : null}
+        {/* Tombol Utama Google Sign In */}
+        <View className="mt-2 gap-4">
+          <Pressable
+            onPress={() => void handleGoogleLogin()}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Masuk dengan Akun Google"
+            className="flex-row items-center justify-center gap-3.5 rounded-2xl border border-line bg-surface px-5 py-4 shadow-sm active:opacity-80"
+            style={{ minHeight: 56 }}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.brand} size="small" />
+            ) : (
+              <>
+                <GoogleIcon />
+                <Text
+                  className="text-[15px] font-bold text-text tracking-wide"
+                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                >
+                  Masuk dengan Akun Google
+                </Text>
+              </>
+            )}
+          </Pressable>
 
-          <View className="mt-2">
-            <Button
-              title="Masuk"
-              variant="cta"
-              onPress={() => void submit()}
-              loading={loading}
+          <View className="mt-2 flex-row items-start gap-2.5 rounded-2xl bg-surface-2/60 p-4 border border-line/40">
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              color={colors.brand}
+              style={{ marginTop: 1 }}
             />
-          </View>
-
-          {__DEV__ && (
-            <Pressable
-              onPress={() => {
-                setEmail("dev@gaulfm.com");
-                setPassword("devpassword123");
-                setErrors({});
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Isi otomatis akun developer"
-              className="mt-2 py-1.5 px-3 rounded-full bg-surface-2 border border-brand/30 self-center flex-row items-center gap-1.5 active:opacity-80"
+            <Text
+              className="flex-1 text-xs leading-5 text-text-dim"
+              style={{ fontFamily: "PlusJakartaSans_500Medium" }}
             >
-              <Ionicons name="flash" size={13} color="#00C7BE" />
-              <Text 
-                className="text-xs font-bold text-brand"
-                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-              >
-                Isi Cepat Akun Dev
-              </Text>
-            </Pressable>
-          )}
+              Gaul FM menggunakan Akun Google untuk kemudahan login 1-klik yang aman tanpa perlu menghafal kata sandi.
+            </Text>
+          </View>
         </View>
 
-        <View className="mt-10 flex-row items-center justify-center gap-1 pb-4">
-          <Text 
+        <View className="mt-12 flex-row items-center justify-center gap-1.5 pb-6">
+          <Text
             className="text-sm text-text-dim"
             style={{ fontFamily: "PlusJakartaSans_500Medium" }}
           >
-            Belum punya akun?
+            Belum pernah mendaftar?
           </Text>
           <Pressable
             onPress={() => navigation.navigate("Register")}
@@ -187,11 +143,11 @@ export function LoginScreen() {
             hitSlop={8}
             className="min-h-11 justify-center px-1"
           >
-            <Text 
+            <Text
               className="text-sm font-bold text-brand"
               style={{ fontFamily: "PlusJakartaSans_700Bold" }}
             >
-              Daftar sekarang
+              Daftar di sini
             </Text>
           </Pressable>
         </View>

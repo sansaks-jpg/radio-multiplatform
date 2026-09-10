@@ -60,7 +60,7 @@ function applyResolved(
 }
 
 const initialSystemScheme = Appearance.getColorScheme();
-const initialPreference: ThemePreference = "system";
+const initialPreference: ThemePreference = "dark";
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   preference: initialPreference,
@@ -74,7 +74,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       const preference: ThemePreference =
         raw === "light" || raw === "dark" || raw === "system"
           ? raw
-          : "system";
+          : "dark";
       const systemScheme = Appearance.getColorScheme();
       set({
         preference,

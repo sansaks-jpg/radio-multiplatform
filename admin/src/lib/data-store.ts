@@ -156,6 +156,7 @@ export async function syncFromSupabase() {
         full_name: p.full_name,
         email: p.email,
         whatsapp: p.whatsapp_number ?? p.whatsapp ?? null,
+        gender: p.gender ?? null,
         device_os: p.device_os ?? null,
         device_model: p.device_model ?? null,
         city: p.location_city ?? p.city ?? null,
