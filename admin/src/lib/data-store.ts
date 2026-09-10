@@ -49,8 +49,7 @@ function persist() {
   }
 }
 
-export const DEFAULT_PROGRAM_COVER =
-  "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg";
+export const DEFAULT_PROGRAM_COVER = "/programs/gaul-morning-show.png";
 
 export function resolveProgramCover(
   programName: string,
@@ -58,11 +57,26 @@ export function resolveProgramCover(
   programsList: Program[] = snapshot.programs,
   announcersList: Announcer[] = snapshot.announcers
 ): string {
-  // Jika candidateCover adalah foto profil salah satu penyiar, abaikan!
+  const norm = (programName || "").trim().toLowerCase();
+  if (norm.includes("morning")) {
+    return "/programs/gaul-morning-show.png";
+  }
+  if (norm.includes("setempat") || norm.includes("waktu")) {
+    return "/programs/gaul-waktu-setempat.png";
+  }
+  if (norm.includes("asupan")) {
+    return "/programs/asupan-gaul.png";
+  }
+
+  // Jika candidateCover adalah foto profil salah satu penyiar atau link prototype lama, abaikan!
   const isAnnouncerPhoto = announcersList.some(
     (a) => a.photo_url && a.photo_url === candidateCover
   );
-  if (candidateCover && !isAnnouncerPhoto) {
+  if (
+    candidateCover &&
+    !isAnnouncerPhoto &&
+    !candidateCover.includes("WhatsApp-Image")
+  ) {
     return candidateCover;
   }
 
@@ -70,12 +84,14 @@ export function resolveProgramCover(
   const matched = programsList.find(
     (p) => p.name.trim().toLowerCase() === (programName || "").trim().toLowerCase()
   );
-  if (matched?.cover_url) {
+  if (matched?.cover_url && !matched.cover_url.includes("WhatsApp-Image")) {
     return matched.cover_url;
   }
 
-  // Jika tidak ditemukan kecocokan nama, cari program yang memiliki cover_url
-  const anyProgramWithCover = programsList.find((p) => Boolean(p.cover_url));
+  // Jika tidak ditemukan kecocokan nama, cari program yang memiliki cover_url valid
+  const anyProgramWithCover = programsList.find(
+    (p) => Boolean(p.cover_url) && !p.cover_url?.includes("WhatsApp-Image")
+  );
   return anyProgramWithCover?.cover_url || DEFAULT_PROGRAM_COVER;
 }
 

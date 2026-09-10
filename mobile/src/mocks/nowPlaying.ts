@@ -9,6 +9,6 @@ export const mockNowPlaying: NowPlaying = {
   current_program: "Gaul FM Live",
   current_host: "87.8 Gaul FM Semarang",
   current_cover_url:
-    "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg",
+    "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/gaul-morning-show.png",
   updated_at: new Date().toISOString(),
 };

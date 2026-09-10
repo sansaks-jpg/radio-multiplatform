@@ -9,6 +9,7 @@ import { useIcecastStats } from "../../hooks/useIcecastStats";
 import { usePrograms } from "../../hooks/usePrograms";
 import { isOnAirNow, todayDow } from "../../utils/datetime";
 import { getOfficialLiveHost } from "../../utils/announcer";
+import { getProgramArtwork } from "../../utils/programAssets";
 import { MarqueeText } from "../ui/MarqueeText";
 import type { MainTabParamList } from "../../types";
 
@@ -67,17 +68,11 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
             className="min-w-0 flex-1 flex-row items-center gap-3 active:opacity-90"
           >
             <View className="h-12 w-12 overflow-hidden rounded-md bg-surface-3">
-              {displayCover ? (
-                <Image
-                  source={{ uri: displayCover }}
-                  style={{ width: 48, height: 48 }}
-                  contentFit="cover"
-                />
-              ) : (
-                <View className="h-12 w-12 items-center justify-center">
-                  <Ionicons name="radio" size={22} color={colors.brand} />
-                </View>
-              )}
+              <Image
+                source={getProgramArtwork(displayTitle, displayCover)}
+                style={{ width: 48, height: 48 }}
+                contentFit="cover"
+              />
             </View>
 
             <View className="min-w-0 flex-1">

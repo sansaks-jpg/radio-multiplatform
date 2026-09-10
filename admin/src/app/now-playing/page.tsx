@@ -17,7 +17,11 @@ import {
 } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
 import { useToday } from "@/hooks/useToday";
-import { setBroadcasterOnAir, updateNowPlaying } from "@/lib/data-store";
+import {
+  resolveProgramCover,
+  setBroadcasterOnAir,
+  updateNowPlaying,
+} from "@/lib/data-store";
 import type { Announcer, Program } from "@/lib/types";
 import { PageHeader, StatCard } from "@/components/ui/page-header";
 import {
@@ -36,20 +40,16 @@ import { DAY_NAMES, formatDateTime, formatRelative } from "@/lib/utils";
 /** Preset cover gambar resmi studio agar penyiar tidak perlu mengetik URL saat siaran khusus */
 const STUDIO_COVER_PRESETS = [
   {
-    label: "Studio Live",
-    url: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&auto=format&fit=crop&q=80",
+    label: "Gaul Morning Show",
+    url: "/programs/gaul-morning-show.png",
   },
   {
-    label: "Musik Hits",
-    url: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80",
+    label: "Gaul Waktu Setempat",
+    url: "/programs/gaul-waktu-setempat.png",
   },
   {
-    label: "Talkshow & Relai",
-    url: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&auto=format&fit=crop&q=80",
-  },
-  {
-    label: "Sore Santai",
-    url: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&auto=format&fit=crop&q=80",
+    label: "Asupan Gaul",
+    url: "/programs/asupan-gaul.png",
   },
 ];
 
@@ -103,21 +103,13 @@ export default function NowPlayingPage() {
 
   // Cover resmi program yang sedang mengudara (tidak boleh foto penyiar & tidak boleh kosong)
   const activeCoverUrl = useMemo(() => {
-    const isAnnouncerPhoto = announcers.some(
-      (a) => a.photo_url && a.photo_url === nowPlaying.current_cover_url
+    return resolveProgramCover(
+      nowPlaying.current_program,
+      nowPlaying.current_cover_url,
+      programs,
+      announcers
     );
-    if (nowPlaying.current_cover_url && !isAnnouncerPhoto) {
-      return nowPlaying.current_cover_url;
-    }
-    const matched = programs.find(
-      (p) => p.name.trim().toLowerCase() === nowPlaying.current_program.trim().toLowerCase()
-    );
-    return (
-      matched?.cover_url ||
-      scheduledNowProgram?.cover_url ||
-      "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg"
-    );
-  }, [announcers, nowPlaying, programs, scheduledNowProgram]);
+  }, [announcers, nowPlaying, programs]);
 
   // 1-Klik aktifkan penyiar yang bertugas
   const handleSelectAnnouncer = (announcer: Announcer) => {
@@ -135,9 +127,12 @@ export default function NowPlayingPage() {
   const handleActivateProgram = (p: Program) => {
     // Pertahankan penyiar on-air yang sudah dipilih (jika ada)
     const hostToUse = nowPlaying.current_host || "";
-    const coverToUse =
-      p.cover_url ||
-      "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-25-at-15.19.18.jpeg";
+    const coverToUse = resolveProgramCover(
+      p.name,
+      p.cover_url,
+      programs,
+      announcers
+    );
 
     updateNowPlaying({
       current_program: p.name,

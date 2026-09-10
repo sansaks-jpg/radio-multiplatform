@@ -8,6 +8,7 @@ import { usePlayerControls } from "../../hooks/usePlayerControls";
 import { useIcecastStats } from "../../hooks/useIcecastStats";
 import { formatDurationMinutes, getProgramProgress } from "../../utils/datetime";
 import { getOfficialLiveHost } from "../../utils/announcer";
+import { getProgramArtwork } from "../../utils/programAssets";
 import type { Program } from "../../types";
 
 interface HomeHeroProps {
@@ -55,20 +56,12 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
         className="active:opacity-95"
       >
         <View className="h-[210px] w-full overflow-hidden rounded-t-[28px] bg-surface-3 relative">
-          {cover ? (
-            <Image
-              source={{ uri: cover }}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-              transition={280}
-            />
-          ) : (
-            <View className="h-full w-full items-center justify-center">
-              <View className="h-24 w-24 items-center justify-center rounded-full bg-brand/15">
-                <Ionicons name="radio" size={48} color={colors.brand} />
-              </View>
-            </View>
-          )}
+          <Image
+            source={getProgramArtwork(title, cover)}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            transition={280}
+          />
 
           {/* Gradient scrims for text visibility and badge */}
           <View className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-black/60 to-transparent" />

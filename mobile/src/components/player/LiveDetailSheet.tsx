@@ -27,6 +27,7 @@ import { LiveBadge } from "./LiveBadge";
 import { MediaMtxVisualPlayer } from "./MediaMtxVisualPlayer";
 import { DAY_FULL_ID, formatDistanceToNow } from "../../utils/datetime";
 import { getOfficialLiveHost } from "../../utils/announcer";
+import { getProgramArtwork } from "../../utils/programAssets";
 
 interface LiveDetailSheetProps {
   visible: boolean;
@@ -176,6 +177,7 @@ export function LiveDetailSheet({
   const [draftMessage, setDraftMessage] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const [programInfoOpen, setProgramInfoOpen] = useState(false);
+  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
   const isVisualActive = usePlayerStore((s) => s.isVisualActive);
   const setIsVisualActive = usePlayerStore((s) => s.setIsVisualActive);
   const prevVisibleRef = useRef(visible);
@@ -217,6 +219,7 @@ export function LiveDetailSheet({
       setDraftMessage("");
       setInputFocused(false);
       setProgramInfoOpen(false);
+      setIsChatFullscreen(false);
 
       if (isVisualActive) {
         // Tetap simpan preferensi di playerStore agar saat dibuka kembali tetap visual,
@@ -236,6 +239,7 @@ export function LiveDetailSheet({
   const cover =
     matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
   const title = matchedProgram?.name ?? nowPlaying.current_program;
+  const programArtwork = getProgramArtwork(title, cover);
   const host = liveHost || "87.8 FM Semarang";
   const keyboardOpen = keyboardHeight > 0;
 
@@ -298,107 +302,82 @@ export function LiveDetailSheet({
           paddingBottom: bottomLift,
         }}
       >
-        {/* ── Top chrome ── */}
-        <View className="flex-row items-center justify-between px-3 py-1">
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Tutup"
-            hitSlop={10}
-            className="min-h-11 min-w-11 items-center justify-center rounded-full bg-surface-2"
+        {/* ── Visual Radio Player (persistent WebRTC/WHEP agar audio & video tidak terputus saat fullscreen chat) ── */}
+        {isVisualActive ? (
+          <View
+            style={
+              isChatFullscreen
+                ? {
+                    position: "absolute",
+                    width: 1,
+                    height: 1,
+                    opacity: 0,
+                    overflow: "hidden",
+                  }
+                : undefined
+            }
+            pointerEvents={isChatFullscreen ? "none" : "auto"}
+            className={isChatFullscreen ? undefined : "w-full overflow-hidden bg-surface"}
           >
-            <Ionicons name="chevron-down" size={22} color={colors.text} />
-          </Pressable>
-          <Text
-            className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
-            style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-          >
-            Siaran live
-          </Text>
-          <View className="min-h-11 min-w-11" />
-        </View>
-
-        {/* ── Banner: Full width edge-to-edge 16:9 on both visual radio and audio mode ── */}
-        <View className="w-full overflow-hidden bg-surface">
-          {isVisualActive ? (
             <MediaMtxVisualPlayer onCloseVisual={handleToggleVisual} />
-          ) : !keyboardOpen ? (
-            <View className="relative aspect-[16/9] w-full bg-surface-2">
-              {cover ? (
+          </View>
+        ) : null}
+
+        {/* ── MODE 1: FULLSCREEN CHAT (Compact Header dengan Logo Program Kecil) ── */}
+        {isChatFullscreen ? (
+          <View className="flex-row items-center justify-between border-b border-line/30 bg-surface-2 px-3 py-2">
+            {/* Kiri: Logo Program Kecil + Judul Program Ringkas */}
+            <View className="min-w-0 flex-1 flex-row items-center gap-2.5">
+              {/* Logo Program Kecil Resmi */}
+              <View className="h-9 w-9 overflow-hidden rounded-lg border border-brand/35 bg-surface-3">
                 <Image
-                  source={{ uri: cover }}
-                  style={{ width: "100%", height: "100%" }}
+                  source={programArtwork}
+                  style={{ width: 36, height: 36 }}
                   contentFit="cover"
-                  transition={200}
+                  transition={150}
                 />
-              ) : (
-                <View className="h-full w-full items-center justify-center">
-                  <Ionicons name="radio" size={48} color={colors.brand} />
-                </View>
-              )}
-              <View className="absolute left-2.5 top-2.5">
-                <LiveBadge active={streamHealthy} size="sm" />
               </View>
 
-              {/* ── Visual Radio Toggle Button ── */}
-              <Pressable
-                onPress={handleToggleVisual}
-                accessibilityRole="button"
-                accessibilityLabel="Beralih ke Visual Radio"
-                className="absolute right-2.5 top-2.5 flex-row items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 active:opacity-85"
-              >
-                <Ionicons name="videocam" size={14} color={colors.onBrand} />
-                <Text
-                  className="text-xs font-bold text-onbrand"
-                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                >
-                  Visual Radio
-                </Text>
-              </Pressable>
-
-              <View className="absolute bottom-2.5 right-2.5 flex-row items-center gap-1 rounded-full bg-black/55 px-2 py-1">
-                <Ionicons name="eye" size={12} color="#FFFFFF" />
-                <Text
-                  className="text-[11px] font-bold text-white"
-                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                >
-                  {listenerLabel}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-
-          {!keyboardOpen || !isVisualActive ? (
-            <View className="flex-row items-center gap-3 px-4 py-3">
-              {keyboardOpen && cover ? (
-                <View className="h-11 w-11 overflow-hidden rounded-md bg-surface-2">
-                  <Image
-                    source={{ uri: cover }}
-                    style={{ width: 44, height: 44 }}
-                    contentFit="cover"
-                  />
-                </View>
-              ) : null}
+              {/* Teks Judul & Status On Air */}
               <View className="min-w-0 flex-1">
                 <Text
-                  className="text-base font-extrabold text-text"
-                  numberOfLines={keyboardOpen ? 1 : 2}
-                  style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                  className="text-xs font-bold text-text"
+                  numberOfLines={1}
+                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
                 >
                   {title}
                 </Text>
-                <View className="mt-1 flex-row items-center gap-1">
-                  <Ionicons name="mic" size={12} color={colors.brand} />
+                <View className="mt-0.5 flex-row items-center gap-1.5">
+                  <View className="flex-row items-center gap-1">
+                    <View
+                      style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: 3,
+                        backgroundColor: colors.live,
+                      }}
+                    />
+                    <Text
+                      className="text-[9px] font-bold uppercase tracking-wider text-live"
+                      style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                    >
+                      Live
+                    </Text>
+                  </View>
+                  <Text className="text-[9px] text-text-dim">·</Text>
                   <Text
-                    className="text-xs font-semibold text-brand"
+                    className="text-[10px] font-medium text-brand"
                     numberOfLines={1}
-                    style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                    style={{ fontFamily: "PlusJakartaSans_500Medium" }}
                   >
-                    {host}
+                    {isVisualActive ? "Visual Studio" : host}
                   </Text>
                 </View>
               </View>
+            </View>
 
+            {/* Kanan: Mini Play/Stop + SATU-SATUNYA Tombol Kecilkan */}
+            <View className="flex-row items-center gap-2 pl-2">
               <Pressable
                 onPress={() => {
                   if (isVisualActive) {
@@ -416,7 +395,7 @@ export function LiveDetailSheet({
                     ? "Stop siaran"
                     : "Putar siaran"
                 }
-                className={`h-12 w-12 items-center justify-center rounded-full active:opacity-90 ${
+                className={`h-8 w-8 items-center justify-center rounded-full active:opacity-90 ${
                   isVisualActive ? "bg-surface-3" : "bg-orange"
                 }`}
                 style={isVisualActive ? undefined : glow.orange}
@@ -425,42 +404,249 @@ export function LiveDetailSheet({
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <Ionicons
-                    name={isVisualActive ? "close" : isPlaying ? "stop" : "play"}
-                    size={20}
-                    color={isVisualActive ? colors.textDim : "#FFFFFF"}
-                    style={{ marginLeft: isPlaying || isVisualActive ? 0 : 2 }}
+                    name={isVisualActive ? "videocam" : isPlaying ? "stop" : "play"}
+                    size={15}
+                    color={isVisualActive ? colors.brand : "#FFFFFF"}
+                    style={{ marginLeft: !isVisualActive && !isPlaying ? 1.5 : 0 }}
                   />
                 )}
               </Pressable>
-            </View>
-          ) : null}
 
-          {!keyboardOpen ? (
-            <View className="border-t border-line/30 px-4 py-2.5">
+              {/* Satu-satunya tombol Kecilkan di layar */}
               <Pressable
-                onPress={() => setProgramInfoOpen(true)}
+                onPress={() => setIsChatFullscreen(false)}
                 accessibilityRole="button"
-                accessibilityLabel="Lihat detail program dan penyiar"
-                className="min-h-10 w-full flex-row items-center justify-center gap-1.5 rounded-md bg-surface-2 active:opacity-85"
+                accessibilityLabel="Kecilkan live chat"
+                hitSlop={8}
+                className="flex-row items-center gap-1 rounded-full bg-surface-3 px-2.5 py-1.5 border border-line/40 active:opacity-80"
               >
-                <Ionicons
-                  name="information-circle-outline"
-                  size={16}
-                  color={colors.brand}
-                />
+                <Ionicons name="contract-outline" size={14} color={colors.text} />
                 <Text
-                  className="text-xs font-bold text-brand"
-                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                  className="text-[11px] font-semibold text-text"
+                  style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
                 >
-                  Detail program & penyiar
+                  Kecilkan
                 </Text>
               </Pressable>
             </View>
-          ) : null}
-        </View>
+          </View>
+        ) : (
+          /* ── MODE 2: SPLIT VIEW NORMAL (Top Chrome + Banner + Program Info) ── */
+          <>
+            {/* ── Top chrome ── */}
+            <View className="flex-row items-center justify-between px-3 py-1">
+              <Pressable
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="Tutup"
+                hitSlop={10}
+                className="min-h-11 min-w-11 items-center justify-center rounded-full bg-surface-2"
+              >
+                <Ionicons name="chevron-down" size={22} color={colors.text} />
+              </Pressable>
+              <Text
+                className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
+                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+              >
+                Siaran live
+              </Text>
+              <View className="min-h-11 min-w-11" />
+            </View>
 
-        {/* ── Chat header ── */}
-        {!keyboardOpen ? (
+            {/* ── Audio Banner Mode (jika visual tidak aktif) ── */}
+            {!isVisualActive ? (
+              <View className="w-full overflow-hidden bg-surface">
+                {!keyboardOpen ? (
+                  <View className="relative aspect-[16/9] w-full bg-surface-2">
+                    <Image
+                      source={programArtwork}
+                      style={{ width: "100%", height: "100%" }}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                    <View className="absolute left-2.5 top-2.5">
+                      <LiveBadge active={streamHealthy} size="sm" />
+                    </View>
+
+                    {/* ── Visual Radio Toggle Button ── */}
+                    <Pressable
+                      onPress={handleToggleVisual}
+                      accessibilityRole="button"
+                      accessibilityLabel="Beralih ke Visual Radio"
+                      className="absolute right-2.5 top-2.5 flex-row items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 active:opacity-85"
+                    >
+                      <Ionicons name="videocam" size={14} color={colors.onBrand} />
+                      <Text
+                        className="text-xs font-bold text-onbrand"
+                        style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                      >
+                        Visual Radio
+                      </Text>
+                    </Pressable>
+
+                    <View className="absolute bottom-2.5 right-2.5 flex-row items-center gap-1 rounded-full bg-black/55 px-2 py-1">
+                      <Ionicons name="eye" size={12} color="#FFFFFF" />
+                      <Text
+                        className="text-[11px] font-bold text-white"
+                        style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                      >
+                        {listenerLabel}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+
+                {!keyboardOpen ? (
+                  <View className="flex-row items-center gap-3 px-4 py-3">
+                    <View className="min-w-0 flex-1">
+                      <Text
+                        className="text-base font-extrabold text-text"
+                        numberOfLines={2}
+                        style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                      >
+                        {title}
+                      </Text>
+                      <View className="mt-1 flex-row items-center gap-1">
+                        <Ionicons name="mic" size={12} color={colors.brand} />
+                        <Text
+                          className="text-xs font-semibold text-brand"
+                          numberOfLines={1}
+                          style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                        >
+                          {host}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      onPress={() => void toggle()}
+                      disabled={isBuffering}
+                      accessibilityRole="button"
+                      accessibilityLabel={isPlaying ? "Stop siaran" : "Putar siaran"}
+                      className="h-12 w-12 items-center justify-center rounded-full bg-orange active:opacity-90"
+                      style={glow.orange}
+                    >
+                      {isBuffering ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Ionicons
+                          name={isPlaying ? "stop" : "play"}
+                          size={20}
+                          color="#FFFFFF"
+                          style={{ marginLeft: isPlaying ? 0 : 2 }}
+                        />
+                      )}
+                    </Pressable>
+                  </View>
+                ) : null}
+
+                {!keyboardOpen ? (
+                  <View className="border-t border-line/30 px-4 py-2.5">
+                    <Pressable
+                      onPress={() => setProgramInfoOpen(true)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Lihat detail program dan penyiar"
+                      className="min-h-10 w-full flex-row items-center justify-center gap-1.5 rounded-md bg-surface-2 active:opacity-85"
+                    >
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={16}
+                        color={colors.brand}
+                      />
+                      <Text
+                        className="text-xs font-bold text-brand"
+                        style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                      >
+                        Detail program & penyiar
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </View>
+            ) : (
+              /* ── Visual Info Bar (di bawah video visual radio saat mode normal) ── */
+              <View className="w-full bg-surface">
+                {!keyboardOpen ? (
+                  <View className="flex-row items-center gap-3 px-4 py-3">
+                    <View className="min-w-0 flex-1">
+                      <Text
+                        className="text-base font-extrabold text-text"
+                        numberOfLines={2}
+                        style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                      >
+                        {title}
+                      </Text>
+                      <View className="mt-1 flex-row items-center gap-1">
+                        <Ionicons name="mic" size={12} color={colors.brand} />
+                        <Text
+                          className="text-xs font-semibold text-brand"
+                          numberOfLines={1}
+                          style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                        >
+                          {host}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      onPress={handleToggleVisual}
+                      accessibilityRole="button"
+                      accessibilityLabel="Tutup visual radio, lanjutkan audio"
+                      className="h-12 w-12 items-center justify-center rounded-full bg-surface-3 active:opacity-90"
+                    >
+                      <Ionicons name="close" size={20} color={colors.textDim} />
+                    </Pressable>
+                  </View>
+                ) : null}
+
+                {!keyboardOpen ? (
+                  <View className="border-t border-line/30 px-4 py-2.5">
+                    <Pressable
+                      onPress={() => setProgramInfoOpen(true)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Lihat detail program dan penyiar"
+                      className="min-h-10 w-full flex-row items-center justify-center gap-1.5 rounded-md bg-surface-2 active:opacity-85"
+                    >
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={16}
+                        color={colors.brand}
+                      />
+                      <Text
+                        className="text-xs font-bold text-brand"
+                        style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                      >
+                        Detail program & penyiar
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </View>
+            )}
+          </>
+        )}
+
+        {/* ── Chat Header & Fullscreen Toggle ── */}
+        {isChatFullscreen ? (
+          <View className="mt-2 mb-1 flex-row items-center justify-between px-4">
+            <View className="flex-row items-center gap-2">
+              <Text
+                className="text-xs font-extrabold uppercase tracking-wider text-text"
+                style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+              >
+                Live Chat
+              </Text>
+              <View className="rounded-full bg-surface-2 px-2 py-0.5 border border-line/30">
+                <Text
+                  className="text-[10px] font-semibold text-text-dim"
+                  style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                >
+                  {comments.length} pesan
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : !keyboardOpen ? (
           <View className="mt-3 mb-1 flex-row items-center justify-between px-4">
             <View className="flex-row items-center gap-2">
               <Text
@@ -486,21 +672,58 @@ export function LiveDetailSheet({
                 </Text>
               </View>
             </View>
-            <Text
-              className="text-[11px] font-semibold text-text-dim"
-              style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-            >
-              {comments.length} pesan
-            </Text>
+
+            <View className="flex-row items-center gap-2.5">
+              <Text
+                className="text-[11px] font-semibold text-text-dim"
+                style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+              >
+                {comments.length} pesan
+              </Text>
+
+              {/* Tombol Fullscreen Chat */}
+              <Pressable
+                onPress={() => setIsChatFullscreen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Buka layar penuh live chat"
+                hitSlop={8}
+                className="flex-row items-center gap-1 rounded-full border border-brand/40 bg-brand/10 px-2.5 py-1 active:opacity-75"
+              >
+                <Ionicons name="expand-outline" size={13} color={colors.brand} />
+                <Text
+                  className="text-[11px] font-bold text-brand"
+                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                >
+                  Layar penuh
+                </Text>
+              </Pressable>
+            </View>
           </View>
         ) : (
-          <View className="mt-2 mb-1 px-4">
+          <View className="mt-2 mb-1 flex-row items-center justify-between px-4">
             <Text
               className="text-xs font-bold uppercase tracking-widest text-text-dim"
               style={{ fontFamily: "PlusJakartaSans_700Bold" }}
             >
               Live chat · {comments.length}
             </Text>
+
+            {/* Tombol Fullscreen Chat saat Keyboard Terbuka */}
+            <Pressable
+              onPress={() => setIsChatFullscreen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Buka layar penuh live chat"
+              hitSlop={8}
+              className="flex-row items-center gap-1 rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5 active:opacity-75"
+            >
+              <Ionicons name="expand-outline" size={12} color={colors.brand} />
+              <Text
+                className="text-[10px] font-bold text-brand"
+                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+              >
+                Layar penuh
+              </Text>
+            </Pressable>
           </View>
         )}
 

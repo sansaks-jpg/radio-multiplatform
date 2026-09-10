@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "../../stores/themeStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { getOfficialLiveHost } from "../../utils/announcer";
+import { getProgramArtwork } from "../../utils/programAssets";
 import type { Program } from "../../types";
 
 export type ProgramCardStatus = "live" | "upNext" | "upcoming" | "done";
@@ -93,18 +94,12 @@ export function ProgramCard({
             isLive ? "h-16 w-16 border-orange/20 shadow-sm" : "h-[54px] w-[54px] border-line/20"
           }`}
         >
-          {displayCover ? (
-            <Image
-              source={{ uri: displayCover }}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-              transition={200}
-            />
-          ) : (
-            <View className="h-full w-full items-center justify-center">
-              <Ionicons name="mic" size={22} color={colors.brand} />
-            </View>
-          )}
+          <Image
+            source={getProgramArtwork(program.name, displayCover)}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            transition={200}
+          />
         </View>
 
         {/* Meta */}

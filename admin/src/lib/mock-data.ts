@@ -32,7 +32,7 @@ function buildPrograms(): Program[] {
       end_time: "10:00",
       description:
         "Mulai pagi dengan hits terbaru, info lalu lintas Semarang, dan obrolan seru bareng Gaul Squad.",
-      cover: 0,
+      cover_url: "/programs/gaul-morning-show.png",
     },
     {
       name: "Gaul Waktu Setempat",
@@ -41,7 +41,7 @@ function buildPrograms(): Program[] {
       end_time: "18:00",
       description:
         "Nemenin sore pulang: musik hits, obrolan santai, dan update waktu setempat di 87.8 MHz.",
-      cover: 3,
+      cover_url: "/programs/gaul-waktu-setempat.png",
     },
     {
       name: "Asupan Gaul",
@@ -50,7 +50,7 @@ function buildPrograms(): Program[] {
       end_time: "22:00",
       description:
         "Asupan musik gaul malam hari di 87.8 FM: playlist pilihan, curhat, dan obrolan hangat anak muda.",
-      cover: 4,
+      cover_url: "/programs/asupan-gaul.png",
     },
   ];
 
@@ -64,7 +64,7 @@ function buildPrograms(): Program[] {
         day_of_week: day,
         start_time: p.start_time,
         end_time: p.end_time,
-        cover_url: cover(p.cover),
+        cover_url: p.cover_url,
         description: p.description,
       });
     });

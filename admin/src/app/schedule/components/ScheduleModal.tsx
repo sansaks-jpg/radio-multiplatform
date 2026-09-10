@@ -22,20 +22,16 @@ interface ScheduleModalProps {
 
 const PRESET_COVERS = [
   {
-    label: "Cover Utama Gaul FM",
-    url: DEFAULT_PROGRAM_COVER,
+    label: "Gaul Morning Show (Resmi)",
+    url: "/programs/gaul-morning-show.png",
   },
   {
-    label: "Studio Live Gaul FM",
-    url: "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg",
+    label: "Gaul Waktu Setempat (Resmi)",
+    url: "/programs/gaul-waktu-setempat.png",
   },
   {
-    label: "Gaul Squad Mic",
-    url: "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.33.37.jpeg",
-  },
-  {
-    label: "On Air Vibe",
-    url: "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-26-at-12.28.41.jpeg",
+    label: "Asupan Gaul (Resmi)",
+    url: "/programs/asupan-gaul.png",
   },
 ];
 

@@ -20,6 +20,7 @@ import {
 } from "../../hooks/usePrograms";
 import { useAnnouncers } from "../../hooks/useAnnouncers";
 import { isHostOnAir } from "../../utils/announcer";
+import { getProgramArtwork } from "../../utils/programAssets";
 import {
   DAY_FULL_ID,
   DAY_SHORT_ID,
@@ -222,18 +223,12 @@ export function ProgramDetailScreen() {
         <View>
           {/* Hero */}
           <View className="relative aspect-[16/10] w-full bg-surface-3">
-            {program.cover_url ? (
-              <Image
-                source={{ uri: program.cover_url }}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="cover"
-                transition={280}
-              />
-            ) : (
-              <View className="h-full w-full items-center justify-center">
-                <Ionicons name="mic" size={56} color={colors.brand} />
-              </View>
-            )}
+            <Image
+              source={getProgramArtwork(program.name, program.cover_url)}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+              transition={280}
+            />
             <View className="absolute inset-x-0 bottom-0 h-3/5 bg-black/55" />
             <View className="absolute inset-x-0 bottom-0 h-1/3 bg-black/30" />
 
