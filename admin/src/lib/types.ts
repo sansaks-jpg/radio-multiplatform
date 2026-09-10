@@ -32,6 +32,7 @@ export interface NewsItem {
   category: string | null;
   published_at: string;
   synced_at: string;
+  url?: string | null;
 }
 
 export interface Profile {

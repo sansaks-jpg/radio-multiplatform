@@ -18,6 +18,7 @@ import type {
 } from "./types";
 import { uid } from "./utils";
 import { supabase } from "./supabase";
+import { fetchWpNews } from "./wordpress";
 
 const STORAGE_KEY = "gaulfm-admin-v1";
 
@@ -562,6 +563,16 @@ export function copyDaySchedule(
 
 /* ---------- News ---------- */
 
+export function setNewsItems(items: NewsItem[], syncTime?: string) {
+  const stamp = syncTime || new Date().toISOString();
+  snapshot = {
+    ...snapshot,
+    news: items,
+    lastNewsSyncAt: stamp,
+  };
+  emit();
+}
+
 export async function syncNewsFromWordPress(): Promise<{
   added: number;
   news: NewsItem[];
@@ -570,78 +581,53 @@ export async function syncNewsFromWordPress(): Promise<{
   let itemsToInsert: NewsItem[] = [];
 
   try {
-    const res = await fetch(
-      "https://radiogaulfmsmg.com/wp-json/wp/v2/posts?_embed&per_page=10",
-      { signal: AbortSignal.timeout(4000) }
-    );
-    if (res.ok) {
-      const posts = await res.json();
-      if (Array.isArray(posts) && posts.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        itemsToInsert = posts.map((post: any) => ({
-          id: `wp-${post.id}`,
-          wp_post_id: post.id,
-          title: post.title?.rendered
-            ? post.title.rendered.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&")
-            : "Berita Gaul FM",
-          content: post.content?.rendered || "",
-          image_url:
-            post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
-            "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg",
-          category: post._embedded?.["wp:term"]?.[0]?.[0]?.name || "Berita",
-          published_at: post.date_gmt
-            ? new Date(post.date_gmt + "Z").toISOString()
-            : stamp,
-          synced_at: stamp,
-        }));
-      }
-    }
-  } catch {
-    // WP network fallback
+    const res = await fetchWpNews({ page: 1, perPage: 20 });
+    itemsToInsert = res.items;
+  } catch (err) {
+    console.error("[data-store] Error syncing news from WordPress:", err);
   }
 
-  if (itemsToInsert.length === 0) {
-    itemsToInsert = [
-      {
-        id: uid("n"),
-        wp_post_id: 200 + Math.floor(Math.random() * 800),
-        title: `Update Gaul FM News · ${new Date().toLocaleTimeString("id-ID")}`,
-        content: "<p>Artikel tersinkron dari portal berita radiogaulfmsmg.com.</p>",
-        image_url:
-          "https://radiogaulfmsmg.com/wp-content/uploads/2026/05/WhatsApp-Image-2026-05-28-at-11.36.02.jpeg",
-        category: "Station",
-        published_at: stamp,
+  if (itemsToInsert.length > 0) {
+    if (supabase) {
+      const payload = itemsToInsert.map((item) => ({
+        id: item.id,
+        wp_post_id: item.wp_post_id,
+        title: item.title,
+        content: item.content,
+        image_url: item.image_url,
+        category: item.category,
+        published_at: item.published_at,
         synced_at: stamp,
-      },
-    ];
+      }));
+
+      supabase
+        .from("news")
+        .upsert(payload, { onConflict: "wp_post_id" })
+        .then(({ error }) => {
+          if (error) console.error("[data-store] Supabase news upsert error:", error);
+        });
+    }
+
+    const existingMap = new Map(snapshot.news.map((n) => [n.id, n]));
+    itemsToInsert.forEach((item) => existingMap.set(item.id, item));
+    const merged = Array.from(existingMap.values())
+      .sort(
+        (a, b) =>
+          new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
+      )
+      .slice(0, 50);
+
+    snapshot = {
+      ...snapshot,
+      news: merged,
+      lastNewsSyncAt: stamp,
+    };
+    emit();
+
+    return { added: itemsToInsert.length, news: merged };
   }
 
-  if (supabase) {
-    supabase
-      .from("news")
-      .upsert(itemsToInsert)
-      .then(({ error }) => {
-        if (error) console.error("[data-store] Supabase news upsert error:", error);
-      });
-  }
-
-  const existingMap = new Map(snapshot.news.map((n) => [n.id, n]));
-  itemsToInsert.forEach((item) => existingMap.set(item.id, item));
-  const merged = Array.from(existingMap.values())
-    .sort(
-      (a, b) =>
-        new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
-    )
-    .slice(0, 40);
-
-  snapshot = {
-    ...snapshot,
-    news: merged,
-    lastNewsSyncAt: stamp,
-  };
-  emit();
-
-  return { added: itemsToInsert.length, news: merged };
+  return { added: 0, news: snapshot.news };
 }
 
 export function deleteNews(id: string) {

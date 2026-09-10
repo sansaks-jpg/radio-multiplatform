@@ -84,49 +84,7 @@ export const seedNowPlaying: NowPlaying = {
   updated_at: "2026-07-19T09:00:00+07:00",
 };
 
-export const seedNews: NewsItem[] = [
-  {
-    id: "n-1",
-    wp_post_id: 101,
-    title: "Festival Kuliner Simpang Lima Kembali Digelar Akhir Pekan Ini",
-    content:
-      "<p>Festival kuliner tahunan di kawasan Simpang Lima Semarang kembali digelar.</p>",
-    image_url: "https://picsum.photos/seed/kuliner-simpang/800/450",
-    category: "Event",
-    published_at: "2026-07-17T09:00:00+07:00",
-    synced_at: "2026-07-17T09:15:00+07:00",
-  },
-  {
-    id: "n-2",
-    wp_post_id: 102,
-    title: "Band Indie Semarang Rilis Single Baru, Debut di Chart Attack",
-    content: "<p>Band indie asal Tembalang merilis single terbaru.</p>",
-    image_url: "https://picsum.photos/seed/band-indie/800/450",
-    category: "Musik",
-    published_at: "2026-07-16T15:30:00+07:00",
-    synced_at: "2026-07-16T15:45:00+07:00",
-  },
-  {
-    id: "n-3",
-    wp_post_id: 103,
-    title: "Jadwal CFD Jalan Pahlawan Diperpanjang Selama Juli",
-    content: "<p>CFD Jalan Pahlawan diperpanjang setiap Minggu Juli.</p>",
-    image_url: "https://picsum.photos/seed/cfd-pahlawan/800/450",
-    category: "Kota",
-    published_at: "2026-07-15T08:00:00+07:00",
-    synced_at: "2026-07-15T08:20:00+07:00",
-  },
-  {
-    id: "n-4",
-    wp_post_id: 104,
-    title: "Audisi Penyiar Gaul FM 2026 Dibuka",
-    content: "<p>Pendaftaran audisi penyiar dibuka hingga akhir bulan.</p>",
-    image_url: "https://picsum.photos/seed/audisi-penyiar/800/450",
-    category: "Station",
-    published_at: "2026-07-14T10:00:00+07:00",
-    synced_at: "2026-07-14T10:10:00+07:00",
-  },
-];
+export const seedNews: NewsItem[] = [];
 
 export const seedProfiles: Profile[] = [
   {
