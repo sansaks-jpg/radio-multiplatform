@@ -56,6 +56,39 @@ export function isProfileComplete(profile: Profile | null | undefined): boolean 
   return hasName && hasWhatsapp && hasGender;
 }
 
+/** Menentukan apakah user benar-benar baru pertama kali mendaftar vs login akun yang sudah ada */
+async function isFirstTimeRegistration(
+  user: { id?: string; created_at?: string; last_sign_in_at?: string } | null,
+  profile: Profile | null
+): Promise<boolean> {
+  if (!user?.id) return false;
+
+  // 1. Cek storage lokal: jika sudah pernah tercatat selesai/login, ini akun lama
+  const localFlag = await AsyncStorage.getItem(`@gaulfm/registered_${user.id}`).catch(() => null);
+  if (localFlag === "true") {
+    return false;
+  }
+
+  // 2. Cek database profil: jika sudah punya WhatsApp atau gender, ini akun lama
+  if (profile && (profile.whatsapp || profile.gender)) {
+    AsyncStorage.setItem(`@gaulfm/registered_${user.id}`, "true").catch(() => {});
+    return false;
+  }
+
+  // 3. Cek selisih waktu created_at dan last_sign_in_at dari Supabase Auth
+  if (user.created_at && user.last_sign_in_at) {
+    const createdAt = new Date(user.created_at).getTime();
+    const lastSignInAt = new Date(user.last_sign_in_at).getTime();
+    // Jika akun dibuat lebih dari 30 detik yang lalu, bukan pendaftaran pertama kali
+    if (Math.abs(lastSignInAt - createdAt) > 30000) {
+      AsyncStorage.setItem(`@gaulfm/registered_${user.id}`, "true").catch(() => {});
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function demoSession(email: string, fullName = "Pendengar Gaul"): Session {
   return {
     access_token: "demo-access-token",
@@ -292,10 +325,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
             const userProfile = await fetchProfile(user.id);
             set({ profile: userProfile });
             void updateLastLoginAndTracking(user.id);
-            return {
-              error: null,
-              isNewUser: !isProfileComplete(userProfile),
-            };
+            const isNewUser = await isFirstTimeRegistration(user, userProfile);
+            return { error: null, isNewUser };
           }
         }
       }
@@ -312,7 +343,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         const userProfile = await fetchProfile(user.id);
         set({ profile: userProfile });
         void updateLastLoginAndTracking(user.id);
-        return { error: null, isNewUser: !isProfileComplete(userProfile) };
+        const isNewUser = await isFirstTimeRegistration(user, userProfile);
+        return { error: null, isNewUser };
       }
 
       return { error: "Gagal menyelesaikan autentikasi Google" };
@@ -323,7 +355,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       const session = demoSession(email, "Pendengar Gaul");
       const profile = demoProfile(email, "Pendengar Gaul");
       set({ session, profile });
-      return { error: null, isNewUser: !isProfileComplete(profile) };
+      return { error: null, isNewUser: false };
     }
   },
 
@@ -390,6 +422,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       if (refreshed) {
         set({ profile: { ...refreshed, gender: gender.trim() } });
       }
+      await AsyncStorage.setItem(`@gaulfm/registered_${session.user.id}`, "true").catch(() => {});
       return null;
     } catch {
       return "Gagal menyimpan biodata. Silakan coba lagi.";
