@@ -38,8 +38,10 @@ export default function SchedulePage() {
   const toast = useToast();
   const today = useToday();
 
-  // State tampilan & filter
-  const [day, setDay] = useState(today);
+  // State tampilan & filter (default otomatis ke hari live saat ini setelah refresh)
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const day = selectedDay ?? today;
+  const setDay = (d: number) => setSelectedDay(d);
   const [viewMode, setViewMode] = useState<ViewMode>("daily");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -274,6 +276,18 @@ export default function SchedulePage() {
             </div>
 
             <div className="flex items-center gap-2">
+              {day !== today && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedDay(null)}
+                  className="text-xs text-accent hover:bg-accent/10"
+                  title="Kembali ke agenda hari siaran live hari ini"
+                >
+                  <Clock className="h-3 w-3 mr-1" />
+                  Ke Hari Ini ({DAY_SHORT[today]})
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
