@@ -13,13 +13,13 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release Tag (misal: v0.0.3)'
+        description: 'Release Tag (misal: v0.0.4)'
         required: false
-        default: 'v0.0.3'
+        default: 'v0.0.4'
       release_title:
         description: 'Release Title'
         required: false
-        default: 'Gaul FM v0.0.3 (Development Build)'
+        default: 'Gaul FM v0.0.4 (Development Build)'
       prerelease:
         description: 'Tandai sebagai Pre-release?'
         type: boolean
@@ -81,6 +81,18 @@ jobs:
         working-directory: mobile
         run: |
           npx expo prebuild --platform android --no-install
+          node -e '
+          const fs = require("fs");
+          const file = "android/app/build.gradle";
+          let content = fs.readFileSync(file, "utf8");
+          if (!content.includes("splits {")) {
+            content = content.replace(/android\s*\{/, "android {\\n    splits {\\n        abi {\\n            reset()\\n            enable true\\n            universalApk true\\n            include \"armeabi-v7a\", \"arm64-v8a\", \"x86\", \"x86_64\"\\n        }\\n    }");
+            fs.writeFileSync(file, content, "utf8");
+            console.log("Injected ABI splits into build.gradle successfully");
+          } else {
+            console.log("ABI splits already present in build.gradle");
+          }
+          '
 
       - name: 🔨 Build Android APK (Release Standalone)
         working-directory: mobile/android
@@ -91,59 +103,73 @@ jobs:
       - name: 📦 Prepare APK Artifacts
         run: |
           mkdir -p release-artifacts
-          APK_FILE=$(find mobile/android/app/build/outputs/apk/release -type f -name "*.apk" | head -n 1)
-          if [ -z "$APK_FILE" ]; then
-            echo "::error::Tidak ada file APK yang ditemukan di folder output release!"
-            exit 1
-          fi
-          echo "Ditemukan APK: $APK_FILE"
-          cp "$APK_FILE" release-artifacts/GaulFM-v0.0.3-development.apk
+          TAG="${{ github.event.inputs.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.0.4' }}"
+          echo "Memeriksa seluruh file APK hasil build release:"
+          find mobile/android/app/build/outputs/apk/release -type f -name "*.apk"
+          
+          for apk in mobile/android/app/build/outputs/apk/release/*.apk; do
+            [ -e "$apk" ] || continue
+            filename=$(basename "$apk")
+            if [[ "$filename" == *"arm64-v8a"* ]]; then
+              cp "$apk" "release-artifacts/GaulFM-${TAG}-arm64-v8a.apk"
+            elif [[ "$filename" == *"armeabi-v7a"* ]]; then
+              cp "$apk" "release-artifacts/GaulFM-${TAG}-armeabi-v7a.apk"
+            elif [[ "$filename" == *"x86_64"* ]]; then
+              cp "$apk" "release-artifacts/GaulFM-${TAG}-x86_64.apk"
+            elif [[ "$filename" == *"x86"* ]]; then
+              cp "$apk" "release-artifacts/GaulFM-${TAG}-x86.apk"
+            elif [[ "$filename" == *"universal"* ]]; then
+              cp "$apk" "release-artifacts/GaulFM-${TAG}-universal.apk"
+            else
+              cp "$apk" "release-artifacts/GaulFM-${TAG}-${filename}"
+            fi
+          done
+
+          echo "Daftar APK siap rilis:"
           ls -lh release-artifacts/
 
-      - name: 📤 Upload Android APK Artifact
+      - name: 📤 Upload Android APK Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gaulfm-android-release-apk
-          path: release-artifacts/GaulFM-v0.0.3-development.apk
+          name: gaulfm-android-release-apks
+          path: release-artifacts/*.apk
           retention-days: 14
 
       - name: 🚀 Publish APK to GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.event.inputs.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.0.3' }}"
-          TITLE="${{ github.event.inputs.release_title || 'Gaul FM v0.0.3 (Development Build)' }}"
+          TAG="${{ github.event.inputs.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'v0.0.4' }}"
+          TITLE="${{ github.event.inputs.release_title || 'Gaul FM v0.0.4 (Development Build)' }}"
           
           echo "Menyiapkan rilis GitHub untuk tag: $TAG..."
           
           if gh release view "$TAG" > /dev/null 2>&1; then
             echo "Release $TAG sudah ada. Mengunggah/memperbarui aset APK..."
-            gh release upload "$TAG" release-artifacts/GaulFM-v0.0.3-development.apk --clobber
+            gh release upload "$TAG" release-artifacts/*.apk --clobber
           else
             echo "Membuat GitHub Release baru untuk tag $TAG..."
-            gh release create "$TAG" release-artifacts/GaulFM-v0.0.3-development.apk \
+            gh release create "$TAG" release-artifacts/*.apk \
               --title "$TITLE" \
-              --notes "### 📻 Gaul FM Semarang - Android Development Build ($TAG)
+              --notes "### 📻 Gaul FM Semarang - Android Release ($TAG)
               
-              - **Versi**: 0.0.3 (Development Build)
-              - **Platform**: Android Standalone APK
-              - **Arsitektur**: React Native New Architecture + Expo SDK 54
-              - **Target Host Live Streaming**:
-                - Audio: Icecast Progressive Stream (\`http://27.50.19.173:9000/gaulfm.m3u\`)
-                - Visual Radio: MediaMTX WebRTC/WHEP (\`http://40.81.231.250:8889/gaulfm_webrtc/whep\`)
-                - Live Chat & Studio Moderasi: REST & SSE (\`http://40.81.231.250:3001/api/comments\`)
-              
-              #### Perubahan v0.0.3:
-              - Login & Daftar eksklusif menggunakan Akun Google (Supabase Auth)
-              - Layar pengisian biodata (Nama, Gender, WhatsApp, Kota) pasca login pertama
-              - Default theme ke Dark Mode saat pertama kali install & splash screen adaptif
-              - Permintaan izin sistem (notifikasi/lokasi) berbasis on-demand (JIT) saat fitur diklik
-              - Sinkronisasi penyiar & jadwal dengan Supabase Database
-              
-              #### Petunjuk Penginstalan:
-              1. Unduh \`GaulFM-v0.0.3-development.apk\` di bawah.
-              2. Buka file APK pada smartphone Android Anda.
-              3. Jika muncul peringatan keamanan, pilih **Tetap Instal** / **Izinkan sumber ini**.
-              4. Aplikasi siap digunakan untuk mendengarkan siaran live Gaul FM Semarang!" \
+- **Versi**: 0.0.4
+- **Platform**: Android Standalone APK (Split ABI Per Arsitektur)
+- **Arsitektur**: React Native New Architecture + Expo SDK 54
+- **Optimasi Ukuran**: APK dipisah berdasarkan arsitektur CPU sehingga ukuran unduhan menjadi jauh lebih ringan (~15–25 MB vs ~70 MB).
+
+#### 📦 Pilihan File APK:
+1. **\`GaulFM-${TAG}-arm64-v8a.apk\` (Sangat Direkomendasikan)**: Untuk 90%+ smartphone Android modern (64-bit ARM). Ukuran paling ringan dan performa paling optimal.
+2. **\`GaulFM-${TAG}-armeabi-v7a.apk\`**: Untuk smartphone Android 32-bit (perangkat tipe lama atau entry level).
+3. **\`GaulFM-${TAG}-universal.apk\`**: Varian universal (mencakup semua arsitektur, bisa diinstal di perangkat apa saja).
+4. **\`GaulFM-${TAG}-x86.apk\` / \`GaulFM-${TAG}-x86_64.apk\`**: Khusus untuk emulator PC/Laptop Android, Chromebook, atau perangkat berprosesor Intel/AMD.
+
+#### 🚀 Fitur & Pembaruan v0.0.4:
+- **Master Data Jadwal & Deskripsi Resmi**: Sinkronisasi info program baku (Gaul Morning Show, Gaul Waktu Setempat, Asupan Gaul) lengkap dengan jam siaran (WIB), hari tayang, dan deskripsi acara resmi.
+- **Karusel Gaul Squad di Player**: Integrasi daftar profil penyiar Gaul FM interaktif di dalam lembar pemutar (*LiveDetailSheet*).
+- **Home Up Next yang Disempurnakan**: Visual poster program resmi, badge waktu WIB dinamis, dan akses cepat ke detail siaran.
+- **Aksi Cepat Nonton Radio**: Tombol studio visual interaktif di Beranda dengan dukungan langsung mode fullscreen chat.
+- **Perbaikan Alur Navigasi**: Transisi kembali dari detail program langsung menuju daftar jadwal secara konsisten.
+- **Pemisahan Binary APK (Split ABI)**: Mengurangi ukuran file aplikasi secara drastis untuk efisiensi kuota pendengar." \
               --prerelease
           fi

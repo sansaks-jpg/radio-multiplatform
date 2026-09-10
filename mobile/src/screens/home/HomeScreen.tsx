@@ -7,7 +7,6 @@ import { useAuthStore } from "../../stores/authStore";
 import { usePrograms, useProgramsRealtime } from "../../hooks/usePrograms";
 import { flattenNewsPages, useNews } from "../../hooks/useNews";
 import { useBanners } from "../../hooks/useBanners";
-import { useAnnouncers } from "../../hooks/useAnnouncers";
 import { isOnAirNow, todayDow, getWibParts } from "../../utils/datetime";
 import { openExternalUrl } from "../../services/youtube";
 import { Screen } from "../../components/ui/Screen";
@@ -19,7 +18,6 @@ import { HomeNewsPreview } from "../../components/home/HomeNewsPreview";
 import { HomeHero } from "../../components/home/HomeHero";
 import { HomeUpNext } from "../../components/home/HomeUpNext";
 import { HomeQuickActions } from "../../components/home/HomeQuickActions";
-import { HomeAnnouncers } from "../../components/home/HomeAnnouncers";
 import type { Banner } from "../../types";
 
 /** Time-of-day greeting (WIB device clock). */
@@ -61,7 +59,6 @@ export function HomeScreen() {
   const todayPrograms = usePrograms(todayDow(now));
   const news = useNews();
   const banners = useBanners();
-  const announcers = useAnnouncers();
   // Realtime: auto-invalidate cache program saat admin ubah jadwal
   useProgramsRealtime();
 
@@ -98,14 +95,12 @@ export function HomeScreen() {
   const isRefreshing =
     todayPrograms.isRefetching ||
     news.isRefetching ||
-    banners.isRefetching ||
-    announcers.isRefetching;
+    banners.isRefetching;
   const onRefresh = useCallback(() => {
     void todayPrograms.refetch();
     void news.refetch();
     void banners.refetch();
-    void announcers.refetch();
-  }, [todayPrograms, news, banners, announcers]);
+  }, [todayPrograms, news, banners]);
 
   const onBannerPress = useCallback(
     (banner: Banner) => {
@@ -192,11 +187,16 @@ export function HomeScreen() {
                 label: "Live Chat",
                 icon: "chatbubbles-outline",
                 colorKey: "orange",
-                onPress: () => openLiveSheet(),
+                onPress: () =>
+                  openLiveSheet({
+                    chatFullscreen: true,
+                    autoPlay: true,
+                    visual: false,
+                  }),
               },
               {
                 key: "visual",
-                label: "Visual Radio",
+                label: "Nonton Radio",
                 icon: "videocam-outline",
                 colorKey: "live",
                 onPress: openVisualRadio,
@@ -211,9 +211,6 @@ export function HomeScreen() {
             ]}
           />
         </View>
-
-        {/* Gaul Squad Announcers */}
-        <HomeAnnouncers announcers={announcers.data ?? []} />
       </View>
 
       {/* Promos */}
@@ -226,13 +223,13 @@ export function HomeScreen() {
       </View>
 
       <View className="px-4">
-        {/* Visual radio */}
+        {/* Nonton Radio */}
         <View className="mb-8">
-          <SectionHeader title="Visual Radio Studio" />
+          <SectionHeader title="Nonton Radio" />
           <Pressable
             onPress={openVisualRadio}
             accessibilityRole="button"
-            accessibilityLabel="Tonton siaran visual radio studio"
+            accessibilityLabel="Nonton radio siaran langsung"
             className="mt-4 overflow-hidden rounded-[24px] bg-surface border border-line/40 p-4 active:opacity-90 shadow-sm"
           >
             <View className="flex-row items-center justify-between">
@@ -245,13 +242,13 @@ export function HomeScreen() {
                     className="text-sm font-bold text-text"
                     style={{ fontFamily: "PlusJakartaSans_700Bold" }}
                   >
-                    Tonton Siaran Studio Live
+                    Nonton Radio
                   </Text>
                   <Text
                     className="text-xs text-text-dim mt-0.5"
                     style={{ fontFamily: "PlusJakartaSans_400Regular" }}
                   >
-                    Siaran langsung vMix studio & interaksi
+                    Hanya di Gaul FM Mobile
                   </Text>
                 </View>
               </View>
@@ -261,7 +258,7 @@ export function HomeScreen() {
                   className="text-xs font-bold text-white"
                   style={{ fontFamily: "PlusJakartaSans_700Bold" }}
                 >
-                  Buka
+                  Tonton
                 </Text>
               </View>
             </View>

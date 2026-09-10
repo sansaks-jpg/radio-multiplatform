@@ -564,7 +564,7 @@ To keep focus and energy on successfully completing this final project (TA), dev
                   └───────────────────────────────────────────────┘
 ```
 
-### Phase 1: Minimum Viable Product (MVP) & data foundation — **CURRENT PRIMARY FOCUS**
+### Phase 1: Minimum Viable Product (MVP) & data foundation — **COMPLETED**
 
 **Goal:** Build a solid digital radio platform foundation free of background-player crash issues, plus a user data system for commercial / marketing needs.
 
@@ -572,6 +572,15 @@ To keep focus and energy on successfully completing this final project (TA), dev
 |---|---|
 | Mobile app | Live audio player, automatic WordPress news sync, daily schedule rendering, email registration (Supabase Auth), and device hardware + GPS coordinate tracking. |
 | Web Admin | Now Playing control panel, program schedule CRUD, user data monitoring dashboard, Excel export button, and automated Google Spreadsheet sync. |
+
+### Release Version History & Incremental Delivery
+
+| Version | Status | Key Features & Highlights |
+|---|---|---|
+| **v0.0.1** | Released | Initial MVP foundation: Icecast progressive streaming, background audio playback with lock screen controls, MediaMTX WebRTC (WHEP) visual radio, and automated Android CI/CD. |
+| **v0.0.2** | Released | Unified 16:9 banner layout across Admin & Mobile, persistent program artwork, Supabase storage bucket sync, 7 Gaul Squad announcers, and multi-layer real-time live chat. |
+| **v0.0.3** | Released | Google Sign-in authentication flow, automatic returning user biodata bypass, JIT system permissions (notifications & location), and adaptive dark mode studio theme. |
+| **v0.0.4** | Released | Official master program info (`OFFICIAL_PROGRAM_INFO`) for 3 daily shows, announcer profile carousel in `LiveDetailSheet`, Home Up Next redesign with WIB badge, studio quick action, and Android ABI Split (separate 32-bit `armeabi-v7a`, 64-bit `arm64-v8a`, and `universal` APKs reducing download sizes by ~70%). |
 
 ### Phase 2: Interactive social features (mid-term development)
 

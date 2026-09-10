@@ -143,6 +143,8 @@ export function MainTabs() {
   const colors = useThemeStore((s) => s.colors);
   const liveSheetOpen = usePlayerStore((s) => s.liveSheetOpen);
   const closeLiveSheet = usePlayerStore((s) => s.closeLiveSheet);
+  const initialChatFullscreen = usePlayerStore((s) => s.initialChatFullscreen);
+  const autoPlayAudio = usePlayerStore((s) => s.autoPlayAudio);
   const nowPlaying = usePlayerStore((s) => s.nowPlaying);
   const todayPrograms = usePrograms(todayDow());
   const onAir = todayPrograms.data?.find((p) => isOnAirNow(p)) ?? null;
@@ -254,6 +256,8 @@ export function MainTabs() {
         onClose={closeLiveSheet}
         nowPlaying={nowPlaying}
         matchedProgram={onAir}
+        initialChatFullscreen={initialChatFullscreen}
+        autoPlayOnOpen={autoPlayAudio}
       />
     </>
   );

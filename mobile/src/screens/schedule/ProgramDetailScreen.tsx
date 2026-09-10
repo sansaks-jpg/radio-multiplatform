@@ -3,7 +3,6 @@ import { ActivityIndicator, BackHandler, Pressable, Text, View } from "react-nat
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import {
-  CommonActions,
   useFocusEffect,
   useNavigation,
   useRoute,
@@ -111,39 +110,14 @@ export function ProgramDetailScreen() {
     }
   };
 
-  const isCurrentScreenInTabs = useCallback(() => {
-    const state = navigation.getState();
-    if (!state) return false;
-    return state.routes.some((r) => (r.name as string) === "MainTabs");
-  }, [navigation]);
-
   const handleCustomBack = useCallback(() => {
     if (navigation.canGoBack()) {
       navigation.goBack();
       return true;
     }
-    if (isCurrentScreenInTabs()) {
-      navigation.dispatch(
-        CommonActions.navigate({
-          name: "MainTabs",
-          params: { screen: "Schedule" },
-        }),
-      );
-      return true;
-    }
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [
-          {
-            name: "MainTabs",
-            params: { screen: "Schedule" },
-          },
-        ],
-      }),
-    );
+    navigation.navigate("ScheduleList" as never);
     return true;
-  }, [navigation, isCurrentScreenInTabs]);
+  }, [navigation]);
 
   useFocusEffect(
     useCallback(() => {
@@ -264,12 +238,6 @@ export function ProgramDetailScreen() {
                 style={{ fontFamily: "PlusJakartaSans_700Bold" }}
               >
                 Penyiar Gaul FM
-              </Text>
-              <Text
-                className="text-[11px] font-bold text-brand"
-                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-              >
-                Gaul Squad
               </Text>
             </View>
 

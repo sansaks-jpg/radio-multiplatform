@@ -1,9 +1,7 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback } from "react";
 import { Pressable, View, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, type NavigationProp } from "@react-navigation/native";
 import { useAuthStore } from "../../stores/authStore";
-import { useThemeStore } from "../../stores/themeStore";
 import type { MainTabParamList } from "../../types";
 import { BrandLogo } from "./BrandLogo";
 
@@ -26,7 +24,6 @@ interface TopNavbarProps {
  * Used on Home, Jadwal, and Berita. Avatar opens Profile tab.
  */
 export function TopNavbar({ className = "" }: TopNavbarProps) {
-  const colors = useThemeStore((s) => s.colors);
   const profile = useAuthStore((s) => s.profile);
   const navigation = useNavigation<NavigationProp<MainTabParamList>>();
 

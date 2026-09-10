@@ -11,38 +11,38 @@ export const mockPrograms: Program[] = [
     {
       id: `p-${day}-1`,
       name: "Gaul Morning Show",
-      host: "Reno & Dita",
+      host: "Penyiar Gaul FM",
       day_of_week: day,
       start_time: "07:00",
       end_time: "10:00",
       cover_url:
         "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/gaul-morning-show.png",
       description:
-        "Mulai pagi kamu dengan hits terbaru, info lalu lintas Semarang, dan obrolan seru bareng Reno & Dita di Gaul Morning Show.",
+        "Program pagi yang membahas info terkini, topik viral, lifestyle anak muda, sampai obrolan relate yang beda setiap hari biar Gaulista nggak bosan dan selalu punya hal baru buat ditemenin tiap pagi.",
     },
     {
       id: `p-${day}-2`,
       name: "Gaul Waktu Setempat",
-      host: "Yoga & Sinta",
+      host: "Penyiar Gaul FM",
       day_of_week: day,
       start_time: "15:00",
       end_time: "18:00",
       cover_url:
         "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/gaul-waktu-setempat.png",
       description:
-        "Nemenin sore perjalanan pulang kamu dengan musik hits, obrolan santai, dan info terkini waktu setempat di 87.8 MHz.",
+        "Program unggulan seputar pembahasan dunia music terkini dilengkapi request lagu dan salam serta playlist lagu yang up to date.",
     },
     {
       id: `p-${day}-3`,
       name: "Asupan Gaul",
-      host: "Raka",
+      host: "Penyiar Gaul FM",
       day_of_week: day,
       start_time: "19:00",
       end_time: "22:00",
       cover_url:
         "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/asupan-gaul.png",
       description:
-        "Asupan musik paling hits malam hari di 87.8 FM bareng Raka: playlist terbaik, request lagu, dan curhat anak muda.",
+        "Program acara malam seputar romance dengan playlist lagu slow yang menarik disertai request lagu dan curhat yang bikin asik.",
     },
   ]),
 ];

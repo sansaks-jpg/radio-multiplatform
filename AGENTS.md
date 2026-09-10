@@ -67,6 +67,13 @@ src/
    - Hard-cap Riwayat: Maksimal 50 komentar (`MAX_LIVE_COMMENTS = 50`, `MAX_HISTORY_COMMENTS = 50`) baik di client maupun server demi efisiensi kuota data & memori.
    - Layout Rata Kiri Seragam: Seluruh pesan (milik sendiri, orang lain, studio) rata kiri ala YouTube Live Chat, dengan pembeda warna nama, inisial avatar, dan badge (*Studio* / *On Air*).
    - Lifecycle-Aware: Polling/SSE hanya berjalan saat `LiveDetailSheet` terbuka (zero bandwidth saat player ditutup).
+4. **Master Program & Announcer Branding (v0.0.4)**:
+   - Single Source of Truth: `OFFICIAL_PROGRAM_INFO` di `mobile/src/utils/programAssets.ts` menyinkronkan data baku 3 program harian unggulan (*Gaul Morning Show*, *Gaul Waktu Setempat*, *Asupan Gaul*) meliputi rentang waktu WIB, hari tayang, dan deskripsi acara resmi.
+   - Karusel Gaul Squad: Seluruh profil penyiar resmi (foto avatar, nama panggilan) ditampilkan interaktif di dalam `LiveDetailSheet` dan detail program.
+   - Up Next Dinamis: Komponen `HomeUpNext` menampilkan poster resmi program, waktu mulai siaran berlabel WIB, dan alur navigasi langsung ke detail program.
+5. **Android Split ABI Build Optimization (v0.0.4)**:
+   - Plugin Expo: `mobile/plugins/withAndroidSplits.js` menginjeksi konfigurasi `splits.abi` ke `android/app/build.gradle` secara dinamis saat `expo prebuild`.
+   - Varian Binary Ringan: Memisahkan APK menjadi arsitektur 32-bit (`armeabi-v7a`), 64-bit (`arm64-v8a`), x86, x86_64, dan universal. Memangkas ukuran download dari ~70MB menjadi ~15–25MB.
 
 ### Perintah Mobile
 
@@ -236,13 +243,19 @@ Arsitektur database berbasis **Supabase (PostgreSQL 15+)**:
 ## 5. CI/CD Otomatisasi APK (`.github/workflows/build-android.yml`)
 
 Workflow GitHub Actions untuk kompilasi APK otomatis:
-- **Trigger**: Push ke branch `master`/`main` yang mengubah folder `mobile/**` atau manual via `workflow_dispatch`.
+- **Trigger**: Push ke branch `master`/`main` yang mengubah folder `mobile/**` atau `.github/workflows/build-android.yml`, push git tag (`v*`), atau manual via `workflow_dispatch`.
 - **Environment**: Ubuntu Latest, Java 17 Temurin, Node.js 22, Android SDK.
 - **Langkah Kerja**:
   1. `npm install` (otomatis mengeksekusi `patch-package`).
-  2. `npx expo prebuild --platform android --no-install`.
-  3. `./gradlew assembleDebug --no-daemon --stacktrace`.
-  4. Upload artifact: `gaulfm-android-debug-apk`.
+  2. `npx expo prebuild --platform android --no-install` (menjalankan config plugin `withAndroidSplits.js`).
+  3. `./gradlew assembleRelease --no-daemon --stacktrace` (menghasilkan varian APK terpisah per ABI).
+  4. Penyusunan Artefak:
+     - `GaulFM-v0.0.4-arm64-v8a.apk` (rekomendasi untuk smartphone Android modern 64-bit, ukuran ~15–25 MB).
+     - `GaulFM-v0.0.4-armeabi-v7a.apk` (untuk smartphone Android 32-bit entry-level).
+     - `GaulFM-v0.0.4-universal.apk` (kompatibel untuk seluruh perangkat).
+     - `GaulFM-v0.0.4-x86.apk` & `x86_64.apk` (untuk emulator & perangkat Intel/AMD).
+  5. Upload build artifact ke GitHub Actions (`gaulfm-android-release-apks`).
+  6. Publikasi otomatis ke GitHub Releases dengan tag release resmi (misal `v0.0.4`).
 
 ---
 

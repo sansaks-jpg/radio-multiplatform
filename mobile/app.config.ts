@@ -13,7 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Gaul FM",
   slug: "gaulfm-mobile",
-  version: "0.0.3",
+  version: "0.0.4",
   icon: "./assets/icon.png",
   orientation: "portrait",
   scheme: "gaulfm",
@@ -81,6 +81,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           "Gaul FM menggunakan lokasi kamu sekali saat pendaftaran untuk personalisasi konten lokal Semarang.",
       },
     ],
+    "./plugins/withAndroidSplits.js",
   ],
   extra: {
     adminApiUrl:

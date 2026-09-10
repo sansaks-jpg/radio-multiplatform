@@ -55,6 +55,16 @@ Then start the dev server (`npm run dev`) and open the app from the dev build.
   - Fullscreen Auto-Landscape: Otomatis mengunci ke Landscape saat mode layar penuh, dan kembali ke Portrait saat keluar.
   - UI Bersih: Kontrol bawaan browser (garis timeline, teks durasi, tombol pause) disembunyikan via container requestFullscreen dan CSS `::-webkit-media-controls*`. Hanya tombol fullscreen minimalis di sudut kanan bawah dengan auto-hide 2.5 detik.
 - **Live Chat**: Real-time comments tersinkronisasi dengan Web Admin (`/api/comments`), dibatasi maksimal 50 komentar, tata letak rata kiri seragam (YouTube/Twitch live chat style), hemat bandwidth (aktif hanya saat Live sheet terbuka).
+- **Master Program & Penyiar Gaul Squad (v0.0.4)**:
+  - Definisi baku 3 program harian (`OFFICIAL_PROGRAM_INFO`): *Gaul Morning Show* (07:00–10:00 WIB), *Gaul Waktu Setempat* (15:00–18:00 WIB), dan *Asupan Gaul* (19:00–22:00 WIB).
+  - Karusel profil foto penyiar Gaul FM interaktif di `LiveDetailSheet`.
+  - Kartu Up Next di Beranda dengan artwork resmi, jam mulai siaran, dan badge WIB.
+- **Android Split ABI Build (v0.0.4)**:
+  - Menghasilkan build terpisah per arsitektur CPU via plugin `mobile/plugins/withAndroidSplits.js`:
+    - `arm64-v8a`: Untuk 90%+ smartphone Android modern (ukuran file terpangkas menjadi ~15–25MB).
+    - `armeabi-v7a`: Untuk perangkat Android 32-bit.
+    - `universal`: Satu APK lengkap untuk segala perangkat.
+    - `x86` / `x86_64`: Untuk emulator Android & PC Intel/AMD.
 
 ## Structure
 

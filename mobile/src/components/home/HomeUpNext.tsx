@@ -1,9 +1,11 @@
 import React, { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { CommonActions, useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useThemeStore } from "../../stores/themeStore";
+import { getProgramArtwork } from "../../utils/programAssets";
 import type { MainTabParamList, Program } from "../../types";
 
 interface HomeUpNextProps {
@@ -26,54 +28,70 @@ export function HomeUpNext({ program }: HomeUpNextProps) {
         params: {
           state: {
             routes: [
+              { name: "ScheduleList" },
               {
                 name: "ProgramDetail",
                 params: { id: program.id, fromHome: true },
               },
             ],
-            index: 0,
+            index: 1,
           },
         },
       }),
     );
   }, [navigation, program.id]);
 
+  const artwork = getProgramArtwork(program.name, program.cover_url);
+
   return (
     <Pressable
       onPress={openDetail}
       accessibilityRole="button"
       accessibilityLabel={`Berikutnya: ${program.name} pukul ${program.start_time}. Buka detail program.`}
-      className="mt-3 flex-row items-center gap-3 rounded-xl bg-surface-2 px-4 py-3 active:opacity-85"
+      className="mt-3 flex-row items-center gap-3 rounded-2xl bg-surface-2 p-2.5 active:opacity-85 border border-line/20 shadow-sm"
     >
-      {/* Time badge — clear visual anchor */}
-      <View className="h-11 w-11 items-center justify-center rounded-lg bg-orange/15">
-        <Text
-          className="text-[12px] font-extrabold text-orange"
-          style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-        >
-          {program.start_time}
-        </Text>
+      {/* Logo program resmi */}
+      <View className="h-12 w-12 overflow-hidden rounded-xl border border-brand/30 bg-surface-3">
+        <Image
+          source={artwork}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="cover"
+          transition={150}
+        />
       </View>
 
-      {/* Program info — label + name + host */}
-      <View className="min-w-0 flex-1">
+      {/* Program info — label + jam siaran + nama program */}
+      <View className="min-w-0 flex-1 justify-center">
+        <View className="flex-row items-center gap-1.5">
+          <Text
+            className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
+            style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+          >
+            Berikutnya
+          </Text>
+          <Text className="text-[10px] text-text-dim">·</Text>
+          <View className="flex-row items-center gap-1 rounded-full bg-orange/15 px-2 py-0.5">
+            <Ionicons name="time-outline" size={10} color={colors.orange} />
+            <Text
+              className="text-[10px] font-bold text-orange"
+              style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+            >
+              {program.start_time} WIB
+            </Text>
+          </View>
+        </View>
+
         <Text
-          className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
-          style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-        >
-          Berikutnya
-        </Text>
-        <Text
-          className="text-[14px] font-bold text-text"
+          className="mt-0.5 text-[14px] font-extrabold text-text"
           numberOfLines={1}
-          style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+          style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
         >
           {program.name}
         </Text>
       </View>
 
       {/* Chevron — tap affordance */}
-      <View className="h-7 w-7 items-center justify-center rounded-full bg-surface-3">
+      <View className="h-7 w-7 items-center justify-center rounded-full bg-surface-3 mr-1">
         <Ionicons name="chevron-forward" size={14} color={colors.textDim} />
       </View>
     </Pressable>

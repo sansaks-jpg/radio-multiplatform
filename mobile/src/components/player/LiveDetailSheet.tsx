@@ -23,11 +23,12 @@ import { stopLive } from "../../services/audio/trackPlayerService";
 import { useIcecastStats } from "../../hooks/useIcecastStats";
 import { useKeyboardInset } from "../../hooks/useKeyboardInset";
 import { useLiveComments } from "../../hooks/useLiveComments";
+import { useAnnouncers } from "../../hooks/useAnnouncers";
 import { LiveBadge } from "./LiveBadge";
 import { MediaMtxVisualPlayer } from "./MediaMtxVisualPlayer";
 import { DAY_FULL_ID, formatDistanceToNow } from "../../utils/datetime";
 import { getOfficialLiveHost } from "../../utils/announcer";
-import { getProgramArtwork } from "../../utils/programAssets";
+import { getProgramArtwork, getProgramInfo } from "../../utils/programAssets";
 
 interface LiveDetailSheetProps {
   visible: boolean;
@@ -38,6 +39,8 @@ interface LiveDetailSheetProps {
   autoPlayOnOpen?: boolean;
   /** Buka langsung dalam mode visual radio studio vMix */
   initialVisual?: boolean;
+  /** Buka langsung dalam mode fullscreen live chat */
+  initialChatFullscreen?: boolean;
 }
 
 const MAX_LEN = 200;
@@ -161,6 +164,7 @@ export function LiveDetailSheet({
   matchedProgram,
   autoPlayOnOpen = false,
   initialVisual,
+  initialChatFullscreen = false,
 }: LiveDetailSheetProps) {
   const colors = useThemeStore((s) => s.colors);
   const glow = useThemeStore((s) => s.glow);
@@ -171,6 +175,8 @@ export function LiveDetailSheet({
   const profile = useAuthStore((s) => s.profile);
   const { toggle, play, pause } = usePlayerControls();
   const { stats } = useIcecastStats();
+  const announcersQuery = useAnnouncers();
+  const announcersList = announcersQuery.data ?? [];
 
   const { comments, send: sendLiveCommentMessage } =
     useLiveComments(visible);
@@ -195,6 +201,9 @@ export function LiveDetailSheet({
 
     // 1. Modal BARU DIBUKA (false -> true)
     if (!wasVisible && visible) {
+      if (initialChatFullscreen) {
+        setIsChatFullscreen(true);
+      }
       if (initialVisual !== undefined) {
         setIsVisualActive(initialVisual);
       }
@@ -227,7 +236,14 @@ export function LiveDetailSheet({
         void playRef.current();
       }
     }
-  }, [visible, initialVisual, autoPlayOnOpen, isVisualActive, setIsVisualActive]);
+  }, [
+    visible,
+    initialVisual,
+    initialChatFullscreen,
+    autoPlayOnOpen,
+    isVisualActive,
+    setIsVisualActive,
+  ]);
 
   const isPlaying = status === "playing";
   const isBuffering = status === "buffering";
@@ -240,7 +256,19 @@ export function LiveDetailSheet({
     matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
   const title = matchedProgram?.name ?? nowPlaying.current_program;
   const programArtwork = getProgramArtwork(title, cover);
-  const host = liveHost || "87.8 FM Semarang";
+  const programMeta = getProgramInfo(title);
+  const displayTitle = matchedProgram?.name || title || programMeta.name;
+  const displayHost =
+    liveHost || matchedProgram?.host || programMeta.host;
+  const displayDays = matchedProgram
+    ? (DAY_FULL_ID[matchedProgram.day_of_week] || "Hari Ini")
+    : programMeta.days;
+  const displaySchedule = matchedProgram
+    ? `${matchedProgram.start_time} – ${matchedProgram.end_time} WIB`
+    : programMeta.schedule;
+  const displayDescription =
+    matchedProgram?.description || programMeta.description;
+  const host = displayHost || "87.8 FM Semarang";
   const keyboardOpen = keyboardHeight > 0;
 
   const bottomLift = keyboardHeight;
@@ -326,8 +354,13 @@ export function LiveDetailSheet({
         {/* ── MODE 1: FULLSCREEN CHAT (Compact Header dengan Logo Program Kecil) ── */}
         {isChatFullscreen ? (
           <View className="flex-row items-center justify-between border-b border-line/30 bg-surface-2 px-3 py-2">
-            {/* Kiri: Logo Program Kecil + Judul Program Ringkas */}
-            <View className="min-w-0 flex-1 flex-row items-center gap-2.5">
+            {/* Kiri: Logo Program Kecil + Judul Program Ringkas (Ketuk untuk lihat detail program & penyiar) */}
+            <Pressable
+              onPress={() => setProgramInfoOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Buka detail program dan penyiar"
+              className="min-w-0 flex-1 flex-row items-center gap-2.5 active:opacity-75"
+            >
               {/* Logo Program Kecil Resmi */}
               <View className="h-9 w-9 overflow-hidden rounded-lg border border-brand/35 bg-surface-3">
                 <Image
@@ -345,7 +378,7 @@ export function LiveDetailSheet({
                   numberOfLines={1}
                   style={{ fontFamily: "PlusJakartaSans_700Bold" }}
                 >
-                  {title}
+                  {displayTitle}
                 </Text>
                 <View className="mt-0.5 flex-row items-center gap-1.5">
                   <View className="flex-row items-center gap-1">
@@ -372,9 +405,10 @@ export function LiveDetailSheet({
                   >
                     {isVisualActive ? "Visual Studio" : host}
                   </Text>
+                  <Ionicons name="information-circle" size={11} color={colors.textDim} />
                 </View>
               </View>
-            </View>
+            </Pressable>
 
             {/* Kanan: Mini Play/Stop + SATU-SATUNYA Tombol Kecilkan */}
             <View className="flex-row items-center gap-2 pl-2">
@@ -865,18 +899,13 @@ export function LiveDetailSheet({
                 keyboardShouldPersistTaps="handled"
               >
                 <View className="flex-row gap-3">
-                  <View className="h-20 w-20 overflow-hidden rounded-md bg-surface-2">
-                    {cover ? (
-                      <Image
-                        source={{ uri: cover }}
-                        style={{ width: 80, height: 80 }}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <View className="h-full w-full items-center justify-center">
-                        <Ionicons name="mic" size={28} color={colors.brand} />
-                      </View>
-                    )}
+                  <View className="h-20 w-20 overflow-hidden rounded-2xl border border-brand/30 bg-surface-2">
+                    <Image
+                      source={programArtwork}
+                      style={{ width: 80, height: 80 }}
+                      contentFit="cover"
+                      transition={150}
+                    />
                   </View>
                   <View className="min-w-0 flex-1 justify-center">
                     <Text
@@ -884,7 +913,7 @@ export function LiveDetailSheet({
                       numberOfLines={2}
                       style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
                     >
-                      {matchedProgram?.name ?? title}
+                      {displayTitle}
                     </Text>
                     <View className="mt-1 flex-row items-center gap-1.5 self-start rounded-full bg-brand/12 px-2.5 py-1">
                       <Ionicons name="mic" size={12} color={colors.brand} />
@@ -892,68 +921,105 @@ export function LiveDetailSheet({
                         className="text-xs font-semibold text-brand"
                         style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
                       >
-                        {host}
+                        {displayHost}
                       </Text>
                     </View>
                   </View>
                 </View>
 
-                {matchedProgram ? (
-                  <View className="mt-4 flex-row items-center gap-3 rounded-card bg-surface p-3.5">
-                    <View className="h-10 w-10 items-center justify-center rounded-md bg-orange/12">
-                      <Ionicons
-                        name="time-outline"
-                        size={18}
-                        color={colors.orange}
-                      />
-                    </View>
-                    <View className="flex-1">
+                {/* Jam Siaran (Selalu muncul) */}
+                <View className="mt-4 flex-row items-center gap-3 rounded-card bg-surface p-3.5 border border-line/20">
+                  <View className="h-10 w-10 items-center justify-center rounded-xl bg-orange/12">
+                    <Ionicons
+                      name="time-outline"
+                      size={18}
+                      color={colors.orange}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
+                      style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                    >
+                      {displayDays} · Jam siaran
+                    </Text>
+                    <Text
+                      className="mt-0.5 text-sm font-semibold text-text"
+                      style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                    >
+                      {displaySchedule}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Deskripsi Program (Selalu muncul) */}
+                <View className="mt-3 rounded-card bg-surface p-4 border border-line/20">
+                  <Text
+                    className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
+                    style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                  >
+                    Tentang program
+                  </Text>
+                  <Text
+                    className="mt-2 text-sm leading-6 text-text"
+                    style={{ fontFamily: "PlusJakartaSans_400Regular" }}
+                  >
+                    {displayDescription}
+                  </Text>
+                </View>
+
+                {/* Penyiar Gaul FM (Ada di dalam detail program) */}
+                {announcersList.length > 0 ? (
+                  <View className="mt-3 rounded-card bg-surface p-4 border border-line/20">
+                    <View className="flex-row items-center justify-between mb-3">
                       <Text
-                        className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
+                        className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
                         style={{ fontFamily: "PlusJakartaSans_700Bold" }}
                       >
-                        {DAY_FULL_ID[matchedProgram.day_of_week]} · Jam siaran
+                        Penyiar Gaul FM
                       </Text>
-                      <Text
-                        className="mt-0.5 text-sm font-semibold text-text"
-                        style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-                      >
-                        {matchedProgram.start_time} – {matchedProgram.end_time}{" "}
-                        WIB
-                      </Text>
+                      <View className="flex-row items-center gap-1">
+                        <Ionicons name="people" size={13} color={colors.brand} />
+                        <Text
+                          className="text-[11px] font-bold text-brand"
+                          style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                        >
+                          {announcersList.length} Penyiar
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                ) : null}
 
-                {matchedProgram?.description ? (
-                  <View className="mt-3 rounded-card bg-surface p-4">
-                    <Text
-                      className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
-                      style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 12, paddingVertical: 2 }}
                     >
-                      Tentang program
-                    </Text>
-                    <Text
-                      className="mt-2 text-sm leading-6 text-text"
-                      style={{ fontFamily: "PlusJakartaSans_400Regular" }}
-                    >
-                      {matchedProgram.description}
-                    </Text>
-                  </View>
-                ) : liveHost ? (
-                  <View className="mt-3 rounded-card bg-surface p-4">
-                    <Text
-                      className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
-                      style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                    >
-                      Penyiar
-                    </Text>
-                    <Text
-                      className="mt-2 text-sm leading-6 text-text"
-                      style={{ fontFamily: "PlusJakartaSans_400Regular" }}
-                    >
-                      {`${liveHost} sedang mengudara di Gaul FM Semarang.`}
-                    </Text>
+                      {announcersList.map((item) => (
+                        <View key={item.id} className="items-center w-16">
+                          <View className="h-14 w-14 overflow-hidden rounded-full border-2 border-brand/40 bg-surface-3">
+                            {item.photo_url ? (
+                              <Image
+                                source={{ uri: item.photo_url }}
+                                style={{ width: "100%", height: "100%" }}
+                                contentFit="cover"
+                                transition={150}
+                              />
+                            ) : (
+                              <View className="h-full w-full items-center justify-center">
+                                <Ionicons name="person" size={20} color={colors.brand} />
+                              </View>
+                            )}
+                          </View>
+                          <Text
+                            className="mt-1 text-center text-xs font-semibold text-text"
+                            numberOfLines={1}
+                            style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                          >
+                            {item.nickname || item.name}
+                          </Text>
+                        </View>
+                      ))}
+                    </ScrollView>
                   </View>
                 ) : null}
               </ScrollView>

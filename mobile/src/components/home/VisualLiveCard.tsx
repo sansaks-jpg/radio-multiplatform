@@ -10,7 +10,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "../../stores/themeStore";
 import { useYouTubeVisual } from "../../hooks/useYouTubeVisual";
 import { openYouTube, type YouTubeVisual } from "../../services/youtube";
-import { SectionHeader } from "../ui/SectionHeader";
 import { VisualPlayerSheet } from "./VisualPlayerSheet";
 
 export interface VisualLiveCardHandle {

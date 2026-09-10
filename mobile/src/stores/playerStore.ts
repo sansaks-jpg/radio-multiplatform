@@ -16,7 +16,15 @@ interface PlayerStoreState {
   isVisualActive: boolean;
   /** Mengontrol apakah modal siaran langsung / live chat sedang terbuka */
   liveSheetOpen: boolean;
-  openLiveSheet: (options?: { visual?: boolean }) => void;
+  /** Menandakan apakah sheet dibuka langsung dalam mode fullscreen chat */
+  initialChatFullscreen: boolean;
+  /** Menandakan apakah audio harus otomatis berputar saat sheet dibuka */
+  autoPlayAudio: boolean;
+  openLiveSheet: (options?: {
+    visual?: boolean;
+    chatFullscreen?: boolean;
+    autoPlay?: boolean;
+  }) => void;
   closeLiveSheet: () => void;
   toggleVisual: () => void;
   setIsVisualActive: (isVisualActive: boolean) => void;
@@ -34,13 +42,26 @@ export const usePlayerStore = create<PlayerStoreState>((set) => ({
   nowPlaying: mockNowPlaying,
   isVisualActive: false,
   liveSheetOpen: false,
+  initialChatFullscreen: false,
+  autoPlayAudio: false,
   openLiveSheet: (options) =>
     set((state) => ({
       liveSheetOpen: true,
       isVisualActive:
-        options?.visual !== undefined ? options.visual : state.isVisualActive,
+        options?.visual !== undefined
+          ? options.visual
+          : options?.chatFullscreen
+          ? false
+          : state.isVisualActive,
+      initialChatFullscreen: Boolean(options?.chatFullscreen),
+      autoPlayAudio: Boolean(options?.autoPlay),
     })),
-  closeLiveSheet: () => set({ liveSheetOpen: false }),
+  closeLiveSheet: () =>
+    set({
+      liveSheetOpen: false,
+      initialChatFullscreen: false,
+      autoPlayAudio: false,
+    }),
   toggleVisual: () =>
     set((state) => ({ isVisualActive: !state.isVisualActive })),
   setIsVisualActive: (isVisualActive) => set({ isVisualActive }),
@@ -55,5 +76,7 @@ export const usePlayerStore = create<PlayerStoreState>((set) => ({
       hasStarted: false,
       isVisualActive: false,
       liveSheetOpen: false,
+      initialChatFullscreen: false,
+      autoPlayAudio: false,
     }),
 }));

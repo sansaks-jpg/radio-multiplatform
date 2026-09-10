@@ -45,6 +45,10 @@ Ekosistem Gaul FM Semarang terdiri dari 3 pilar utama:
 | 33 | Anti-Stutter Audio Transcoding | Normalisasi PTS audio via `aresample=async=1000` dan Opus 128k pada transcoder `engine_visual.py` | M5 | streaming §2 |
 | 34 | Edge-to-Edge 16:9 & Auto-Landscape | Tampilan 16:9 penuh tanpa cutoff samping, rotasi otomatis Landscape saat fullscreen via `expo-screen-orientation` | M5 | player §3 |
 | 35 | Native Media Controls Suppression | Penyembunyian UI bawaan browser (durasi, pause, timeline bar) via container fullscreen & CSS webkit-media-controls | M5 | player §4 |
+| 36 | Official Program Master Data & Artwork | Standardisasi data 3 program unggulan (jam siaran WIB, deskripsi, logo resmi) via `OFFICIAL_PROGRAM_INFO` | M7 | branding §1 |
+| 37 | Gaul Squad Announcer Carousel | Integrasi daftar profil foto & nama 7 penyiar resmi di dalam lembar pemutar `LiveDetailSheet` | M7 | player §5 |
+| 38 | Android ABI Split Optimization | Pemisahan binary APK (armeabi-v7a 32-bit, arm64-v8a 64-bit, universal) menghemat ukuran hingga ~70% | M7 | build §2 |
+| 39 | Studio Quick-Action & Enhanced Up Next | Aksi "Nonton Radio" di Beranda serta kartu Up Next dengan badge WIB dan navigasi instan | M7 | home §2 |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -54,6 +58,8 @@ Ekosistem Gaul FM Semarang terdiri dari 3 pilar utama:
 | M3 | Mobile UI/UX Completeness & Lint Cleanup (R1, R4) | `mobile/src/screens/`, `mobile/src/components/`, `mobile/src/hooks/`, `mobile/src/mocks/`, `mobile/src/services/comments.ts` | M2 | COMPLETED |
 | M4 | Final Headless Terminal E2E Verification (R4) | Terminal verification (`mobile/` typecheck & lint, `admin/` lint & build) | M3 | COMPLETED |
 | M5 | Cloud Hosting & Production Streaming Orchestration | Azure VM deployment (`admin/` PM2 port 3001, MediaMTX port 1935/8888/8889, `engine_visual.py`), 16:9 edge-to-edge & auto-landscape | M4 | COMPLETED |
+| M6 | Google Auth & Listener Onboarding (v0.0.3) | Supabase Google OAuth, biodata form & returning user bypass, JIT permissions, dark mode splash theme | M5 | COMPLETED |
+| M7 | Program Master Sync & ABI Split Release (v0.0.4) | Master program sync, announcer carousel, home studio action, ABI Split Android APKs (32-bit/64-bit/universal) | M6 | COMPLETED |
 
 ## Interface Contracts
 ### Audio Engine ↔ Visual Player
