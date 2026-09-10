@@ -429,6 +429,137 @@ export function deleteProgram(id: string) {
   }
 }
 
+/** Simpan atau perbarui banyak program sekaligus dalam 1 batch operasi */
+export function upsertProgramsBatch(
+  inputs: (Omit<Program, "id"> & { id?: string })[],
+): Program[] {
+  if (!inputs || inputs.length === 0) return [];
+
+  const createdOrUpdated: Program[] = inputs.map((input) => ({
+    id: input.id ?? uid("prog"),
+    name: input.name,
+    host: input.host,
+    day_of_week: input.day_of_week,
+    start_time: input.start_time,
+    end_time: input.end_time,
+    cover_url: input.cover_url || null,
+    description: input.description || "",
+  }));
+
+  const map = new Map<string, Program>(snapshot.programs.map((p) => [p.id, p]));
+  createdOrUpdated.forEach((item) => {
+    map.set(item.id, item);
+  });
+
+  snapshot = {
+    ...snapshot,
+    programs: Array.from(map.values()),
+  };
+  emit();
+
+  if (supabase) {
+    supabase
+      .from("programs")
+      .upsert(createdOrUpdated)
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase upsertProgramsBatch error:", error);
+      });
+  }
+
+  return createdOrUpdated;
+}
+
+/** Hapus banyak program sekaligus berdasarkan daftar id */
+export function deleteProgramsBatch(ids: string[]) {
+  if (!ids || ids.length === 0) return;
+  const idSet = new Set(ids);
+  snapshot = {
+    ...snapshot,
+    programs: snapshot.programs.filter((p) => !idSet.has(p.id)),
+  };
+  emit();
+
+  if (supabase) {
+    supabase
+      .from("programs")
+      .delete()
+      .in("id", ids)
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase deleteProgramsBatch error:", error);
+      });
+  }
+}
+
+/** Salin semua slot jadwal dari sourceDay ke satu atau beberapa targetDays */
+export function copyDaySchedule(
+  sourceDay: number,
+  targetDays: number[],
+  overwrite = false,
+): { addedCount: number; replacedCount: number } {
+  const sourcePrograms = snapshot.programs.filter(
+    (p) => p.day_of_week === sourceDay,
+  );
+  if (sourcePrograms.length === 0 || targetDays.length === 0) {
+    return { addedCount: 0, replacedCount: 0 };
+  }
+
+  const targetSet = new Set(targetDays);
+  let idsToDelete: string[] = [];
+  if (overwrite) {
+    idsToDelete = snapshot.programs
+      .filter((p) => targetSet.has(p.day_of_week))
+      .map((p) => p.id);
+  }
+
+  const newPrograms: Program[] = [];
+  for (const targetDay of targetDays) {
+    for (const sp of sourcePrograms) {
+      newPrograms.push({
+        id: uid("prog"),
+        name: sp.name,
+        host: sp.host,
+        day_of_week: targetDay,
+        start_time: sp.start_time,
+        end_time: sp.end_time,
+        cover_url: sp.cover_url,
+        description: sp.description,
+      });
+    }
+  }
+
+  // Update snapshot lokal
+  let filtered = snapshot.programs;
+  if (overwrite && idsToDelete.length > 0) {
+    const delSet = new Set(idsToDelete);
+    filtered = filtered.filter((p) => !delSet.has(p.id));
+  }
+  snapshot = {
+    ...snapshot,
+    programs: [...filtered, ...newPrograms],
+  };
+  emit();
+
+  // Sinkronisasi Supabase
+  if (supabase) {
+    const client = supabase;
+    const doSync = async () => {
+      try {
+        if (overwrite && idsToDelete.length > 0) {
+          await client.from("programs").delete().in("id", idsToDelete);
+        }
+        if (newPrograms.length > 0) {
+          await client.from("programs").upsert(newPrograms);
+        }
+      } catch (err) {
+        console.error("[data-store] Supabase copyDaySchedule error:", err);
+      }
+    };
+    void doSync();
+  }
+
+  return { addedCount: newPrograms.length, replacedCount: idsToDelete.length };
+}
+
 /* ---------- News ---------- */
 
 export async function syncNewsFromWordPress(): Promise<{

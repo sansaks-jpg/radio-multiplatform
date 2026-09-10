@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useAuthStore } from "../../stores/authStore";
-import { usePrograms } from "../../hooks/usePrograms";
+import { usePrograms, useProgramsRealtime } from "../../hooks/usePrograms";
 import { flattenNewsPages, useNews } from "../../hooks/useNews";
 import { useBanners } from "../../hooks/useBanners";
 import { useAnnouncers } from "../../hooks/useAnnouncers";
@@ -62,6 +62,8 @@ export function HomeScreen() {
   const news = useNews();
   const banners = useBanners();
   const announcers = useAnnouncers();
+  // Realtime: auto-invalidate cache program saat admin ubah jadwal
+  useProgramsRealtime();
 
   const programs = todayPrograms.data ?? [];
   const onAirProgram = programs.find((p) => isOnAirNow(p, now)) ?? null;

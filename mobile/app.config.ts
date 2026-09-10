@@ -86,8 +86,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     adminApiUrl:
       process.env.EXPO_PUBLIC_API_URL ?? "http://40.81.231.250:3001",
-    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",
-    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "",
+    // Supabase — diinject via env saat dev lokal, atau fallback ke nilai produksi
+    // agar APK yang di-build via CI tetap terhubung ke database.
+    supabaseUrl:
+      process.env.EXPO_PUBLIC_SUPABASE_URL ??
+      "https://idnxegollxhdcoexvndx.supabase.co",
+    supabaseAnonKey:
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkbnhlZ29sbHhoZGNvZXh2bmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NzAwMTEsImV4cCI6MjEwNDU0NjAxMX0.ISfschgquOnUMD0fCh5YkHYVRl3LKMJmAlyY_7OeRYE",
     // Stream integration contract (MOBILE_FRONTEND_PLAN.md §0)
     streamPlaylistUrl: "http://27.50.19.173:9000/gaulfm.m3u",
     streamFallbackUrl: "http://27.50.19.173:9000/gaulfm",

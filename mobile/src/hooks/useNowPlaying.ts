@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase";
 import { mockNowPlaying } from "../mocks/nowPlaying";
 import { usePlayerStore } from "../stores/playerStore";
@@ -76,6 +76,7 @@ export function useNowPlaying() {
   const setNowPlaying = usePlayerStore((s) => s.setNowPlaying);
   const hasStarted = usePlayerStore((s) => s.hasStarted);
   const allPrograms = useAllPrograms();
+  const queryClient = useQueryClient();
 
   // Re-check on-air window every 30s
   const [tick, setTick] = useState(0);
@@ -90,6 +91,33 @@ export function useNowPlaying() {
     refetchInterval: REFETCH_MS,
     staleTime: REFETCH_MS / 2,
   });
+
+  // Supabase Realtime: subscribe ke perubahan now_playing agar update penyiar
+  // dan program langsung diterima tanpa menunggu polling 30 detik.
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase || !isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel("now_playing_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "now_playing",
+        },
+        (_payload) => {
+          // Invalidate dan refetch segera saat ada perubahan dari admin
+          void queryClient.invalidateQueries({ queryKey: ["nowPlaying"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   useEffect(() => {
     const base = query.data ?? mockNowPlaying;

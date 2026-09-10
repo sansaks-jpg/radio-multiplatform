@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase";
 import { mockBanners } from "../mocks/banners";
 import type { Banner } from "../types";
@@ -22,6 +23,29 @@ async function fetchBanners(): Promise<Banner[]> {
 }
 
 export function useBanners() {
+  const queryClient = useQueryClient();
+
+  // Supabase Realtime: banner langsung update saat admin ubah di dashboard
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase || !isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel("banners_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "banners" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["banners"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["banners"],
     queryFn: fetchBanners,

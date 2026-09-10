@@ -1,6 +1,6 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getSupabase } from "../services/supabase";
+import { useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getSupabase, isSupabaseConfigured } from "../services/supabase";
 import { mockPrograms } from "../mocks/programs";
 import {
   getMinutesToProgram,
@@ -56,6 +56,33 @@ export function useAllPrograms() {
     queryFn: fetchAllPrograms,
     staleTime: 60_000,
   });
+}
+
+/**
+ * Subscribe ke perubahan tabel `programs` via Supabase Realtime.
+ * Harus dipanggil satu kali di komponen root atau layar utama.
+ */
+export function useProgramsRealtime() {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase || !isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel("programs_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "programs" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["programs"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 }
 
 /** Single program by id (from full week cache). */
