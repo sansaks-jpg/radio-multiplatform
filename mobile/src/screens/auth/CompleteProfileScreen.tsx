@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Keyboard, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -22,6 +22,7 @@ interface FormErrors {
 
 export function CompleteProfileScreen() {
   const colors = useThemeStore((s) => s.colors);
+  const mode = useThemeStore((s) => s.mode);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const profile = useAuthStore((s) => s.profile);
   const session = useAuthStore((s) => s.session);
@@ -35,12 +36,25 @@ export function CompleteProfileScreen() {
 
   const [fullName, setFullName] = useState(defaultName);
   const [gender, setGender] = useState<"Laki-laki" | "Perempuan" | "">(
-    (profile?.gender as "Laki-laki" | "Perempuan") || ""
+    profile?.gender === "Laki-laki" || profile?.gender === "Perempuan"
+      ? profile.gender
+      : ""
   );
   const [whatsapp, setWhatsapp] = useState(profile?.whatsapp || "");
   const [city, setCity] = useState(profile?.city || "Semarang");
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+
+  const handleSelectGender = (val: "Laki-laki" | "Perempuan") => {
+    Keyboard.dismiss();
+    setGender(val);
+    setErrors((prev) => {
+      if (!prev.gender) return prev;
+      const next = { ...prev };
+      delete next.gender;
+      return next;
+    });
+  };
 
   const submit = async () => {
     const next: FormErrors = {};
@@ -77,6 +91,9 @@ export function CompleteProfileScreen() {
     }
   };
 
+  const isLaki = gender === "Laki-laki";
+  const isPerempuan = gender === "Perempuan";
+
   return (
     <View className="flex-1 bg-bg">
       <AuthFormLayout>
@@ -107,7 +124,16 @@ export function CompleteProfileScreen() {
             autoComplete="name"
             autoCapitalize="words"
             value={fullName}
-            onChangeText={setFullName}
+            onChangeText={(text) => {
+              setFullName(text);
+              if (errors.fullName) {
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.fullName;
+                  return next;
+                });
+              }
+            }}
             error={errors.fullName}
           />
 
@@ -120,61 +146,95 @@ export function CompleteProfileScreen() {
               Jenis Kelamin *
             </Text>
             <View className="flex-row gap-3">
-              <Pressable
-                onPress={() => {
-                  setGender("Laki-laki");
-                  if (errors.gender) setErrors((prev) => ({ ...prev, gender: undefined }));
-                }}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => handleSelectGender("Laki-laki")}
                 accessibilityRole="button"
-                className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl border py-3.5 px-4 transition-all ${
-                  gender === "Laki-laki"
-                    ? "border-brand bg-brand/15 shadow-sm"
-                    : "border-line bg-surface"
-                }`}
+                accessibilityState={{ selected: isLaki }}
+                accessibilityLabel="Pilih Jenis Kelamin Laki-laki"
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  borderRadius: 14,
+                  borderWidth: isLaki ? 2 : 1,
+                  borderColor: isLaki ? colors.brand : colors.line,
+                  backgroundColor: isLaki
+                    ? (mode === "dark" ? "rgba(148, 248, 174, 0.15)" : "rgba(0, 122, 62, 0.08)")
+                    : colors.surface2,
+                  paddingVertical: 14,
+                  paddingHorizontal: 14,
+                }}
               >
+                <View className="flex-row items-center gap-2">
+                  <Ionicons
+                    name="male"
+                    size={19}
+                    color={isLaki ? colors.brand : colors.textDim}
+                  />
+                  <Text
+                    className="text-sm font-bold"
+                    style={{
+                      fontFamily: "PlusJakartaSans_700Bold",
+                      color: isLaki
+                        ? (mode === "dark" ? colors.brand : "#006633")
+                        : colors.text,
+                    }}
+                  >
+                    Laki-laki
+                  </Text>
+                </View>
                 <Ionicons
-                  name="male"
+                  name={isLaki ? "checkmark-circle" : "ellipse-outline"}
                   size={18}
-                  color={gender === "Laki-laki" ? colors.brand : colors.textDim}
+                  color={isLaki ? colors.brand : colors.textDim}
                 />
-                <Text
-                  className="text-sm font-bold"
-                  style={{
-                    fontFamily: "PlusJakartaSans_700Bold",
-                    color: gender === "Laki-laki" ? colors.brand : colors.text,
-                  }}
-                >
-                  Laki-laki
-                </Text>
-              </Pressable>
+              </TouchableOpacity>
 
-              <Pressable
-                onPress={() => {
-                  setGender("Perempuan");
-                  if (errors.gender) setErrors((prev) => ({ ...prev, gender: undefined }));
-                }}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => handleSelectGender("Perempuan")}
                 accessibilityRole="button"
-                className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl border py-3.5 px-4 transition-all ${
-                  gender === "Perempuan"
-                    ? "border-orange bg-orange/15 shadow-sm"
-                    : "border-line bg-surface"
-                }`}
+                accessibilityState={{ selected: isPerempuan }}
+                accessibilityLabel="Pilih Jenis Kelamin Perempuan"
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  borderRadius: 14,
+                  borderWidth: isPerempuan ? 2 : 1,
+                  borderColor: isPerempuan ? colors.orange : colors.line,
+                  backgroundColor: isPerempuan
+                    ? (mode === "dark" ? "rgba(255, 154, 61, 0.15)" : "rgba(220, 117, 33, 0.08)")
+                    : colors.surface2,
+                  paddingVertical: 14,
+                  paddingHorizontal: 14,
+                }}
               >
+                <View className="flex-row items-center gap-2">
+                  <Ionicons
+                    name="female"
+                    size={19}
+                    color={isPerempuan ? colors.orange : colors.textDim}
+                  />
+                  <Text
+                    className="text-sm font-bold"
+                    style={{
+                      fontFamily: "PlusJakartaSans_700Bold",
+                      color: isPerempuan ? colors.orange : colors.text,
+                    }}
+                  >
+                    Perempuan
+                  </Text>
+                </View>
                 <Ionicons
-                  name="female"
+                  name={isPerempuan ? "checkmark-circle" : "ellipse-outline"}
                   size={18}
-                  color={gender === "Perempuan" ? colors.orange : colors.textDim}
+                  color={isPerempuan ? colors.orange : colors.textDim}
                 />
-                <Text
-                  className="text-sm font-bold"
-                  style={{
-                    fontFamily: "PlusJakartaSans_700Bold",
-                    color: gender === "Perempuan" ? colors.orange : colors.text,
-                  }}
-                >
-                  Perempuan
-                </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
             {errors.gender && (
               <Text className="mt-1.5 text-xs text-live px-1" style={{ fontFamily: "PlusJakartaSans_500Medium" }}>
