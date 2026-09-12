@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useAuthStore } from "../../stores/authStore";
+import { useNowPlaying } from "../../hooks/useNowPlaying";
 import { usePrograms, useProgramsRealtime } from "../../hooks/usePrograms";
 import { flattenNewsPages, useNews } from "../../hooks/useNews";
 import { useBanners } from "../../hooks/useBanners";
@@ -57,6 +59,8 @@ export function HomeScreen() {
     return () => clearInterval(timer);
   }, []);
 
+  const queryClient = useQueryClient();
+  const nowPlaying = useNowPlaying();
   const todayPrograms = usePrograms(todayDow(now));
   const news = useNews();
   const banners = useBanners();
@@ -101,12 +105,23 @@ export function HomeScreen() {
   const isRefreshing =
     todayPrograms.isRefetching ||
     news.isRefetching ||
-    banners.isRefetching;
-  const onRefresh = useCallback(() => {
-    void todayPrograms.refetch();
-    void news.refetch();
-    void banners.refetch();
-  }, [todayPrograms, news, banners]);
+    banners.isRefetching ||
+    nowPlaying.isRefetching;
+
+  const onRefresh = useCallback(async () => {
+    setNow(new Date());
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["nowPlaying"] }),
+      queryClient.invalidateQueries({ queryKey: ["programs"] }),
+      queryClient.invalidateQueries({ queryKey: ["banners"] }),
+      queryClient.invalidateQueries({ queryKey: ["announcers"] }),
+      queryClient.invalidateQueries({ queryKey: ["news"] }),
+      nowPlaying.refetch(),
+      todayPrograms.refetch(),
+      banners.refetch(),
+      news.refetch(),
+    ]);
+  }, [queryClient, nowPlaying, todayPrograms, banners, news]);
 
   const onBannerPress = useCallback(
     (banner: Banner) => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { buildApiUrl } from "../services/apiConfig";
+import { apiFetch } from "../services/apiConfig";
 import { mockNowPlaying } from "../mocks/nowPlaying";
 import { usePlayerStore } from "../stores/playerStore";
 import { updateLiveMetadata } from "../services/audio/trackPlayerService";
@@ -15,8 +15,7 @@ const ON_AIR_TICK_MS = 30_000;
 async function fetchNowPlaying(): Promise<NowPlaying> {
   // 1. Ambil dari server API Next.js (cepat <5ms via in-memory cache)
   try {
-    const url = buildApiUrl("/api/radio/now-playing");
-    const res = await fetch(url);
+    const res = await apiFetch("/api/radio/now-playing");
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
@@ -52,11 +51,12 @@ function mergeWithOnAir(
   onAir: Program | null | undefined,
 ): NowPlaying {
   const liveHost = getOfficialLiveHost(base.current_host);
-  const programName = onAir?.name || base.current_program || "Gaul FM Semarang";
+  // Prioritaskan program dari base (yang di-set langsung oleh studio/admin)
+  const programName = base.current_program || onAir?.name || "Gaul FM Semarang";
   const safeBaseCover = isPenyiarPhoto(base.current_cover_url)
     ? null
     : base.current_cover_url;
-  const defaultCover = onAir?.cover_url || safeBaseCover || DEFAULT_PROGRAM_COVER;
+  const defaultCover = safeBaseCover || onAir?.cover_url || DEFAULT_PROGRAM_COVER;
 
   // Aturan Gaul FM: Penyiar on-air kosong KECUALI admin telah memilih penyiar di panel admin.
   if (liveHost) {

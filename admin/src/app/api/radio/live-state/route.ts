@@ -22,7 +22,9 @@ export async function GET() {
       {
         headers: {
           ...corsHeaders,
-          "Cache-Control": "public, s-maxage=5, stale-while-revalidate=15",
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
         },
       }
     );

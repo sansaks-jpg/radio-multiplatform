@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { buildApiUrl, resolveMediaUrl } from "../services/apiConfig";
+import { apiFetch, resolveMediaUrl } from "../services/apiConfig";
 import { mockAnnouncers } from "../mocks/announcers";
 import type { Announcer } from "../types";
 
@@ -50,8 +50,7 @@ function parseMobileAnnouncer(item: any): Announcer {
 async function fetchAnnouncers(): Promise<Announcer[]> {
   // 1. Ambil dari server API Next.js
   try {
-    const url = buildApiUrl("/api/radio/announcers");
-    const res = await fetch(url);
+    const res = await apiFetch("/api/radio/announcers");
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.data) && json.data.length > 0) {

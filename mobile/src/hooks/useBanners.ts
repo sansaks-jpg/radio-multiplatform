@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { buildApiUrl, resolveMediaUrl } from "../services/apiConfig";
+import { apiFetch, resolveMediaUrl } from "../services/apiConfig";
 import { mockBanners } from "../mocks/banners";
 import type { Banner } from "../types";
 
@@ -26,8 +26,7 @@ function parseBanner(b: any): Banner {
 async function fetchBanners(): Promise<Banner[]> {
   // 1. Ambil dari server API Next.js
   try {
-    const url = buildApiUrl("/api/radio/banners");
-    const res = await fetch(url);
+    const res = await apiFetch("/api/radio/banners");
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.data) && json.data.length > 0) {

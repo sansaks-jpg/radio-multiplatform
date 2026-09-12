@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { buildApiUrl, resolveMediaUrl } from "../services/apiConfig";
+import { apiFetch, resolveMediaUrl } from "../services/apiConfig";
 import { mockPrograms } from "../mocks/programs";
 import type { Program } from "../types";
 
@@ -20,8 +20,7 @@ function parseProgram(p: any): Program {
 async function fetchAllPrograms(): Promise<Program[]> {
   // 1. Ambil dari server API Next.js (cepat & di-cache di memori server)
   try {
-    const url = buildApiUrl("/api/radio/programs");
-    const res = await fetch(url);
+    const res = await apiFetch("/api/radio/programs");
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.data) && json.data.length > 0) {

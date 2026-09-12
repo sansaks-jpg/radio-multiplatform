@@ -417,6 +417,19 @@ export function updateNowPlaying(
   };
   emit();
 
+  // Sinkronisasi instan ke server Next.js (<5ms in-memory cache)
+  if (typeof window !== "undefined") {
+    void fetch("/api/radio/now-playing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        current_program: patch.current_program,
+        current_host: patch.current_host,
+        current_cover_url: safeCover,
+      }),
+    }).catch(() => {});
+  }
+
   if (supabase) {
     supabase
       .from("now_playing")

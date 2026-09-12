@@ -38,8 +38,8 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
   const hasError = status === "error";
 
   const liveHost = getOfficialLiveHost(nowPlaying.current_host);
-  const title = matchedProgram?.name ?? nowPlaying.current_program;
-  const cover = matchedProgram?.cover_url ?? nowPlaying.current_cover_url ?? null;
+  const title = nowPlaying.current_program || matchedProgram?.name || "Gaul FM Semarang";
+  const cover = nowPlaying.current_cover_url || matchedProgram?.cover_url || null;
   const listeners = stats.isLive ? stats.listeners.toLocaleString("id-ID") : null;
   const timeRange = matchedProgram
     ? `${matchedProgram.start_time}–${matchedProgram.end_time} WIB`

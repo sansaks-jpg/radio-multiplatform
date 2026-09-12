@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQueryClient } from "@tanstack/react-query";
 import { useThemeStore } from "../../stores/themeStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useReminderStore } from "../../stores/reminderStore";
@@ -62,6 +63,7 @@ export function ScheduleScreen() {
     useNavigation<NativeStackNavigationProp<ScheduleStackParamList>>();
   const playerStatus = usePlayerStore((s) => s.status);
   const { toggle, play } = usePlayerControls();
+  const queryClient = useQueryClient();
 
   const [selectedDay, setSelectedDay] = useState(todayDow());
   const openLiveSheet = usePlayerStore((s) => s.openLiveSheet);
@@ -153,12 +155,20 @@ export function ScheduleScreen() {
 
   const goToday = () => setSelectedDay(todayDow());
 
+  const onRefresh = async () => {
+    setNow(new Date());
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["programs"] }),
+      programs.refetch(),
+    ]);
+  };
+
   return (
     <Screen
       scroll
       dockInset="dock"
       refreshing={programs.isRefetching}
-      onRefresh={() => void programs.refetch()}
+      onRefresh={() => void onRefresh()}
       contentStyle={{ paddingHorizontal: 0 }}
     >
       <TopNavbar className="mt-1 px-5" />

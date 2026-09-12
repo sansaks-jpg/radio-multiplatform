@@ -41,6 +41,33 @@ export function buildApiUrl(path: string): string {
   return `${base}${normalizedPath}`;
 }
 
+/**
+ * Helper fetch terpusat untuk komunikasi dengan server backend Gaul FM.
+ * Secara otomatis menyisipkan cache-buster timestamp query param dan header no-cache
+ * untuk memastikan data siaran/realtime selalu segar dan tidak tertahan oleh HTTP caching perangkat.
+ */
+export async function apiFetch(
+  path: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const separator = path.includes("?") ? "&" : "?";
+  const urlWithCacheBuster = `${path}${separator}_t=${Date.now()}`;
+  const fullUrl = buildApiUrl(urlWithCacheBuster);
+
+  const headers = new Headers(options.headers || {});
+  if (!headers.has("Cache-Control")) {
+    headers.set("Cache-Control", "no-cache");
+  }
+  if (!headers.has("Pragma")) {
+    headers.set("Pragma", "no-cache");
+  }
+
+  return fetch(fullUrl, {
+    ...options,
+    headers,
+  });
+}
+
 function cleanUrl(url: string): string {
   return url.trim().replace(/\/+$/, "");
 }
