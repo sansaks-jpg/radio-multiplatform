@@ -172,41 +172,81 @@ export default function StreamsPage() {
   };
 
   const testVisualStream = () => {
-    if (videoRef.current) {
-      setIsVideoLoading(true);
-      const hlsUrl = "http://40.81.231.250:8888/gaulfm_webrtc/index.m3u8";
-      
-      if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
-        videoRef.current.src = hlsUrl;
-        videoRef.current.play()
-          .then(() => { setIsVideoPlaying(true); setIsVideoLoading(false); })
-          .catch(() => { setIsVideoLoading(false); toast.push("Sinyal vMix belum tersambung", "error"); });
-      } else {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js";
-        script.onload = () => {
-          // @ts-expect-error missing hls types
-          if (window.Hls && window.Hls.isSupported()) {
-            // @ts-expect-error missing hls types
-            const hls = new window.Hls();
-            hls.loadSource(hlsUrl);
-            hls.attachMedia(videoRef.current);
-            // @ts-expect-error missing hls types
-            hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
-              videoRef.current?.play()
-                .then(() => { setIsVideoPlaying(true); setIsVideoLoading(false); })
-                .catch(() => { setIsVideoLoading(false); });
-            });
-            // @ts-expect-error missing hls types
-            hls.on(window.Hls.Events.ERROR, () => {
-              setIsVideoLoading(false);
-              toast.push("Sinyal visual studio belum online", "error");
-            });
-          }
-        };
-        document.body.appendChild(script);
-      }
+    if (!videoRef.current) return;
+
+    // Jika vMix belum online, tampilkan pesan yang jelas tanpa request HLS
+    if (vmixOnline === false) {
+      toast.push("Sinyal vMix belum tersambung ke server. Tekan Stream di vMix terlebih dahulu.", "error");
+      return;
     }
+
+    setIsVideoLoading(true);
+    const hlsUrl = "http://40.81.231.250:8888/gaulfm_webrtc/index.m3u8";
+
+    // Safari / iOS: native HLS support
+    if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
+      videoRef.current.src = hlsUrl;
+      videoRef.current.play()
+        .then(() => { setIsVideoPlaying(true); setIsVideoLoading(false); })
+        .catch(() => { setIsVideoLoading(false); toast.push("Sinyal vMix belum tersambung", "error"); });
+      return;
+    }
+
+    // Chrome/Firefox: gunakan HLS.js
+    const startHlsJs = () => {
+      // @ts-expect-error missing hls types
+      if (!window.Hls?.isSupported()) {
+        setIsVideoLoading(false);
+        toast.push("Browser ini tidak mendukung HLS playback", "error");
+        return;
+      }
+      // @ts-expect-error missing hls types
+      const hls = new window.Hls({ lowLatencyMode: true, enableWorker: true });
+      hls.loadSource(hlsUrl);
+      hls.attachMedia(videoRef.current);
+      // @ts-expect-error missing hls types
+      hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+        videoRef.current?.play()
+          .then(() => { setIsVideoPlaying(true); setIsVideoLoading(false); })
+          .catch(() => { setIsVideoLoading(false); });
+      });
+      // @ts-expect-error missing hls types
+      hls.on(window.Hls.Events.ERROR, (_: unknown, data: { fatal: boolean }) => {
+        if (data.fatal) {
+          setIsVideoLoading(false);
+          setIsVideoPlaying(false);
+          toast.push(
+            vmixOnline
+              ? "Gagal memuat stream video dari server. Coba ulangi."
+              : "Sinyal visual studio belum online",
+            "error"
+          );
+        }
+      });
+    };
+
+    // Jika HLS.js sudah dimuat sebelumnya (window.Hls tersedia)
+    // @ts-expect-error missing hls types
+    if (window.Hls) {
+      startHlsJs();
+      return;
+    }
+
+    // Load HLS.js sekali saja dari CDN
+    const existingScript = document.getElementById("hlsjs-cdn");
+    if (existingScript) {
+      existingScript.addEventListener("load", startHlsJs, { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "hlsjs-cdn";
+    script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js";
+    script.onload = startHlsJs;
+    script.onerror = () => {
+      setIsVideoLoading(false);
+      toast.push("Gagal memuat HLS.js dari CDN. Periksa koneksi internet.", "error");
+    };
+    document.body.appendChild(script);
   };
 
   return (

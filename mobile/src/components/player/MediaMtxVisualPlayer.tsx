@@ -634,7 +634,7 @@ export function MediaMtxVisualPlayer({
     >
       <WebView
         ref={webViewRef}
-        source={{ html: htmlContent, baseUrl: "http://40.81.231.250:8888/" }}
+        source={{ html: htmlContent, baseUrl: "http://40.81.231.250:8888/gaulfm_webrtc/" }}
         style={{ width: "100%", height: "100%", backgroundColor: "#000000" }}
         allowsInlineMediaPlayback
         allowsFullscreenVideo
