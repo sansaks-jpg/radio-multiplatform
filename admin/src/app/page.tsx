@@ -18,7 +18,7 @@ import { PageHeader, StatCard } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DAY_NAMES, formatDateTime, formatRelative } from "@/lib/utils";
+import { DAY_NAMES, formatDateTime, formatRelative, formatDeviceOs } from "@/lib/utils";
 import { resetDemoData, resolveProgramCover } from "@/lib/data-store";
 import { useToast } from "@/components/ui/toast";
 
@@ -376,15 +376,25 @@ export default function OverviewPage() {
 
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">
-                      {u.full_name}
+                      {u.full_name || "Tanpa Nama"}
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {u.city || "Semarang"}
+                    <p
+                      className="truncate text-xs text-muted-foreground"
+                      title={u.email || u.city || ""}
+                    >
+                      {u.city ? u.city : (u.email || "—")}
                     </p>
                   </div>
 
-                  <span className="shrink-0 rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                    {u.device_os || "Mobile"}
+                  <span
+                    className="shrink-0 rounded bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                    title={
+                      u.device_model
+                        ? `${u.device_model} • ${formatDeviceOs(u.device_os)}`
+                        : formatDeviceOs(u.device_os)
+                    }
+                  >
+                    {formatDeviceOs(u.device_os)}
                   </span>
                 </div>
               ))

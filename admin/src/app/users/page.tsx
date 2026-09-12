@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import { formatDateTime, formatRelative } from "@/lib/utils";
+import { formatDateTime, formatRelative, formatDeviceOs } from "@/lib/utils";
 
 export default function UsersPage() {
   const { profiles, sheetsSyncStatus } = useAdminStore();
@@ -21,7 +21,15 @@ export default function UsersPage() {
     const needle = q.trim().toLowerCase();
     if (!needle) return profiles;
     return profiles.filter((u) =>
-      [u.full_name, u.email, u.whatsapp, u.city, u.device_os, u.device_model]
+      [
+        u.full_name,
+        u.email,
+        u.whatsapp,
+        u.city,
+        u.device_os,
+        formatDeviceOs(u.device_os),
+        u.device_model,
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(needle)),
     );
@@ -32,7 +40,7 @@ export default function UsersPage() {
       full_name: u.full_name,
       email: u.email,
       whatsapp: u.whatsapp,
-      device_os: u.device_os,
+      device_os: formatDeviceOs(u.device_os),
       device_model: u.device_model,
       city: u.city,
       latitude: u.latitude,
@@ -49,7 +57,7 @@ export default function UsersPage() {
   };
 
   const byOs = profiles.reduce<Record<string, number>>((acc, u) => {
-    const k = u.device_os || "Lainnya";
+    const k = formatDeviceOs(u.device_os);
     acc[k] = (acc[k] || 0) + 1;
     return acc;
   }, {});
@@ -147,7 +155,7 @@ export default function UsersPage() {
                       </p>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge tone="muted">{u.device_os ?? "—"}</Badge>
+                      <Badge tone="muted">{formatDeviceOs(u.device_os)}</Badge>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {u.device_model ?? "—"}
                       </p>

@@ -77,3 +77,35 @@ export function hasTimeOverlap(
   if (be <= bs) be += 24 * 60;
   return as < be && bs < ae;
 }
+
+/**
+ * Format OS / platform string (e.g. "android 36" -> "Android 16", "android 35" -> "Android 15").
+ */
+export function formatDeviceOs(os: string | null | undefined): string {
+  if (!os) return "Mobile";
+  const trimmed = os.trim();
+  const androidMatch = trimmed.match(/^android\s+(\d+)$/i);
+  if (androidMatch) {
+    const api = parseInt(androidMatch[1], 10);
+    const apiMap: Record<number, string> = {
+      36: "Android 16",
+      35: "Android 15",
+      34: "Android 14",
+      33: "Android 13",
+      32: "Android 12L",
+      31: "Android 12",
+      30: "Android 11",
+      29: "Android 10",
+      28: "Android 9",
+      27: "Android 8.1",
+      26: "Android 8.0",
+    };
+    if (apiMap[api]) return apiMap[api];
+    if (api >= 37) return `Android ${api - 20}`;
+    return `Android (API ${api})`;
+  }
+  if (/^android/i.test(trimmed)) return "Android";
+  if (/^ios/i.test(trimmed)) return trimmed.replace(/ios/i, "iOS");
+  if (/^web/i.test(trimmed)) return "Web";
+  return trimmed;
+}
