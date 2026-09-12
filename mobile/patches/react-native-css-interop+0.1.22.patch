@@ -1,0 +1,85 @@
+diff --git a/node_modules/react-native-css-interop/dist/runtime/native/native-interop.js b/node_modules/react-native-css-interop/dist/runtime/native/native-interop.js
+index 95aafd9..e1cc7d5 100644
+--- a/node_modules/react-native-css-interop/dist/runtime/native/native-interop.js
++++ b/node_modules/react-native-css-interop/dist/runtime/native/native-interop.js
+@@ -474,11 +474,11 @@ function handleUpgrades(sharedState, ruleSet) {
+             name: `${ruleSet.classNames}:focus`,
+         });
+     }
+-    if (ruleSet.animation)
++    if (ruleSet.animation && sharedState.animated !== render_component_1.UpgradeState.UPGRADED)
+         sharedState.animated ||= render_component_1.UpgradeState.SHOULD_UPGRADE;
+-    if (ruleSet.variables)
++    if (ruleSet.variables && sharedState.variables !== render_component_1.UpgradeState.UPGRADED)
+         sharedState.variables ||= render_component_1.UpgradeState.SHOULD_UPGRADE;
+-    if (ruleSet.container) {
++    if (ruleSet.container && sharedState.containers !== render_component_1.UpgradeState.UPGRADED) {
+         sharedState.containers ||= render_component_1.UpgradeState.SHOULD_UPGRADE;
+         sharedState.active ||= (0, observable_1.observable)(false, {
+             name: `${ruleSet.classNames}:active`,
+diff --git a/node_modules/react-native-css-interop/dist/runtime/native/render-component.js b/node_modules/react-native-css-interop/dist/runtime/native/render-component.js
+index a352339..7209fa2 100644
+--- a/node_modules/react-native-css-interop/dist/runtime/native/render-component.js
++++ b/node_modules/react-native-css-interop/dist/runtime/native/render-component.js
+@@ -122,25 +122,44 @@ function createAnimatedComponent(Component) {
+     return AnimatedComponent;
+ }
+ function printUpgradeWarning(warning, originalProps) {
+-    console.log(`CssInterop upgrade warning.\n\n${warning}.\n\nThis warning was caused by a component with the props:\n${stringify(originalProps)}\n\nIf adding or removing sibling components caused this warning you should add a unique "key" prop to your components. https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key\n`);
++    try {
++        console.log(`CssInterop upgrade warning.\n\n${warning}.\n\nThis warning was caused by a component with the props:\n${stringify(originalProps)}\n\nIf adding or removing sibling components caused this warning you should add a unique "key" prop to your components. https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key\n`);
++    } catch {
++        console.log(`CssInterop upgrade warning.\n\n${warning}\n`);
++    }
+ }
+ function stringify(object) {
+-    const seen = new WeakSet();
+-    return JSON.stringify(object, function replace(_, value) {
+-        if (!(value !== null && typeof value === "object")) {
+-            return value;
+-        }
+-        if (seen.has(value)) {
+-            return "[Circular]";
+-        }
+-        seen.add(value);
+-        const newValue = Array.isArray(value) ? [] : {};
+-        for (const entry of Object.entries(value)) {
+-            newValue[entry[0]] = replace(entry[0], entry[1]);
+-        }
+-        seen.delete(value);
+-        return newValue;
+-    }, 2);
++    try {
++        const seen = new WeakSet();
++        return JSON.stringify(object, function replace(key, value) {
++            if (!(value !== null && typeof value === "object")) {
++                return value;
++            }
++            if (seen.has(value)) {
++                return "[Circular]";
++            }
++            if (value.$$typeof || key === "children" || key === "navigation" || key === "descriptors") {
++                return "[ReactNode]";
++            }
++            seen.add(value);
++            const newValue = Array.isArray(value) ? [] : {};
++            for (const k of Object.keys(value)) {
++                try {
++                    const desc = Object.getOwnPropertyDescriptor(value, k);
++                    if (desc && (desc.get || desc.set)) {
++                        continue;
++                    }
++                    newValue[k] = replace(k, value[k]);
++                } catch {
++                    // skip throwing properties
++                }
++            }
++            seen.delete(value);
++            return newValue;
++        }, 2);
++    } catch {
++        return "[Props]";
++    }
+ }
+ function getDebugReplacer() {
+     const seen = new WeakSet();

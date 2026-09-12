@@ -291,27 +291,27 @@ export function ProgramDetailScreen() {
                           )}
                         </View>
 
-                      {isOnAirNow ? (
-                        <View className="absolute -bottom-1 rounded-full bg-live px-1 py-0.2">
-                          <Text
-                            className="text-[7px] font-extrabold uppercase text-white"
-                            style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-                          >
-                            LIVE
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
+                        {isOnAirNow ? (
+                          <View className="absolute -bottom-1 rounded-full bg-live px-1 py-0.5">
+                            <Text
+                              className="text-[7px] font-extrabold uppercase text-white"
+                              style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                            >
+                              LIVE
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
 
-                    <Text
-                      className="mt-1.5 text-center text-[11px] font-semibold text-text"
-                      numberOfLines={1}
-                      style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-                    >
-                      {item.name}
-                    </Text>
-                  </View>
-                );
+                      <Text
+                        className="mt-1.5 text-center text-[11px] font-semibold text-text"
+                        numberOfLines={1}
+                        style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
+                      >
+                        {item.name}
+                      </Text>
+                    </View>
+                  );
               });
             })()}
             </View>
