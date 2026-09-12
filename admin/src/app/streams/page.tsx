@@ -482,14 +482,13 @@ export default function StreamsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground">Sinyal Ingest vMix Studio:</span>
                     {vmixOnline === null ? (
-                      <Badge variant="outline" className="text-[10px]">Memeriksa...</Badge>
+                      <Badge tone="muted" className="text-[10px]">Memeriksa...</Badge>
                     ) : vmixOnline ? (
-                      <Badge variant="success" className="text-[10px] gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <Badge tone="success" pulse className="text-[10px]">
                         Online (Mengudara)
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge tone="muted" className="text-[10px]">
                         Offline (Siaga)
                       </Badge>
                     )}
@@ -503,16 +502,15 @@ export default function StreamsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground">Restream YouTube Live:</span>
                     {youtubeStreaming ? (
-                      <Badge variant="danger" className="text-[10px] gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
+                      <Badge tone="danger" pulse className="text-[10px]">
                         Live Broadcast
                       </Badge>
                     ) : ytEnabled && !vmixOnline ? (
-                      <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">
+                      <Badge tone="warning" className="text-[10px]">
                         Standby (Tunggu vMix)
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge tone="muted" className="text-[10px]">
                         Nonaktif
                       </Badge>
                     )}
