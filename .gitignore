@@ -49,3 +49,5 @@ next-env.d.ts
 .temp/
 supabase/.temp/
 
+# Streaming config (berisi stream key sensitif — jangan di-commit)
+streaming/restream_config.json
