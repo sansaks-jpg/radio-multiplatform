@@ -1,0 +1,16 @@
+{
+  "name": "gaulfm-root",
+  "version": "0.0.4",
+  "private": true,
+  "description": "Gaul FM Semarang Multiplatform Radio Broadcast Workspace",
+  "scripts": {
+    "dev": "npm --prefix mobile run dev",
+    "dev:mobile": "npm --prefix mobile run dev",
+    "dev:admin": "npm --prefix admin run dev",
+    "start": "npm --prefix mobile run start",
+    "mobile": "npm --prefix mobile run dev",
+    "admin": "npm --prefix admin run dev",
+    "build:admin": "npm --prefix admin run build",
+    "lint": "npm --prefix mobile run lint && npm --prefix admin run lint"
+  }
+}
