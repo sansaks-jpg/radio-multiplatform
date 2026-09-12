@@ -98,8 +98,9 @@ export function useNowPlaying() {
     const supabase = getSupabase();
     if (!supabase || !isSupabaseConfigured) return;
 
+    const channelId = `now_playing_realtime_${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel("now_playing_realtime")
+      .channel(channelId)
       .on(
         "postgres_changes",
         {

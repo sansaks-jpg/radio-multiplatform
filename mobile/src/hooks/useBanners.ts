@@ -30,8 +30,9 @@ export function useBanners() {
     const supabase = getSupabase();
     if (!supabase || !isSupabaseConfigured) return;
 
+    const channelId = `banners_realtime_${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel("banners_realtime")
+      .channel(channelId)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "banners" },

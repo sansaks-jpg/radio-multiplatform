@@ -80,8 +80,9 @@ export function useAnnouncers() {
     const supabase = getSupabase();
     if (!supabase || !isSupabaseConfigured) return;
 
+    const channelId = `announcers_realtime_${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel("announcers_realtime")
+      .channel(channelId)
       .on(
         "postgres_changes",
         {
@@ -92,8 +93,13 @@ export function useAnnouncers() {
         () => {
           void queryClient.invalidateQueries({ queryKey: ["announcers"] });
         }
-      )
-      .subscribe();
+      );
+
+    channel.subscribe((status) => {
+      if (status === "CHANNEL_ERROR") {
+        console.warn("[useAnnouncers] Realtime channel error, falling back to polling");
+      }
+    });
 
     return () => {
       void supabase.removeChannel(channel);
