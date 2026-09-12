@@ -11,11 +11,14 @@ import {
   DarkTheme,
   DefaultTheme,
   NavigationContainer,
+  createNavigationContainerRef,
 } from "@react-navigation/native";
 import { getThemeChannels, useThemeStore } from "../stores/themeStore";
 import { channelsToVars } from "./tokens";
 import { RootNavigator } from "../navigation/RootNavigator";
 import { ToastHost } from "../components/ui/ToastHost";
+
+export const navigationRef = createNavigationContainerRef();
 
 /**
  * Applies Sonic Pulse CSS vars + nav theme for light/dark.
@@ -84,7 +87,7 @@ export function ThemeRoot() {
         backgroundColor={colors.bg}
       />
       {/* Stable container: theme updates via `theme` prop only — no remount. */}
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
         <RootNavigator />
       </NavigationContainer>
       <ToastHost />

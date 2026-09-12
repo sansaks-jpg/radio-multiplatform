@@ -12,6 +12,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { NewsCard } from "../../components/news/NewsCard";
 import { NewsCategoryChips } from "../../components/news/NewsCategoryChips";
+import { useAppDockPad } from "../../utils/safeArea";
 
 /**
  * News feed: featured hero + compact rows, lean WP payload, tuned FlatList.
@@ -107,13 +108,15 @@ export function NewsFeedScreen() {
     [categories, selectedCategory],
   );
 
+  const dockPad = useAppDockPad("dock");
+
   return (
     <Screen dockInset="dock">
       <FlatList
         className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingBottom: 24,
+          paddingBottom: dockPad,
         }}
         data={filteredItems}
         keyExtractor={keyExtractor}

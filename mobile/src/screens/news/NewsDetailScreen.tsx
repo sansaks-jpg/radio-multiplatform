@@ -31,7 +31,7 @@ import { htmlToParagraphs } from "../../utils/html";
 import { Screen } from "../../components/ui/Screen";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/Button";
-import { spacing } from "../../theme/tokens";
+import { useAppDockPad } from "../../utils/safeArea";
 
 /**
  * Article reader: hero + meta + paragraphs.
@@ -128,6 +128,8 @@ export function NewsDetailScreen() {
     }
   };
 
+  const dockPad = useAppDockPad("dock");
+
   return (
     <Screen dockInset="dock" contentStyle={{ paddingHorizontal: 0 }}>
       <View className="flex-1">
@@ -156,7 +158,7 @@ export function NewsDetailScreen() {
         <ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: spacing.lg }}
+          contentContainerStyle={{ paddingBottom: dockPad }}
         >
           {loading ? (
             <View className="mt-24 items-center">

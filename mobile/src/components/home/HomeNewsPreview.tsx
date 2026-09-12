@@ -2,7 +2,7 @@ import React, { useCallback, useRef } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { CommonActions, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useThemeStore } from "../../stores/themeStore";
 import type { MainTabParamList, NewsItem } from "../../types";
@@ -19,8 +19,8 @@ const CARD_GAP = 12;
 
 /**
  * Dashboard news — horizontal cards.
- * Opens detail with a CLEAN News stack (only this article) + fromHome so
- * hardware/UI back returns to Home, not a stale previous NewsDetail.
+ * Opens detail with a clean News stack + fromHome so
+ * hardware/UI back returns to Home.
  */
 export function HomeNewsPreview({ items }: HomeNewsPreviewProps) {
   const colors = useThemeStore((s) => s.colors);
@@ -30,24 +30,10 @@ export function HomeNewsPreview({ items }: HomeNewsPreviewProps) {
 
   const openDetail = useCallback(
     (id: string) => {
-      // Reset nested News stack so we never land on a previous article.
-      // Single route: NewsDetail — back → Home (see NewsDetailScreen).
-      navigation.dispatch(
-        CommonActions.navigate({
-          name: "News",
-          params: {
-            state: {
-              routes: [
-                {
-                  name: "NewsDetail",
-                  params: { id, fromHome: true },
-                },
-              ],
-              index: 0,
-            },
-          },
-        }),
-      );
+      navigation.navigate("News", {
+        screen: "NewsDetail",
+        params: { id, fromHome: true },
+      });
     },
     [navigation],
   );

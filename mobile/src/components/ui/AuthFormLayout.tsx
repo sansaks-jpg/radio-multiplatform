@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useKeyboardInset } from "../../hooks/useKeyboardInset";
+import { getAppBottomInset } from "../../utils/safeArea";
 
 /**
  * Auth form keyboard layout (Login / Register / ForgotPassword).
@@ -22,6 +23,7 @@ export function AuthFormLayout({ children }: AuthFormLayoutProps) {
   const keyboardHeight = useKeyboardInset();
   const keyboardOpen = keyboardHeight > 0;
   const insets = useSafeAreaInsets();
+  const bottomInset = getAppBottomInset(insets);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function AuthFormLayout({ children }: AuthFormLayoutProps) {
           styles.content,
           {
             paddingTop: keyboardOpen ? 8 : 32,
-            paddingBottom: Math.max(insets.bottom, 16) + 24,
+            paddingBottom: Math.max(bottomInset, 16) + 24,
           },
         ]}
         keyboardShouldPersistTaps="handled"

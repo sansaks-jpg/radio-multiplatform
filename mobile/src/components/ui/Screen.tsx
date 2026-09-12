@@ -15,6 +15,7 @@ import {
 import { spacing } from "../../theme/tokens";
 import { useThemeStore } from "../../stores/themeStore";
 import { useKeyboardInset } from "../../hooks/useKeyboardInset";
+import { useAppDockPad } from "../../utils/safeArea";
 
 interface ScreenProps {
   children: React.ReactNode;
@@ -37,12 +38,6 @@ interface ScreenProps {
   padded?: boolean;
 }
 
-const DOCK_PAD: Record<NonNullable<ScreenProps["dockInset"]>, number> = {
-  tabs: spacing.lg,
-  dock: spacing.lg,
-  none: spacing.xl,
-};
-
 /** Base screen: safe area + theme bg + optional 16px horizontal padding. */
 export function Screen({
   children,
@@ -59,7 +54,7 @@ export function Screen({
   const colors = useThemeStore((s) => s.colors);
   const insets = useSafeAreaInsets();
   const keyboardHeight = useKeyboardInset();
-  const bottomPad = DOCK_PAD[dockInset];
+  const bottomPad = useAppDockPad(dockInset);
 
   // Keyboard room — always applied LAST so contentStyle cannot wipe it.
   // Android: full keyboard height (Modal/forms often need this even with resize).
@@ -118,9 +113,11 @@ export function Screen({
 
   const content = scroll ? body : <>{children}</>;
 
+  const edges = dockInset === "none" && !scroll ? (["top", "bottom"] as const) : (["top"] as const);
+
   if (keyboardAvoiding && Platform.OS === "ios") {
     return (
-      <SafeAreaView className={`flex-1 bg-bg ${className}`} edges={["top"]}>
+      <SafeAreaView className={`flex-1 bg-bg ${className}`} edges={edges}>
         <KeyboardAvoidingView
           style={styles.flex}
           behavior="padding"
@@ -133,7 +130,7 @@ export function Screen({
   }
 
   return (
-    <SafeAreaView className={`flex-1 bg-bg ${className}`} edges={["top"]}>
+    <SafeAreaView className={`flex-1 bg-bg ${className}`} edges={edges}>
       {content}
     </SafeAreaView>
   );

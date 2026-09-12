@@ -28,7 +28,12 @@ export function TopNavbar({ className = "" }: TopNavbarProps) {
   const navigation = useNavigation<NavigationProp<MainTabParamList>>();
 
   const goToProfile = useCallback(() => {
-    navigation.navigate("Profile");
+    const parent = navigation.getParent<NavigationProp<MainTabParamList>>();
+    if (parent) {
+      parent.navigate("Profile");
+    } else {
+      navigation.navigate("Profile");
+    }
   }, [navigation]);
 
   const label = profile?.full_name?.trim() || "Profil";

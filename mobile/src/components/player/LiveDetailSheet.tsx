@@ -29,6 +29,7 @@ import { MediaMtxVisualPlayer } from "./MediaMtxVisualPlayer";
 import { DAY_FULL_ID, formatDistanceToNow } from "../../utils/datetime";
 import { getOfficialLiveHost } from "../../utils/announcer";
 import { getProgramArtwork, getProgramInfo } from "../../utils/programAssets";
+import { getAppBottomInset } from "../../utils/safeArea";
 
 interface LiveDetailSheetProps {
   visible: boolean;
@@ -170,6 +171,7 @@ export function LiveDetailSheet({
   const glow = useThemeStore((s) => s.glow);
   const mode = useThemeStore((s) => s.mode);
   const insets = useSafeAreaInsets();
+  const bottomInset = getAppBottomInset(insets);
   const keyboardHeight = useKeyboardInset();
   const status = usePlayerStore((s) => s.status);
   const profile = useAuthStore((s) => s.profile);
@@ -806,7 +808,7 @@ export function LiveDetailSheet({
         <View
           className="border-t border-line/30 px-4 pt-2.5"
           style={{
-            paddingBottom: keyboardOpen ? 8 : Math.max(insets.bottom, 10),
+            paddingBottom: keyboardOpen ? 8 : Math.max(bottomInset, 12),
           }}
         >
           <View
@@ -873,7 +875,7 @@ export function LiveDetailSheet({
             />
             <View
               className="max-h-[80%] rounded-t-3xl bg-bg"
-              style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+              style={{ paddingBottom: Math.max(bottomInset, 16) }}
             >
               <View className="items-center pt-2.5">
                 <View className="h-1 w-10 rounded-full bg-line" />

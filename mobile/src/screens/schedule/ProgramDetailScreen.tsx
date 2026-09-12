@@ -56,7 +56,8 @@ export function ProgramDetailScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<ScheduleStackParamList>>();
   const route = useRoute<RouteProp<ScheduleStackParamList, "ProgramDetail">>();
-  const id = route.params.id;
+  const id = route.params?.id ?? "";
+  const fromHome = route.params?.fromHome;
   const remote = useProgramById(id);
   const program = remote.data;
   const weekSlots = useProgramWeekSlots(program?.name);
@@ -111,13 +112,19 @@ export function ProgramDetailScreen() {
   };
 
   const handleCustomBack = useCallback(() => {
+    if (fromHome) {
+      const tabNav = navigation.getParent();
+      tabNav?.navigate("Home" as never);
+      navigation.navigate("ScheduleList" as never);
+      return true;
+    }
     if (navigation.canGoBack()) {
       navigation.goBack();
       return true;
     }
     navigation.navigate("ScheduleList" as never);
     return true;
-  }, [navigation]);
+  }, [fromHome, navigation]);
 
   useFocusEffect(
     useCallback(() => {

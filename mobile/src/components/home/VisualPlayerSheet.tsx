@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayerControls } from "../../hooks/usePlayerControls";
 import { usePlayerStore } from "../../stores/playerStore";
 import { openYouTube, type YouTubeVisual } from "../../services/youtube";
+import { getAppBottomInset } from "../../utils/safeArea";
 
 interface VisualPlayerSheetProps {
   visible: boolean;
@@ -34,6 +35,7 @@ export function VisualPlayerSheet({
   onClose,
 }: VisualPlayerSheetProps) {
   const insets = useSafeAreaInsets();
+  const bottomInset = getAppBottomInset(insets);
   const [loading, setLoading] = useState(true);
   const { play, pause } = usePlayerControls();
 
@@ -223,7 +225,7 @@ export function VisualPlayerSheet({
           className="px-4 py-3 text-center text-[11px] text-white/40"
           style={{
             fontFamily: "PlusJakartaSans_400Regular",
-            paddingBottom: insets.bottom + 12,
+            paddingBottom: bottomInset + 12,
           }}
         >
           Siaran visual YouTube resmi · Audio radio dijeda otomatis selama menonton

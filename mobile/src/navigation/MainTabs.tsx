@@ -10,6 +10,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { dock } from "../theme/tokens";
+import { getAppBottomInset } from "../utils/safeArea";
 import { useThemeStore } from "../stores/themeStore";
 import type {
   MainTabParamList,
@@ -44,7 +45,6 @@ function ScheduleNavigator() {
       <ScheduleStack.Screen
         name="ProgramDetail"
         component={ProgramDetailScreen}
-        getId={({ params }) => params?.id}
       />
     </ScheduleStack.Navigator>
   );
@@ -57,8 +57,6 @@ function NewsNavigator() {
       <NewsStack.Screen
         name="NewsDetail"
         component={NewsDetailScreen}
-        // Distinct route identity per article so params always refresh
-        getId={({ params }) => params?.id}
       />
     </NewsStack.Navigator>
   );
@@ -98,7 +96,7 @@ function TabBarWithMiniPlayer(props: BottomTabBarProps) {
   const colors = useThemeStore((s) => s.colors);
   const mode = useThemeStore((s) => s.mode);
   const activeRouteName = props.state.routes[props.state.index]?.name;
-  const bottomInset = Math.max(insets.bottom, Platform.OS === "web" ? 8 : 0);
+  const bottomInset = getAppBottomInset(insets);
 
   return (
     <View className="w-full bg-bg">

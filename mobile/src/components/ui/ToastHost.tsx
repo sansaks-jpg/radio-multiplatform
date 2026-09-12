@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getAppBottomInset } from "../../utils/safeArea";
 import { useThemeStore } from "../../stores/themeStore";
 import { useToastStore, type ToastTone } from "../../stores/toastStore";
 
@@ -28,6 +29,7 @@ function toneIcon(tone: ToastTone): keyof typeof Ionicons.glyphMap {
 
 export function ToastHost() {
   const insets = useSafeAreaInsets();
+  const bottomInset = getAppBottomInset(insets);
   const colors = useThemeStore((s) => s.colors);
   const visible = useToastStore((s) => s.visible);
   const message = useToastStore((s) => s.message);
@@ -99,7 +101,7 @@ export function ToastHost() {
         position: "absolute",
         left: 16,
         right: 16,
-        bottom: Math.max(insets.bottom, 12) + 72,
+        bottom: Math.max(bottomInset, 12) + 72,
         zIndex: 9999,
         elevation: 24,
       }}

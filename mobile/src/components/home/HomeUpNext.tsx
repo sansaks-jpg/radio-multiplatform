@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { CommonActions, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useThemeStore } from "../../stores/themeStore";
 import { getProgramArtwork } from "../../utils/programAssets";
@@ -22,23 +22,10 @@ export function HomeUpNext({ program }: HomeUpNextProps) {
     useNavigation<BottomTabNavigationProp<MainTabParamList>>();
 
   const openDetail = useCallback(() => {
-    navigation.dispatch(
-      CommonActions.navigate({
-        name: "Schedule",
-        params: {
-          state: {
-            routes: [
-              { name: "ScheduleList" },
-              {
-                name: "ProgramDetail",
-                params: { id: program.id, fromHome: true },
-              },
-            ],
-            index: 1,
-          },
-        },
-      }),
-    );
+    navigation.navigate("Schedule", {
+      screen: "ProgramDetail",
+      params: { id: program.id, fromHome: true },
+    });
   }, [navigation, program.id]);
 
   const artwork = getProgramArtwork(program.name, program.cover_url);

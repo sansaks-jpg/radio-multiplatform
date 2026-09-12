@@ -17,6 +17,7 @@ import { useThemeStore } from "../stores/themeStore";
 import { useOnboardingStore } from "../stores/onboardingStore";
 import { BrandLogo } from "../components/ui/BrandLogo";
 import { Button } from "../components/ui/Button";
+import { getAppBottomInset } from "../utils/safeArea";
 
 import slide1 from "../../assets/onboarding/slide-1.jpg";
 import slide2 from "../../assets/onboarding/slide-2.jpg";
@@ -76,6 +77,7 @@ export function OnboardingScreen() {
   const toggleLightDark = useThemeStore((s) => s.toggleLightDark);
   const complete = useOnboardingStore((s) => s.complete);
   const insets = useSafeAreaInsets();
+  const bottomInset = getAppBottomInset(insets);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const isDark = mode === "dark";
@@ -243,7 +245,7 @@ export function OnboardingScreen() {
       {/* Controls */}
       <View
         className="px-6 pt-2"
-        style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+        style={{ paddingBottom: Math.max(bottomInset, 20) }}
       >
         {/* Interactive Dots */}
         <View className="mb-5 flex-row items-center justify-center gap-2">
