@@ -53,17 +53,7 @@ def main():
         f"rtsp://localhost:8554/{target_webrtc_path}"
     ]
 
-    # Output 2: YouTube Direct Restream
-    # Direct copy for both video and audio. No transcoding needed for YouTube.
-    if youtube_enabled and youtube_key:
-        cmd.extend([
-            "-c:v", "copy",
-            "-c:a", "copy",
-            "-f", "flv",
-            f"rtmp://a.rtmp.youtube.com/live2/{youtube_key}"
-        ])
-
-    print("Starting visual engine with command:", " ".join(cmd), flush=True)
+    print("Starting WebRTC visual engine with command:", " ".join(cmd), flush=True)
     
     process = subprocess.Popen(cmd)
 

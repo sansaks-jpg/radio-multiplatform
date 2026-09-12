@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, Radio, Save, Tv, Video, Cast, Check, Volume2, VolumeX, ExternalLink, Play, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -20,7 +20,11 @@ export default function StreamsPage() {
   // YouTube Restream States
   const [ytEnabled, setYtEnabled] = useState(false);
   const [ytKey, setYtKey] = useState("");
+  const [vmixOnline, setVmixOnline] = useState<boolean | null>(null);
+  const [youtubeStreaming, setYoutubeStreaming] = useState<boolean | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Monitor State
@@ -30,18 +34,60 @@ export default function StreamsPage() {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
 
-  // Fetch initial config from Azure via Next.js API
+  // Helper sync state
+  const applyStreamData = useCallback((data: {
+    youtube_enabled?: boolean;
+    youtube_key?: string;
+    vmix_online?: boolean;
+    youtube_streaming?: boolean;
+    last_error?: string | null;
+  }) => {
+    if (data.youtube_enabled !== undefined) {
+      setYtEnabled(Boolean(data.youtube_enabled));
+      setYtKey(data.youtube_key || "");
+    }
+    setVmixOnline(data.vmix_online ?? false);
+    setYoutubeStreaming(data.youtube_streaming ?? false);
+    setLastError(data.last_error || null);
+  }, []);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshingStatus(true);
+    try {
+      const res = await fetch("/api/stream/sync");
+      if (!res.ok) throw new Error("Status API error");
+      const data = await res.json();
+      applyStreamData(data);
+      toast.push("Status stream berhasil diperbarui");
+    } catch {
+      toast.push("Gagal memuat status cloud engine", "error");
+    } finally {
+      setIsRefreshingStatus(false);
+    }
+  };
+
   useEffect(() => {
-    fetch("/api/stream/sync")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.youtube_enabled !== undefined) {
-          setYtEnabled(data.youtube_enabled);
-          setYtKey(data.youtube_key || "");
+    let isMounted = true;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/stream/sync");
+        if (!res.ok || !isMounted) return;
+        const data = await res.json();
+        if (isMounted) {
+          applyStreamData(data);
         }
-      })
-      .catch(() => toast.push("Gagal memuat status cloud engine", "error"));
-  }, [toast]);
+      } catch {
+        // Abaikan error pada polling otomatis di background
+      }
+    };
+
+    void poll();
+    const timer = setInterval(poll, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [applyStreamData]);
 
   const copyText = async (text: string, id: string, label: string) => {
     let success = false;
@@ -96,7 +142,11 @@ export default function StreamsPage() {
         }),
       });
       if (res.ok) {
-        toast.push(ytEnabled ? "Restream YouTube berhasil diaktifkan!" : "Restream YouTube dimatikan");
+        const data = await res.json();
+        setVmixOnline(data.vmix_online ?? false);
+        setYoutubeStreaming(data.youtube_streaming ?? false);
+        setLastError(data.last_error || null);
+        toast.push(ytEnabled ? "Restream YouTube berhasil disimpan & diaktifkan!" : "Restream YouTube dinonaktifkan");
       } else {
         toast.push("Gagal menyimpan ke server", "error");
       }
@@ -426,6 +476,75 @@ export default function StreamsPage() {
             </CardHeader>
             <CardContent className="space-y-5 pt-4">
               
+              {/* Panel Status Realtime Server & YouTube */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-xl bg-card border border-border/80 shadow-xs">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">Sinyal Ingest vMix Studio:</span>
+                    {vmixOnline === null ? (
+                      <Badge variant="outline" className="text-[10px]">Memeriksa...</Badge>
+                    ) : vmixOnline ? (
+                      <Badge variant="success" className="text-[10px] gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Online (Mengudara)
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Offline (Siaga)
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {vmixOnline ? "Stream vMix studio terdeteksi aktif di server cloud." : "Kirim RTMP dari vMix laptop ke server untuk mengaktifkan."}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">Restream YouTube Live:</span>
+                    {youtubeStreaming ? (
+                      <Badge variant="danger" className="text-[10px] gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
+                        Live Broadcast
+                      </Badge>
+                    ) : ytEnabled && !vmixOnline ? (
+                      <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">
+                        Standby (Tunggu vMix)
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Nonaktif
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {youtubeStreaming ? "Server cloud sedang meneruskan siaran ke YouTube." : ytEnabled ? "Otomatis mengudara saat sinyal vMix studio online." : "Restream YouTube dimatikan."}
+                  </p>
+                </div>
+
+                <div className="md:col-span-2 pt-2 border-t border-border/40 flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">
+                    Auto-refresh status setiap 10 detik
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleManualRefresh}
+                    disabled={isRefreshingStatus}
+                    className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshingStatus ? "animate-spin" : ""}`} />
+                    Perbarui Status
+                  </Button>
+                </div>
+              </div>
+
+              {lastError && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-500">
+                  <span className="font-semibold">Peringatan:</span> {lastError}
+                </div>
+              )}
+
               {/* Sakelar ON/OFF */}
               <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border">
                 <div>
