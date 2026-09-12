@@ -175,7 +175,12 @@ async function syncFromSupabase() {
         .from("banners")
         .select("*")
         .order("sort_order", { ascending: true }),
-      supabase.from("now_playing").select("*").eq("id", "current").single(),
+      supabase
+        .from("now_playing")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
       supabase
         .from("news")
         .select("*")
