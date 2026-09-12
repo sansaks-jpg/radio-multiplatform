@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase";
+import { buildApiUrl } from "../services/apiConfig";
 import { mockNowPlaying } from "../mocks/nowPlaying";
 import { usePlayerStore } from "../stores/playerStore";
 import { updateLiveMetadata } from "../services/audio/trackPlayerService";
@@ -13,16 +14,39 @@ const REFETCH_MS = 30_000;
 const ON_AIR_TICK_MS = 30_000;
 
 async function fetchNowPlaying(): Promise<NowPlaying> {
+  // 1. Ambil dari server API Next.js (cepat <5ms via in-memory cache)
+  try {
+    const url = buildApiUrl("/api/radio/now-playing");
+    const res = await fetch(url);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data) {
+        return json.data as NowPlaying;
+      }
+    }
+  } catch {
+    // Fallback ke direct Supabase / mock jika server offline
+  }
+
+  // 2. Fallback darurat ke Supabase jika server Next.js tidak terjangkau
   const supabase = getSupabase();
-  if (!supabase) return mockNowPlaying;
-  const { data, error } = await supabase
-    .from("now_playing")
-    .select("*")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return (data as NowPlaying | null) ?? mockNowPlaying;
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from("now_playing")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!error && data) {
+        return data as NowPlaying;
+      }
+    } catch {
+      // Fallback ke mock
+    }
+  }
+
+  return mockNowPlaying;
 }
 
 const DEFAULT_PROGRAM_COVER =
@@ -76,7 +100,6 @@ export function useNowPlaying() {
   const setNowPlaying = usePlayerStore((s) => s.setNowPlaying);
   const hasStarted = usePlayerStore((s) => s.hasStarted);
   const allPrograms = useAllPrograms();
-  const queryClient = useQueryClient();
 
   // Re-check on-air window every 30s
   const [tick, setTick] = useState(0);
@@ -91,34 +114,6 @@ export function useNowPlaying() {
     refetchInterval: REFETCH_MS,
     staleTime: REFETCH_MS / 2,
   });
-
-  // Supabase Realtime: subscribe ke perubahan now_playing agar update penyiar
-  // dan program langsung diterima tanpa menunggu polling 30 detik.
-  useEffect(() => {
-    const supabase = getSupabase();
-    if (!supabase || !isSupabaseConfigured) return;
-
-    const channelId = `now_playing_realtime_${Math.random().toString(36).slice(2, 8)}`;
-    const channel = supabase
-      .channel(channelId)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "now_playing",
-        },
-        (_payload) => {
-          // Invalidate dan refetch segera saat ada perubahan dari admin
-          void queryClient.invalidateQueries({ queryKey: ["nowPlaying"] });
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   useEffect(() => {
     const base = query.data ?? mockNowPlaying;

@@ -12,9 +12,7 @@ import type {
   Banner,
   NewsItem,
   NowPlaying,
-  Profile,
   Program,
-  StreamSettings,
 } from "./types";
 import { uid } from "./utils";
 import { supabase } from "./supabase";
@@ -146,7 +144,7 @@ export function formatAnnouncerPayload(ann: Announcer) {
   };
 }
 
-export async function syncFromSupabase() {
+async function syncFromSupabase() {
   if (!supabase) return;
   try {
     const [progRes, banRes, npRes, newsRes, profRes, annRes] = await Promise.all([
@@ -787,12 +785,6 @@ export function deleteNews(id: string) {
   }
 }
 
-/* ---------- Profiles (read-only marketing data) ---------- */
-
-export function getProfiles(): Profile[] {
-  return getSnapshot().profiles;
-}
-
 /* ---------- Banners ---------- */
 
 export function upsertBanner(
@@ -849,36 +841,3 @@ export function deleteBanner(id: string) {
   }
 }
 
-export function setSheetsStatus(status: AdminSnapshot["sheetsSyncStatus"]) {
-  snapshot = { ...snapshot, sheetsSyncStatus: status };
-  emit();
-}
-
-/* ---------- Stream Settings ---------- */
-
-export function updateStreamSettings(
-  patch: Partial<StreamSettings>,
-): StreamSettings {
-  const current = snapshot.streamSettings ?? createSeedSnapshot().streamSettings;
-  const updated: StreamSettings = {
-    ...current,
-    ...patch,
-    updated_at: new Date().toISOString(),
-  };
-  snapshot = {
-    ...snapshot,
-    streamSettings: updated,
-  };
-  emit();
-  return updated;
-}
-
-export function resetStreamSettings(): StreamSettings {
-  const defaults = createSeedSnapshot().streamSettings;
-  snapshot = {
-    ...snapshot,
-    streamSettings: { ...defaults, updated_at: new Date().toISOString() },
-  };
-  emit();
-  return snapshot.streamSettings;
-}

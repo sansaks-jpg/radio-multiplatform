@@ -7,7 +7,6 @@ import {
   Trash2,
   Upload,
   Loader2,
-  Mic,
   AtSign,
   Radio,
   Sparkles,

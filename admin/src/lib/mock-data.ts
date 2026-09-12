@@ -76,7 +76,7 @@ function buildPrograms(): Program[] {
 
 const seedPrograms = buildPrograms();
 
-export const seedNowPlaying: NowPlaying = {
+const seedNowPlaying: NowPlaying = {
   id: "demo-now-playing",
   current_program: "Gaul Waktu Setempat",
   current_host: "Gaul Squad",
@@ -84,9 +84,9 @@ export const seedNowPlaying: NowPlaying = {
   updated_at: "2026-07-19T09:00:00+07:00",
 };
 
-export const seedNews: NewsItem[] = [];
+const seedNews: NewsItem[] = [];
 
-export const seedProfiles: Profile[] = [
+const seedProfiles: Profile[] = [
   {
     id: "u-1",
     full_name: "Aditya Pratama",
@@ -159,7 +159,7 @@ export const seedProfiles: Profile[] = [
   },
 ];
 
-export const seedBanners: Banner[] = [
+const seedBanners: Banner[] = [
   {
     id: "b-1",
     type: "program",
@@ -214,7 +214,7 @@ export const seedBanners: Banner[] = [
   },
 ];
 
-export const seedAnnouncers: Announcer[] = [
+const seedAnnouncers: Announcer[] = [
   {
     id: "ann-1",
     name: "Attaya",
@@ -301,7 +301,7 @@ export const seedAnnouncers: Announcer[] = [
   },
 ];
 
-export const seedStreamSettings: StreamSettings = {
+const seedStreamSettings: StreamSettings = {
   audioPrimaryUrl: "http://27.50.19.173:9000/gaulfm.m3u",
   audioFallbackUrl: "http://27.50.19.173:9000/gaulfm",
   audioMountPoint: "/gaulfm",

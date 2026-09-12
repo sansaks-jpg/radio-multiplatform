@@ -6,12 +6,10 @@ import {
   Clock,
   Copy,
   LayoutGrid,
-  ListFilter,
   Pencil,
   Plus,
   Radio,
   Search,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
@@ -457,6 +455,13 @@ export default function SchedulePage() {
 
       {/* MODAL TAMBAH / EDIT PROGRAM */}
       <ScheduleModal
+        key={
+          scheduleModalOpen
+            ? programToEdit
+              ? `edit-${programToEdit.id}-${programToEdit.day_of_week}`
+              : `create-${day}`
+            : "closed"
+        }
         open={scheduleModalOpen}
         onClose={() => {
           setScheduleModalOpen(false);

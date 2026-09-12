@@ -80,13 +80,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         color: "#007A3E",
       },
     ],
-    [
-      "expo-location",
-      {
-        locationWhenInUsePermission:
-          "Gaul FM menggunakan lokasi kamu sekali saat pendaftaran untuk personalisasi konten lokal Semarang.",
-      },
-    ],
     "./plugins/withAndroidSplits.js",
     "./plugins/withProgramDrawables.js",
   ],

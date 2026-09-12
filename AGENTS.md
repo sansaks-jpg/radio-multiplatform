@@ -40,12 +40,12 @@ src/
 ├── screens/       Splash, Onboarding, auth/ (Login, Register, Forgot, Reset), home/, schedule/, news/, profile/
 ├── components/    player/ (LiveBadge, LiveDetailSheet, MediaMtxVisualPlayer, MiniPlayer), schedule/, news/, ui/
 ├── stores/        playerStore, authStore, reminderStore, themeStore, toastStore
-├── services/      audio/ (playerEngine, trackPlayerService, streamResolver), visualStream, comments, supabase, notifications, location, deviceInfo
-├── hooks/         usePlayerControls, useNowPlaying, usePrograms, useNews, useProfile, useBanners, useLiveComments
-├── mocks/         nowPlaying, programs, news, banners, comments (Data dummy fallback)
+├── services/      audio/ (playerEngine, trackPlayerService, streamResolver), apiConfig, visualStream, comments, supabase, notifications, deviceInfo
+├── hooks/         usePlayerControls, useNowPlaying, usePrograms, useNews, useProfile, useBanners, useLiveComments, useAnnouncers, useIcecastStats, useKeyboardInset, useRemoteEventHandlers
+├── mocks/         nowPlaying, programs, banners, comments, announcers (Data dummy fallback)
 ├── theme/         tokens.ts, ThemeRoot.tsx ("Gaul Neon Night")
 ├── types/         index.ts, assets.d.ts
-└── utils/         datetime.ts (WIB UTC+7 helpers), html.ts
+└── utils/         datetime.ts (WIB UTC+7 helpers), html.ts, announcer.ts, programAssets.ts, safeArea.ts
 ```
 
 ### Audio, Visual & Live Chat Contracts
@@ -74,6 +74,10 @@ src/
 5. **Android Split ABI Build Optimization (v0.0.4)**:
    - Plugin Expo: `mobile/plugins/withAndroidSplits.js` menginjeksi konfigurasi `splits.abi` ke `android/app/build.gradle` secara dinamis saat `expo prebuild`.
    - Varian Binary Ringan: Memisahkan APK menjadi arsitektur 32-bit (`armeabi-v7a`), 64-bit (`arm64-v8a`), x86, x86_64, dan universal. Memangkas ukuran download dari ~70MB menjadi ~15–25MB.
+6. **Server-Mediated Architecture & Program-Slot Comment Auto-Prune (v0.0.5)**:
+   - Zero Direct Mobile Supabase Realtime: Seluruh koneksi Supabase Realtime WebSocket di mobile ditiadakan. Mobile app berkomunikasi ke Server Next.js via `/api/radio/*` dan `/api/comments` yang dilayani in-memory bus (<5ms). Ini memangkas 100% konsumsi slot 200 koneksi bersamaan di Supabase Free Tier dan mereduksi egress.
+   - Server-Agnostic Config: `mobile/src/services/apiConfig.ts` membaca `EXPO_PUBLIC_API_URL` secara terpusat untuk kemudahan migrasi server/domain tanpa mengubah kode sumber.
+   - Program-Slot Comment Auto-Prune: Komentar live chat bertahan sepanjang program dan jeda antar program (misal Program A jam 08:00–10:00, Program B jam 14:00–17:00 -> komentar bertahan dari jam 08:00 sampai 13:59). Tepat jam 14:00 WIB saat Program B dimulai, komentar lama dihapus otomatis dari memori & Supabase, dan event `reset` dikirim via SSE/polling untuk mengosongkan riwayat obrolan pendengar. Pada hari tanpa jadwal siaran, komentar tidak dihapus.
 
 ### Perintah Mobile
 
@@ -121,13 +125,14 @@ src/
 │   ├── banners/page.tsx        Manajemen banner promosi mobile app
 │   ├── users/page.tsx          Tabel data pendengar & export Excel (.xlsx)
 │   └── api/
+│       ├── radio/              GET endpoints (live-state, now-playing, programs, announcers, banners)
 │       ├── comments/           GET & POST live comments (/route.ts)
 │       ├── comments/stream/    Server-Sent Events streaming live comments
 │       ├── comments/[id]/      PATCH toggle highlight on-air & hide comment
 │       └── sync-sheets/route.ts Webhook handler untuk sync pendaftaran ke Google Sheets
 ├── components/                 layout/ (AppShell, Sidebar, Topbar), ui/ (Button, Card, Input, Modal, Badge, Toast)
 ├── hooks/                      useAdminStore, useToday
-└── lib/                        comments-bus.ts, supabase.ts, data-store.ts, mock-data.ts, utils.ts
+└── lib/                        radio-bus.ts, comments-bus.ts, supabase.ts, data-store.ts, mock-data.ts, utils.ts, wordpress.ts
 ```
 
 ### Perintah Admin

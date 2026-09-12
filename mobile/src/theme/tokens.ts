@@ -111,9 +111,6 @@ export const lightChannels: ColorChannels = {
   success: "0 122 62",
 };
 
-/** @deprecated Prefer useThemeStore().colors — default light for module-level refs. */
-export const colors = lightColors;
-
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -122,14 +119,6 @@ export const spacing = {
   lg: 24,
   xl: 32,
   "2xl": 40,
-} as const;
-
-export const radius = {
-  sm: 4,
-  md: 8,
-  card: 16,
-  lg: 24,
-  full: 999,
 } as const;
 
 export function makeGlow(palette: ColorPalette) {
@@ -150,8 +139,6 @@ export function makeGlow(palette: ColorPalette) {
     },
   } as const;
 }
-
-export const glow = makeGlow(lightColors);
 
 export const dock = {
   marginX: 12,

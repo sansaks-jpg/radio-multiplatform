@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import {
-  fetchRecentComments,
+  fetchRecentCommentsWithSession,
   sendLiveComment,
   getAdminApiUrl,
 } from "../services/comments";
@@ -17,12 +17,14 @@ export function useLiveComments(enabled: boolean) {
 
   const pendingSendsCount = useRef(0);
   const lastSendTime = useRef(0);
+  const lastSessionRef = useRef<string | null>(null);
 
   // Initial load when opened
   const loadInitial = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchRecentComments(MAX_COMMENTS_LIMIT);
+      const { comments: data, sessionStartIso } = await fetchRecentCommentsWithSession(MAX_COMMENTS_LIMIT);
+      lastSessionRef.current = sessionStartIso;
       setComments(data.slice(0, MAX_COMMENTS_LIMIT));
     } catch {
       // Ignored
@@ -83,6 +85,10 @@ export function useLiveComments(enabled: boolean) {
         }
       });
 
+      es.addEventListener("reset", () => {
+        setComments([]);
+      });
+
       return () => {
         es.close();
       };
@@ -91,23 +97,33 @@ export function useLiveComments(enabled: boolean) {
     // 2. Di platform Native Android / iOS: Smart reconciliation polling (2 detik)
     const syncNative = async () => {
       try {
-        const fresh = await fetchRecentComments(MAX_COMMENTS_LIMIT);
-        if (fresh && fresh.length > 0) {
-          setComments((prev) => {
-            if (prev.length === 0) return fresh;
+        const { comments: fresh, sessionStartIso } = await fetchRecentCommentsWithSession(MAX_COMMENTS_LIMIT);
 
-            // Pertahankan optimistic & local comments lokal yang belum tersinkron
-            const pendingOptimistic = prev.filter(
-              (c) => c.id.startsWith("temp-") || c.id.startsWith("local-")
-            );
-            const freshIds = new Set(fresh.map((c) => c.id));
-            const retainedPending = pendingOptimistic.filter(
-              (c) => !freshIds.has(c.id)
-            );
-
-            return [...retainedPending, ...fresh].slice(0, MAX_COMMENTS_LIMIT);
-          });
+        // Jika sesi program siaran berganti, bersihkan riwayat komentar seketika
+        if (sessionStartIso && sessionStartIso !== lastSessionRef.current) {
+          lastSessionRef.current = sessionStartIso;
+          setComments(fresh);
+          return;
         }
+
+        setComments((prev) => {
+          if (prev.length === 0) return fresh;
+
+          const sessionCutoff = sessionStartIso ? new Date(sessionStartIso).getTime() : 0;
+
+          // Pertahankan optimistic comments lokal yang belum tersinkron
+          const pendingOptimistic = prev.filter(
+            (c) =>
+              (c.id.startsWith("temp-") || c.id.startsWith("local-")) &&
+              new Date(c.created_at).getTime() >= sessionCutoff
+          );
+          const freshIds = new Set(fresh.map((c) => c.id));
+          const retainedPending = pendingOptimistic.filter(
+            (c) => !freshIds.has(c.id)
+          );
+
+          return [...retainedPending, ...fresh].slice(0, MAX_COMMENTS_LIMIT);
+        });
       } catch {
         // Safe fail
       }

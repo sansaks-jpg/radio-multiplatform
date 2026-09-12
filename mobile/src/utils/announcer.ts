@@ -3,15 +3,6 @@
  * Mengelola daftar 7 penyiar resmi dan logika on-air.
  */
 
-export const OFFICIAL_ANNOUNCERS = [
-  "Attaya",
-  "Ega Ratu",
-  "Kara Ferina",
-  "Nafa",
-  "Nanda",
-  "Rizky",
-  "Tyas",
-] as const;
 
 /**
  * Memvalidasi apakah string host merupakan penyiar resmi studio on-air

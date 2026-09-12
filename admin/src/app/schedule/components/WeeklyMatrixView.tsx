@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { Plus, Pencil, Trash2, Clock, User } from "lucide-react";
 import type { Program } from "@/lib/types";
 import { DAY_NAMES, DAY_SHORT, cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 interface WeeklyMatrixViewProps {
   programs: Program[];

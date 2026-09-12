@@ -1,40 +1,9 @@
 import { Platform } from "react-native";
-import Constants from "expo-constants";
-import { getSupabase, isSupabaseConfigured } from "./supabase";
+import { getServerApiUrl } from "./apiConfig";
 import { mockComments } from "../mocks/comments";
 import type { LiveComment } from "../types";
 
-const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, unknown>;
-
-export const DEFAULT_ADMIN_API_URL = "http://40.81.231.250:3001";
-
-export function getAdminApiUrl(): string {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-  if (
-    typeof extra.adminApiUrl === "string" &&
-    extra.adminApiUrl.startsWith("http")
-  ) {
-    return extra.adminApiUrl;
-  }
-  return DEFAULT_ADMIN_API_URL;
-}
-
 export const MAX_LIVE_COMMENTS = 50;
-
-function getTargetUrls(): string[] {
-  const primary = getAdminApiUrl();
-  const urls = [primary];
-  if (
-    __DEV__ &&
-    Platform.OS === "android" &&
-    (primary.includes("localhost") || primary.includes("127.0.0.1"))
-  ) {
-    urls.push("http://10.0.2.2:3000");
-  }
-  return urls;
-}
 
 const NETWORK_TIMEOUT_MS = 3500;
 
@@ -55,47 +24,32 @@ async function fetchWithTimeout(
   }
 }
 
-async function withTimeout<T>(
-  promise: PromiseLike<T>,
-  timeoutMs = NETWORK_TIMEOUT_MS
-): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout")), timeoutMs)
-    ),
-  ]);
+function getTargetUrls(): string[] {
+  const primary = getServerApiUrl();
+  const urls = [primary];
+  if (
+    __DEV__ &&
+    Platform.OS === "android" &&
+    (primary.includes("localhost") || primary.includes("127.0.0.1"))
+  ) {
+    urls.push("http://10.0.2.2:3000");
+  }
+  return urls;
+}
+
+export interface CommentsResult {
+  comments: LiveComment[];
+  sessionStartIso: string | null;
 }
 
 /**
- * Mengambil daftar komentar terbaru dari Supabase atau Next.js API.
- * Jika offline/demo mode, kembalikan mock data (maksimal 50).
+ * Mengambil daftar komentar terbaru dari backend Next.js API.
+ * Disaring sesuai batas program siaran aktif oleh server.
  */
-export async function fetchRecentComments(
+export async function fetchRecentCommentsWithSession(
   limit = MAX_LIVE_COMMENTS
-): Promise<LiveComment[]> {
+): Promise<CommentsResult> {
   const safeLimit = Math.min(limit, MAX_LIVE_COMMENTS);
-  const supabase = getSupabase();
-  if (supabase && isSupabaseConfigured) {
-    try {
-      const { data, error } = await withTimeout(
-        supabase
-          .from("live_comments")
-          .select("*")
-          .eq("is_hidden", false)
-          .order("created_at", { ascending: false })
-          .limit(safeLimit)
-      );
-
-      if (!error && data) {
-        return data as LiveComment[];
-      }
-    } catch {
-      // Fallback ke REST API / mock
-    }
-  }
-
-  // Coba REST endpoint dari admin
   const urls = getTargetUrls();
 
   for (const baseUrl of urls) {
@@ -104,7 +58,9 @@ export async function fetchRecentComments(
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.comments)) {
-          return json.comments.slice(-safeLimit).reverse() as LiveComment[];
+          const list = json.comments.slice(-safeLimit).reverse() as LiveComment[];
+          const sessionStartIso = json.session?.session_start ?? null;
+          return { comments: list, sessionStartIso };
         }
       }
     } catch {
@@ -112,94 +68,25 @@ export async function fetchRecentComments(
     }
   }
 
-  return mockComments.slice(0, safeLimit);
+  return { comments: mockComments.slice(0, safeLimit), sessionStartIso: null };
 }
 
-/**
- * Mengambil delta komentar baru setelah timestamp tertentu (sangat hemat bandwidth).
- */
-export async function fetchDeltaComments(
-  sinceIso: string
+export async function fetchRecentComments(
+  limit = MAX_LIVE_COMMENTS
 ): Promise<LiveComment[]> {
-  const supabase = getSupabase();
-  if (supabase && isSupabaseConfigured) {
-    try {
-      const { data, error } = await withTimeout(
-        supabase
-          .from("live_comments")
-          .select("*")
-          .eq("is_hidden", false)
-          .gt("created_at", sinceIso)
-          .order("created_at", { ascending: false })
-      );
-
-      if (!error && data) {
-        return data as LiveComment[];
-      }
-    } catch {
-      return [];
-    }
-  }
-
-  // Coba Next.js API
-  const deltaUrls = getTargetUrls();
-
-  for (const baseUrl of deltaUrls) {
-    try {
-      const res = await fetchWithTimeout(`${baseUrl}/api/comments?limit=50`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && Array.isArray(json.comments)) {
-          const sinceTime = new Date(sinceIso).getTime();
-          const news = (json.comments as LiveComment[]).filter(
-            (c) => new Date(c.created_at).getTime() > sinceTime
-          );
-          return news.reverse();
-        }
-      }
-    } catch {
-      // Coba endpoint berikutnya
-    }
-  }
-
-  return [];
+  const result = await fetchRecentCommentsWithSession(limit);
+  return result.comments;
 }
 
 /**
- * Mengirim komentar baru ke Supabase atau REST API.
+ * Mengirim komentar baru melalui Next.js REST API.
+ * Server akan meneruskannya ke Supabase dan memancarkan event ke SSE.
  */
 export async function sendLiveComment(payload: {
   userName: string;
   message: string;
   avatarSeed?: string | null;
 }): Promise<LiveComment> {
-  const supabase = getSupabase();
-  if (supabase && isSupabaseConfigured) {
-    try {
-      const { data, error } = await withTimeout(
-        supabase
-          .from("live_comments")
-          .insert({
-            user_name: payload.userName,
-            message: payload.message,
-            avatar_seed: payload.avatarSeed ?? "listener",
-            is_highlighted: false,
-            is_hidden: false,
-            is_broadcaster: false,
-          })
-          .select()
-          .single()
-      );
-
-      if (!error && data) {
-        return data as LiveComment;
-      }
-    } catch {
-      // Fallback
-    }
-  }
-
-  // Coba kirim via Next.js REST API
   const sendUrls = getTargetUrls();
 
   for (const baseUrl of sendUrls) {
@@ -225,7 +112,6 @@ export async function sendLiveComment(payload: {
     }
   }
 
-  // Kembalikan objek lokal jika offline/demo
   return {
     id: `local-${Date.now()}`,
     user_name: payload.userName,
@@ -237,3 +123,6 @@ export async function sendLiveComment(payload: {
     is_broadcaster: false,
   };
 }
+
+// Re-export getAdminApiUrl sebagai alias getServerApiUrl demi kompatibilitas
+export const getAdminApiUrl = getServerApiUrl;

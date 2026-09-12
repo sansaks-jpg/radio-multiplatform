@@ -58,7 +58,7 @@ export async function getNotificationPermissionStatus(): Promise<NotificationPer
   }
 }
 
-export async function requestNotificationPermission(): Promise<NotificationPermissionStatus> {
+async function requestNotificationPermission(): Promise<NotificationPermissionStatus> {
   try {
     if (Platform.OS === "web") return "unavailable";
     const Notifications = await import("expo-notifications");

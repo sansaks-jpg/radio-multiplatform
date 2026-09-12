@@ -4,6 +4,7 @@ import {
   getAllCommentsForAdmin,
   addComment,
 } from "@/lib/comments-bus";
+import { getActiveCommentSession, getServerPrograms } from "@/lib/radio-bus";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,12 +25,25 @@ export async function GET(req: Request) {
     const forAdmin = searchParams.get("forAdmin") === "true";
     const limit = Math.min(Number(searchParams.get("limit")) || 50, 50);
 
-    const comments = forAdmin
-      ? await getAllCommentsForAdmin(limit)
-      : await getRecentComments(limit);
+    const [comments, programs] = await Promise.all([
+      forAdmin ? getAllCommentsForAdmin(limit) : getRecentComments(limit),
+      getServerPrograms(),
+    ]);
+
+    const session = getActiveCommentSession(programs);
 
     return NextResponse.json(
-      { success: true, comments },
+      {
+        success: true,
+        comments,
+        session: {
+          session_start: session.sessionStartIso,
+          program_name: session.programName,
+          start_time: session.startTime,
+          end_time: session.endTime,
+          is_on_air: session.isOnAir,
+        },
+      },
       {
         headers: {
           ...corsHeaders,

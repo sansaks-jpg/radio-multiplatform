@@ -1,4 +1,4 @@
-import { subscribeComments, type LiveComment } from "@/lib/comments-bus";
+import { subscribeComments, type CommentBusEvent } from "@/lib/comments-bus";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,12 +27,9 @@ export async function GET(req: Request) {
 
       // Subscribe to bus events
       unsubscribe = subscribeComments(
-        (event: { type: string; comment: LiveComment }) => {
+        (event: CommentBusEvent) => {
           try {
-            const payload = JSON.stringify({
-              type: event.type,
-              comment: event.comment,
-            });
+            const payload = JSON.stringify(event);
             controller.enqueue(
               encoder.encode(`event: ${event.type}\ndata: ${payload}\n\n`)
             );

@@ -1,10 +1,10 @@
 import type { NewsItem } from "./types";
 
-export const WP_BASE = "https://radiogaulfmsmg.com";
-export const WP_API = `${WP_BASE}/wp-json/wp/v2`;
+const WP_BASE = "https://radiogaulfmsmg.com";
+const WP_API = `${WP_BASE}/wp-json/wp/v2`;
 
 /** Decode common WP HTML entities in titles. */
-export function decodeEntities(s: string): string {
+function decodeEntities(s: string): string {
   if (!s) return "";
   return s
     .replace(/&#8211;/g, "–")
@@ -31,6 +31,7 @@ export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>?/gm, "").trim();
 }
 
+
 interface WpMediaSize {
   source_url?: string;
 }
@@ -53,7 +54,7 @@ interface WpTerm {
   taxonomy: string;
 }
 
-export interface WpPost {
+interface WpPost {
   id: number;
   date: string;
   date_gmt?: string;
@@ -69,7 +70,7 @@ export interface WpPost {
   };
 }
 
-export interface WpCategory {
+interface WpCategory {
   id: number;
   name: string;
   slug: string;
@@ -79,7 +80,7 @@ export interface WpCategory {
 let categoryCache: Map<number, string> | null = null;
 let categoryCachePromise: Promise<Map<number, string>> | null = null;
 
-export async function loadCategoryCache(): Promise<Map<number, string>> {
+async function loadCategoryCache(): Promise<Map<number, string>> {
   if (categoryCache) return categoryCache;
   if (categoryCachePromise) return categoryCachePromise;
   categoryCachePromise = (async () => {
@@ -101,7 +102,7 @@ export async function loadCategoryCache(): Promise<Map<number, string>> {
   return categoryCachePromise;
 }
 
-export function resolveCategory(
+function resolveCategory(
   p: WpPost,
   catMap: Map<number, string>,
 ): string {
@@ -118,7 +119,7 @@ export function resolveCategory(
   return "Info Gaul";
 }
 
-export function resolveImage(p: WpPost, preferFull = false): string | null {
+function resolveImage(p: WpPost, preferFull = false): string | null {
   const media = p._embedded?.["wp:featuredmedia"]?.[0];
   if (!media) return null;
   if (preferFull) return media.source_url ?? null;
@@ -132,7 +133,7 @@ export function resolveImage(p: WpPost, preferFull = false): string | null {
   );
 }
 
-export function mapWpPostToNewsItem(
+function mapWpPostToNewsItem(
   p: WpPost,
   catMap: Map<number, string>,
   opts: { includeContent?: boolean } = {},

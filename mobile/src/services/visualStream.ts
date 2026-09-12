@@ -16,11 +16,3 @@ export const VISUAL_HLS_URL: string =
   (extra.visualStreamHlsUrl as string) ??
   process.env.EXPO_PUBLIC_VISUAL_STREAM_HLS_URL ??
   "http://40.81.231.250:8888/gaulfm_webrtc/index.m3u8";
-
-export function getVisualStreamUrls() {
-  return {
-    rtmpUrl: VISUAL_RTMP_URL,
-    whepUrl: VISUAL_WHEP_URL,
-    hlsUrl: VISUAL_HLS_URL,
-  };
-}

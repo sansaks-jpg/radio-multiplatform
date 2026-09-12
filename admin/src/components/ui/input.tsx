@@ -34,7 +34,7 @@ export const Select = React.forwardRef<
 ));
 Select.displayName = "Select";
 
-export function Label({
+function Label({
   className,
   ...props
 }: React.LabelHTMLAttributes<HTMLLabelElement>) {

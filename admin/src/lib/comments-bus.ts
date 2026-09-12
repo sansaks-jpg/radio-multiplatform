@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import { supabase, isSupabaseConfigured } from "./supabase";
+import { getActiveCommentSession, getServerPrograms } from "./radio-bus";
 
 export interface LiveComment {
   id: string;
@@ -12,10 +13,21 @@ export interface LiveComment {
   created_at: string;
 }
 
+export interface CommentBusEvent {
+  type: "new" | "update" | "delete" | "reset";
+  comment?: LiveComment;
+  session_start?: string | null;
+  program_name?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+}
+
 // Global in-memory cache and event emitter across hot-reloads in Next.js Node runtime
 declare global {
   var __gaulfm_comments_bus: EventEmitter | undefined;
   var __gaulfm_comments_store: LiveComment[] | undefined;
+  var __gaulfm_last_session_iso: string | null | undefined;
+  var __gaulfm_session_timer: NodeJS.Timeout | undefined;
 }
 
 const bus = global.__gaulfm_comments_bus ?? new EventEmitter();
@@ -332,19 +344,98 @@ function createInitialComments(): LiveComment[] {
 const memoryStore: LiveComment[] = global.__gaulfm_comments_store ?? createInitialComments();
 global.__gaulfm_comments_store = memoryStore;
 
-export const MAX_HISTORY_COMMENTS = 50;
+const MAX_HISTORY_COMMENTS = 50;
+
+/**
+ * Memeriksa batas program siaran dan membersihkan komentar lama secara otomatis.
+ *
+ * Aturan:
+ * 1. Jika hari ini tidak ada program sama sekali -> komentar tidak dihapus.
+ * 2. Jika hari ini ada program siaran:
+ *    - Komentar Program A tetap ada dari awal siaran sampai detik sebelum Program B mulai.
+ *    - Tepat saat Program B dimulai, komentar sebelum jam mulai Program B dihapus otomatis.
+ *    - Event "reset" dipancarkan via bus untuk mengosongkan riwayat di sisi client.
+ */
+export async function checkAndPruneCommentSession(now: Date = new Date()): Promise<{
+  prunedCount: number;
+  sessionStartIso: string | null;
+  programName: string | null;
+}> {
+  const programs = await getServerPrograms();
+  const session = getActiveCommentSession(programs, now);
+
+  if (!session.sessionStart || !session.sessionStartIso) {
+    // Tidak ada batas waktu program hari ini (hari tanpa jadwal/sebelum jadwal pertama)
+    return {
+      prunedCount: 0,
+      sessionStartIso: null,
+      programName: null,
+    };
+  }
+
+  const sessionStartMs = session.sessionStart.getTime();
+  const isNewSession = global.__gaulfm_last_session_iso !== session.sessionStartIso;
+
+  const initialLength = memoryStore.length;
+  const retained = memoryStore.filter((c) => {
+    const commentTime = new Date(c.created_at).getTime();
+    return commentTime >= sessionStartMs;
+  });
+
+  const prunedCount = initialLength - retained.length;
+
+  if (prunedCount > 0 || isNewSession) {
+    memoryStore.length = 0;
+    memoryStore.push(...retained);
+    global.__gaulfm_last_session_iso = session.sessionStartIso;
+
+    // Bersihkan dari Supabase agar kuota storage free-tier tetap terjaga
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from("live_comments")
+          .delete()
+          .lt("created_at", session.sessionStart.toISOString());
+      } catch {
+        // Safe fail
+      }
+    }
+
+    // Pancarkan event reset ke seluruh listener SSE / Web / Mobile
+    bus.emit("comment", {
+      type: "reset",
+      session_start: session.sessionStartIso,
+      program_name: session.programName,
+      start_time: session.startTime,
+      end_time: session.endTime,
+    });
+  }
+
+  return {
+    prunedCount,
+    sessionStartIso: session.sessionStartIso,
+    programName: session.programName,
+  };
+}
 
 export async function getRecentComments(limit = MAX_HISTORY_COMMENTS): Promise<LiveComment[]> {
   const safeLimit = Math.min(Math.max(1, limit), MAX_HISTORY_COMMENTS);
+  const { sessionStartIso } = await checkAndPruneCommentSession();
+
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("live_comments")
         .select("*")
         .eq("is_hidden", false)
         .order("created_at", { ascending: false })
         .limit(safeLimit);
 
+      if (sessionStartIso) {
+        query = query.gte("created_at", sessionStartIso);
+      }
+
+      const { data, error } = await query;
       if (!error && data) {
         return (data as LiveComment[]).reverse();
       }
@@ -352,19 +443,29 @@ export async function getRecentComments(limit = MAX_HISTORY_COMMENTS): Promise<L
       // Fallback to memoryStore on network error
     }
   }
-  return memoryStore.filter((c) => !c.is_hidden).slice(-safeLimit);
+
+  return memoryStore
+    .filter((c) => !c.is_hidden && (!sessionStartIso || c.created_at >= sessionStartIso))
+    .slice(-safeLimit);
 }
 
 export async function getAllCommentsForAdmin(limit = MAX_HISTORY_COMMENTS): Promise<LiveComment[]> {
   const safeLimit = Math.min(Math.max(1, limit), MAX_HISTORY_COMMENTS);
+  const { sessionStartIso } = await checkAndPruneCommentSession();
+
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("live_comments")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(safeLimit);
 
+      if (sessionStartIso) {
+        query = query.gte("created_at", sessionStartIso);
+      }
+
+      const { data, error } = await query;
       if (!error && data) {
         return (data as LiveComment[]).reverse();
       }
@@ -372,7 +473,10 @@ export async function getAllCommentsForAdmin(limit = MAX_HISTORY_COMMENTS): Prom
       // Fallback
     }
   }
-  return memoryStore.slice(-safeLimit);
+
+  return memoryStore
+    .filter((c) => !sessionStartIso || c.created_at >= sessionStartIso)
+    .slice(-safeLimit);
 }
 
 export async function addComment(payload: {
@@ -381,6 +485,8 @@ export async function addComment(payload: {
   avatar_seed?: string | null;
   is_broadcaster?: boolean;
 }): Promise<LiveComment> {
+  await checkAndPruneCommentSession();
+
   const newComment: LiveComment = {
     id: `c-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     user_name: payload.user_name.trim().slice(0, 50),
@@ -496,10 +602,17 @@ export async function toggleHidden(id: string): Promise<LiveComment | null> {
 }
 
 export function subscribeComments(
-  listener: (event: { type: string; comment: LiveComment }) => void
+  listener: (event: CommentBusEvent) => void
 ): () => void {
   bus.on("comment", listener);
   return () => {
     bus.off("comment", listener);
   };
+}
+
+// Background periodic session checker in Node runtime
+if (typeof setInterval !== "undefined" && !global.__gaulfm_session_timer) {
+  global.__gaulfm_session_timer = setInterval(() => {
+    void checkAndPruneCommentSession();
+  }, 30_000);
 }

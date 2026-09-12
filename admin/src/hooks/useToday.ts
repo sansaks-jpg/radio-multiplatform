@@ -8,7 +8,7 @@ const emptySubscribe = () => () => {};
  * Menghitung hari saat ini dalam zona waktu WIB (UTC+7).
  * 0 = Minggu, 1 = Senin, ..., 6 = Sabtu (sesuai JS Date.getDay)
  */
-export function getWibDay(): number {
+function getWibDay(): number {
   const now = new Date();
   const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
   const wib = new Date(utcMs + 7 * 3600000);

@@ -15,7 +15,7 @@ Ekosistem Gaul FM Semarang terdiri dari 3 pilar utama:
 | 3 | Multi-Engine Fallback | RNTP native, Expo Audio fallback, Web Audio | M1 | spec_report §3 |
 | 4 | MediaMTX WebRTC (WHEP) | Pemutaran visual radio ultra-rendah latensi (<0.3s) | M1 | spec_report §3 |
 | 5 | HLS Stream Fallback | Video HLS via hls.js saat WebRTC WHEP gagal | M1 | spec_report §3 |
-| 6 | YouTube Studio Fallback | Modal sheet siaran visual YouTube official | M1 | spec_report §3 |
+| 6 | External YouTube Link | Pembuka tautan siaran luar via YouTube official app/browser | M1 | spec_report §3 |
 | 7 | Persistent Mini Player | Bilah pemutar audio persisten di atas Bottom Tab Bar | M1 | spec_report §3 |
 | 8 | Live Detail Sheet | Fullscreen sheet kontrol audio/visual, chat, program detail | M1 | spec_report §3 |
 | 9 | Audio Mutual Exclusion | Pencegahan tabrakan audio ganda saat visual radio aktif | M1 | spec_report §3 |
@@ -29,7 +29,7 @@ Ekosistem Gaul FM Semarang terdiri dari 3 pilar utama:
 | 17 | Supabase PostgreSQL Schema | Relational schema & composite index integritas DB | M2 | spec_report §3 |
 | 18 | Supabase Realtime Publication | Broadcast event instan mutasi now_playing | M2 | spec_report §3 |
 | 19 | Supabase Email Auth & Demo Mode | Autentikasi listener dengan fallback demo mode offline | M3 | spec_report §3 |
-| 20 | Device & Location Harvester | Perekaman model HP, OS, dan koordinat GPS 1x saat daftar | M3 | spec_report §3 |
+| 20 | Device Harvester & Manual City | Perekaman model HP, OS, dan pemilihan kota domisili saat daftar | M3 | spec_report §3 |
 | 21 | Expo Push Notifications | Notifikasi pengingat acara & push alerts | M3 | spec_report §3 |
 | 22 | Full-bleed Hero Banner | Karusel banner promo siaran edge-to-edge | M3 | spec_report §3 |
 | 23 | On-Air & Up-Next Strip | Status siaran aktif real-time dengan clock WIB UTC+7 | M3 | spec_report §3 |
@@ -49,6 +49,7 @@ Ekosistem Gaul FM Semarang terdiri dari 3 pilar utama:
 | 37 | Gaul Squad Announcer Carousel | Integrasi daftar profil foto & nama 7 penyiar resmi di dalam lembar pemutar `LiveDetailSheet` | M7 | player §5 |
 | 38 | Android ABI Split Optimization | Pemisahan binary APK (armeabi-v7a 32-bit, arm64-v8a 64-bit, universal) menghemat ukuran hingga ~70% | M7 | build §2 |
 | 39 | Studio Quick-Action & Enhanced Up Next | Aksi "Nonton Radio" di Beranda serta kartu Up Next dengan badge WIB dan navigasi instan | M7 | home §2 |
+| 40 | Server-Agnostic Cache & Auto-Prune Chat | Pemindahan Realtime ke Next.js API server-agnostik & auto-prune komentar berbasis slot acara WIB | M8 | server §1 |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -60,12 +61,13 @@ Ekosistem Gaul FM Semarang terdiri dari 3 pilar utama:
 | M5 | Cloud Hosting & Production Streaming Orchestration | Azure VM deployment (`admin/` PM2 port 3001, MediaMTX port 1935/8888/8889, `engine_visual.py`), 16:9 edge-to-edge & auto-landscape | M4 | COMPLETED |
 | M6 | Google Auth & Listener Onboarding (v0.0.3) | Supabase Google OAuth, biodata form & returning user bypass, JIT permissions, dark mode splash theme | M5 | COMPLETED |
 | M7 | Program Master Sync & ABI Split Release (v0.0.4) | Master program sync, announcer carousel, home studio action, ABI Split Android APKs (32-bit/64-bit/universal) | M6 | COMPLETED |
+| M8 | Server-Mediated Architecture & Auto-Prune (v0.0.5) | Server-agnostic Next.js caching, zero Supabase Realtime in mobile, program-slot comment auto-pruning | M7 | COMPLETED |
 
 ## Interface Contracts
 ### Audio Engine ↔ Visual Player
 - `isVisualActive === true` -> Icecast stream audio WAJIB di-pause/stop (`stopLive()`). Tombol play Icecast di sheet dinonaktifkan / disembunyikan.
 - `isVisualActive === false` / Modal Visual ditutup -> Icecast stream audio otomatis melanjutkan pemutaran jika sebelumnya dalam status aktif (`playing`).
-- `VisualPlayerSheet` (YouTube) -> Saat modal terbuka, audio Icecast di-pause; saat modal ditutup, audio Icecast kembali di-resume jika sebelumnya aktif.
+- External YouTube Link -> Menggunakan deep link / browser eksternal via `openYouTubeUrl()` tanpa membebani bundle app atau player state.
 
 ### Visual Radio ↔ Video Stream & Fullscreen Lifecycle
 - **Audio Transcoder Pipeline**: vMix RTMP ingest (`rtmp://40.81.231.250:1935/gaulfm`) ditranscode otomatis oleh `engine_visual.py` dengan filter audio `-af aresample=async=1000:min_hard_comp=0.100000:first_pts=0` dan codec `libopus -b:a 128k -vbr on -application audio -cutoff 20000` ke path `gaulfm_webrtc`.
@@ -74,8 +76,10 @@ Ekosistem Gaul FM Semarang terdiri dari 3 pilar utama:
 - **Auto-Landscape Orientation**: Memasuki mode fullscreen memicu event `fullscreen_toggled` ke React Native yang menjalankan `ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE)`. Saat keluar, orientasi dikembalikan ke `PORTRAIT_UP`.
 - **UI Bawaan Browser Disembunyikan**: Target `requestFullscreen` diarahkan ke pembungkus `#player-container` (bukan tag `<video>`) serta menerapkan CSS penonaktifan total untuk seluruh pseudo-elemen `::-webkit-media-controls*`. Hanya tombol fullscreen minimalis di sudut kanan bawah yang tampil dengan auto-hide 2.5 detik.
 
-### Live Chat ↔ Serverless Sync & Moderasi
+### Live Chat ↔ Serverless Sync, Moderasi & Program Auto-Prune
+- **Server-Mediated Reverse Proxy**: Seluruh mobile request live chat diarahkan ke Next.js `/api/comments` dan `/api/comments/stream` (SSE), memutus akses langsung ke Supabase REST API dan menghemat kuota Egress Free Tier.
 - **Hard-cap 50 Komentar**: Histori komentar dibatasi maksimal 50 pesan (`MAX_HISTORY_COMMENTS = 50`, `MAX_LIVE_COMMENTS = 50`) baik di backend Next.js maupun mobile client guna menghemat bandwidth dan konsumsi memori.
+- **Program-Slot Comment Auto-Prune**: Komentar program siaran (misal Program A 08:00–10:00, Program B 14:00–17:00) bertahan dari jam mulai hingga detik sebelum program berikutnya dimulai (08:00 hingga 13:59). Tepat jam 14:00 WIB saat Program B dimulai, seluruh komentar sebelum jam 14:00 otomatis dihapus dari memori & Supabase, dan event `reset` dikirim via SSE/polling untuk mengosongkan riwayat obrolan pendengar. Hari tanpa program tidak mengalami pembersihan.
 - **Tampilan Rata Kiri Seragam**: Seluruh pesan di `LiveDetailSheet.tsx` ditampilkan rata kiri (gaya live chat streaming YouTube/Twitch), dengan pembeda nama warna brand, avatar inisial, serta badge (*Studio* / *On Air*).
 - **Moderasi & Broadcast Studio**: Admin dapat mem-pin/highlight komentar (*On Air*), menyembunyikan komentar tidak pantas (*Hide*), dan mengirim pesan resmi bertanda *Studio*.
 - **Lifecycle-Aware Delta**: Mobile app hanya melakukan polling delta atau stream SSE ketika sheet live terbuka.
@@ -98,10 +102,10 @@ Ekosistem Gaul FM Semarang terdiri dari 3 pilar utama:
 
 ## Code Layout
 - `mobile/src/screens/`: Splash, Onboarding, auth/, home/, schedule/, news/, profile/
-- `mobile/src/components/`: player/ (MiniPlayer, LiveDetailSheet, MediaMtxVisualPlayer, LiveBadge), home/ (VisualPlayerSheet, VisualLiveCard, HomeHero, HomeHeroBanner), ui/
+- `mobile/src/components/`: player/ (MiniPlayer, LiveDetailSheet, MediaMtxVisualPlayer, LiveBadge), home/ (HomeHero, HomeHeroBanner, HomeUpNext), schedule/, news/, ui/
 - `mobile/src/services/audio/`: playerEngine.ts, playerEngine.rntp.ts, playerEngine.expoAudio.ts, trackPlayerService.ts, streamResolver.ts
-- `mobile/src/services/`: visualStream.ts, comments.ts, supabase.ts, notifications.ts, location.ts, deviceInfo.ts
-- `admin/src/app/`: layout.tsx, page.tsx, chat/, now-playing/, streams/, schedule/, news/, banners/, users/, api/comments/, api/sync-sheets/
-- `admin/src/lib/`: comments-bus.ts, supabase.ts, data-store.ts, mock-data.ts, utils.ts
+- `mobile/src/services/`: apiConfig.ts, visualStream.ts, comments.ts, supabase.ts, notifications.ts, deviceInfo.ts
+- `admin/src/app/`: layout.tsx, page.tsx, chat/, now-playing/, streams/, schedule/, news/, banners/, users/, api/radio/, api/comments/, api/sync-sheets/
+- `admin/src/lib/`: radio-bus.ts, comments-bus.ts, supabase.ts, data-store.ts, mock-data.ts, utils.ts
 - `streaming/`: engine_visual.py (FFmpeg auto-transcoding pipeline for vMix RTMP to WebRTC/Opus)
 - `supabase/`: schema.sql, seed.sql, functions/sync-wp-news/

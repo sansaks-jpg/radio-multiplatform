@@ -286,6 +286,17 @@ export default function LiveChatPage() {
           }
         } catch {}
       });
+
+      es.addEventListener("reset", (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          setComments([]);
+          const prog = payload.program_name || "Program baru";
+          toast.push(`Sesi ${prog} dimulai. Riwayat komentar dibersihkan otomatis.`, "info");
+        } catch {
+          setComments([]);
+        }
+      });
     } catch (err) {
       console.warn("SSE init error:", err);
     }
@@ -353,7 +364,7 @@ export default function LiveChatPage() {
         supabase.removeChannel(supabaseChannel);
       }
     };
-  }, [scrollToBottom]);
+  }, [scrollToBottom, toast]);
 
   // Kirim pesan resmi studio
   const handleSendBroadcaster = async (e?: React.FormEvent) => {

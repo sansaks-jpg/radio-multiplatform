@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Modal } from "@/components/ui/modal";
-import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Field, Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MultiDaySelector } from "./MultiDaySelector";
 import { upsertProgram, upsertProgramsBatch, deleteProgramsBatch, DEFAULT_PROGRAM_COVER } from "@/lib/data-store";
 import type { Program } from "@/lib/types";
-import { DAY_NAMES, DAY_SHORT, hasTimeOverlap, uid } from "@/lib/utils";
-import { Sparkles, Calendar, Layers, Clock } from "lucide-react";
+import { DAY_NAMES, hasTimeOverlap, uid } from "@/lib/utils";
+import { Sparkles, Calendar, Layers } from "lucide-react";
 
 interface ScheduleModalProps {
   open: boolean;
@@ -43,15 +43,37 @@ export function ScheduleModal({
   defaultDay,
   onSuccessToast,
 }: ScheduleModalProps) {
-  const [name, setName] = useState("");
-  const [host, setHost] = useState("Gaul Squad");
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("12:00");
-  const [coverUrl, setCoverUrl] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedDays, setSelectedDays] = useState<number[]>([defaultDay]);
+  const initialDays = useMemo(() => {
+    if (!programToEdit) {
+      return defaultDay >= 1 && defaultDay <= 5 ? [1, 2, 3, 4, 5] : [defaultDay];
+    }
+    const days = allPrograms
+      .filter(
+        (p) =>
+          p.name.trim().toLowerCase() ===
+          programToEdit.name.trim().toLowerCase(),
+      )
+      .map((p) => p.day_of_week)
+      .sort((a, b) => a - b);
+    return days.length > 0 ? days : [programToEdit.day_of_week];
+  }, [programToEdit, allPrograms, defaultDay]);
+
+  const [name, setName] = useState(programToEdit?.name ?? "");
+  const [host, setHost] = useState(programToEdit?.host ?? "Gaul Squad");
+  const [startTime, setStartTime] = useState(programToEdit?.start_time ?? "09:00");
+  const [endTime, setEndTime] = useState(programToEdit?.end_time ?? "12:00");
+  const [coverUrl, setCoverUrl] = useState(
+    programToEdit ? (programToEdit.cover_url ?? "") : DEFAULT_PROGRAM_COVER,
+  );
+  const [description, setDescription] = useState(programToEdit?.description ?? "");
+  const [selectedDays, setSelectedDays] = useState<number[]>(initialDays);
   const [syncAllDays, setSyncAllDays] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleClose = () => {
+    setError(null);
+    onClose();
+  };
 
   // Cari saudara program (program dengan nama yang sama di hari lain)
   const siblingPrograms = useMemo(() => {
@@ -61,47 +83,6 @@ export function ScheduleModal({
         p.name.trim().toLowerCase() === programToEdit.name.trim().toLowerCase(),
     );
   }, [programToEdit, allPrograms]);
-
-  // Inisialisasi form saat modal terbuka atau programToEdit berubah
-  useEffect(() => {
-    if (!open) return;
-    setError(null);
-    if (programToEdit) {
-      setName(programToEdit.name);
-      setHost(programToEdit.host);
-      setStartTime(programToEdit.start_time);
-      setEndTime(programToEdit.end_time);
-      setCoverUrl(programToEdit.cover_url ?? "");
-      setDescription(programToEdit.description);
-
-      // Ambil seluruh hari di mana program ini tayang
-      const days = allPrograms
-        .filter(
-          (p) =>
-            p.name.trim().toLowerCase() ===
-            programToEdit.name.trim().toLowerCase(),
-        )
-        .map((p) => p.day_of_week)
-        .sort((a, b) => a - b);
-
-      setSelectedDays(days.length > 0 ? days : [programToEdit.day_of_week]);
-      setSyncAllDays(true);
-    } else {
-      setName("");
-      setHost("Gaul Squad");
-      setStartTime("09:00");
-      setEndTime("12:00");
-      setCoverUrl(DEFAULT_PROGRAM_COVER);
-      setDescription("");
-      // Default jika hari kerja pilih Senin-Jumat, jika akhir pekan pilih Sabtu-Minggu
-      if (defaultDay >= 1 && defaultDay <= 5) {
-        setSelectedDays([1, 2, 3, 4, 5]);
-      } else {
-        setSelectedDays([defaultDay]);
-      }
-      setSyncAllDays(true);
-    }
-  }, [open, programToEdit, allPrograms, defaultDay]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,13 +201,13 @@ export function ScheduleModal({
     onSuccessToast(
       `Program "${cleanName}" berhasil diperbarui di ${selectedDays.length} hari tayang`,
     );
-    onClose();
+    handleClose();
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={
         programToEdit
           ? `Edit Program: ${programToEdit.name}`
@@ -412,7 +393,7 @@ export function ScheduleModal({
               : `1 slot hari (${DAY_NAMES[selectedDays[0] ?? defaultDay]})`}
           </div>
           <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
+            <Button type="button" variant="ghost" onClick={handleClose}>
               Batal
             </Button>
             <Button type="submit">

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase";
+import { buildApiUrl } from "../services/apiConfig";
 import { mockAnnouncers } from "../mocks/announcers";
 import type { Announcer } from "../types";
 
@@ -55,62 +55,45 @@ function parseMobileAnnouncer(item: any): Announcer {
 }
 
 async function fetchAnnouncers(): Promise<Announcer[]> {
-  const supabase = getSupabase();
-  if (!supabase) return mockAnnouncers;
+  // 1. Ambil dari server API Next.js
   try {
-    const { data, error } = await supabase
-      .from("announcers")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true });
-    if (error) throw error;
-    if (data && data.length > 0) return data.map(parseMobileAnnouncer);
-    return mockAnnouncers;
-  } catch (err) {
-    console.warn("[useAnnouncers] Error fetching announcers, fallback to mock:", err);
-    return mockAnnouncers;
+    const url = buildApiUrl("/api/radio/announcers");
+    const res = await fetch(url);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        return json.data.map(parseMobileAnnouncer);
+      }
+    }
+  } catch {
+    // Fallback
   }
+
+  // 2. Fallback darurat ke Supabase
+  const supabase = getSupabase();
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from("announcers")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (!error && data && data.length > 0) {
+        return data.map(parseMobileAnnouncer);
+      }
+    } catch {
+      // Fallback ke mock
+    }
+  }
+
+  return mockAnnouncers;
 }
 
 export function useAnnouncers() {
-  const queryClient = useQueryClient();
-
-  // Supabase Realtime: dengarkan perubahan tabel announcers dari panel admin secara langsung
-  useEffect(() => {
-    const supabase = getSupabase();
-    if (!supabase || !isSupabaseConfigured) return;
-
-    const channelId = `announcers_realtime_${Math.random().toString(36).slice(2, 8)}`;
-    const channel = supabase
-      .channel(channelId)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "announcers",
-        },
-        () => {
-          void queryClient.invalidateQueries({ queryKey: ["announcers"] });
-        }
-      );
-
-    channel.subscribe((status) => {
-      if (status === "CHANNEL_ERROR") {
-        console.warn("[useAnnouncers] Realtime channel error, falling back to polling");
-      }
-    });
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
   return useQuery({
     queryKey: ["announcers"],
     queryFn: fetchAnnouncers,
-    staleTime: 10 * 1000,
-    refetchOnMount: "always",
+    staleTime: 10 * 60_000,
   });
 }
 
