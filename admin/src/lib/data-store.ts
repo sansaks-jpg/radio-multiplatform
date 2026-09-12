@@ -93,6 +93,24 @@ export function resolveProgramCover(
   return anyProgramWithCover?.cover_url || DEFAULT_PROGRAM_COVER;
 }
 
+export function normalizeAssetPath(url: string | null | undefined): string {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (trimmed.includes("/storage/v1/object/public/penyiar/")) {
+    const filename = trimmed.split("/storage/v1/object/public/penyiar/")[1]?.split("?")[0];
+    return `/penyiar/${filename}`;
+  }
+  if (trimmed.includes("/storage/v1/object/public/banners/")) {
+    const filename = trimmed.split("/storage/v1/object/public/banners/")[1]?.split("?")[0];
+    return `/banners/${filename}`;
+  }
+  if (trimmed.includes("/storage/v1/object/public/programs/")) {
+    const filename = trimmed.split("/storage/v1/object/public/programs/")[1]?.split("?")[0];
+    return `/programs/${filename}`;
+  }
+  return trimmed;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseAnnouncerRow(row: any): Announcer {
   let programs: string[] = [];
@@ -116,7 +134,7 @@ export function parseAnnouncerRow(row: any): Announcer {
     id: row.id,
     name: row.name,
     nickname: row.nickname || null,
-    photo_url: row.photo_url,
+    photo_url: normalizeAssetPath(row.photo_url),
     bio: bio || null,
     instagram: row.instagram || null,
     is_active: typeof row.is_active === "boolean" ? row.is_active : true,
@@ -181,11 +199,17 @@ async function syncFromSupabase() {
     let nextAnnouncers = snapshot.announcers;
 
     if (progRes.data && progRes.data.length > 0) {
-      nextPrograms = progRes.data as Program[];
+      nextPrograms = (progRes.data as Program[]).map((p) => ({
+        ...p,
+        cover_url: normalizeAssetPath(p.cover_url),
+      }));
       changed = true;
     }
     if (banRes.data && banRes.data.length > 0) {
-      nextBanners = banRes.data as Banner[];
+      nextBanners = (banRes.data as Banner[]).map((b) => ({
+        ...b,
+        image_url: normalizeAssetPath(b.image_url),
+      }));
       changed = true;
     }
     if (annRes.data && annRes.data.length > 0) {
@@ -438,7 +462,7 @@ export function upsertAnnouncer(
     id,
     name: input.name,
     nickname: input.nickname || null,
-    photo_url: input.photo_url,
+    photo_url: normalizeAssetPath(input.photo_url),
     bio: input.bio || null,
     instagram: input.instagram || null,
     is_active: typeof input.is_active === "boolean" ? input.is_active : true,
@@ -517,7 +541,7 @@ export function upsertProgram(
     day_of_week: input.day_of_week,
     start_time: input.start_time,
     end_time: input.end_time,
-    cover_url: input.cover_url || null,
+    cover_url: normalizeAssetPath(input.cover_url) || null,
     description: input.description,
   };
   const idx = snapshot.programs.findIndex((p) => p.id === id);
@@ -791,7 +815,11 @@ export function upsertBanner(
   input: Omit<Banner, "id"> & { id?: string },
 ): Banner {
   const id = input.id ?? uid("ban");
-  const next: Banner = { ...input, id };
+  const next: Banner = {
+    ...input,
+    id,
+    image_url: normalizeAssetPath(input.image_url),
+  };
   const idx = snapshot.banners.findIndex((b) => b.id === id);
   const banners =
     idx >= 0

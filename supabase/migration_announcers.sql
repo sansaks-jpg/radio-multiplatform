@@ -56,13 +56,13 @@ END $$;
 -- 3. Seed the 7 Announcers
 INSERT INTO public.announcers (id, name, nickname, photo_url, bio, instagram, is_active, sort_order)
 VALUES
-    ('ann-1', 'Attaya', 'Attaya', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 1),
-    ('ann-2', 'Ega Ratu', 'Ega', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 2),
-    ('ann-3', 'Kara Ferina', 'Kara', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 3),
-    ('ann-4', 'Nafa', 'Nafa', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 4),
-    ('ann-5', 'Nanda', 'Nanda', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 5),
-    ('ann-6', 'Rizky', 'Rizky', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 6),
-    ('ann-7', 'Tyas', 'Tyas', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/tyas.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 7)
+    ('ann-1', 'Attaya', 'Attaya', '/penyiar/attaya.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 1),
+    ('ann-2', 'Ega Ratu', 'Ega', '/penyiar/ega-ratu.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 2),
+    ('ann-3', 'Kara Ferina', 'Kara', '/penyiar/kara-ferina.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 3),
+    ('ann-4', 'Nafa', 'Nafa', '/penyiar/nafa.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 4),
+    ('ann-5', 'Nanda', 'Nanda', '/penyiar/nanda.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 5),
+    ('ann-6', 'Rizky', 'Rizky', '/penyiar/rizky.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 6),
+    ('ann-7', 'Tyas', 'Tyas', '/penyiar/tyas.png', 'Gaul FM Announcer', '@radiogaulfm_smg', true, 7)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     nickname = EXCLUDED.nickname,

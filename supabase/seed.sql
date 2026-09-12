@@ -13,7 +13,7 @@ VALUES (
     '00000000-0000-0000-0000-000000000001',
     'Gaul Waktu Setempat',
     'Yoga & Sinta',
-    'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/gaul-waktu-setempat.png',
+    '/programs/gaul-waktu-setempat.png',
     NOW()
 );
 
@@ -37,9 +37,9 @@ SELECT
 FROM generate_series(1, 5) AS d
 CROSS JOIN (
     VALUES 
-        (1, 'Gaul Morning Show', 'Reno & Dita', '07:00', '10:00', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/gaul-morning-show.png', 'Mulai pagi dengan hits terbaru, info lalu lintas Semarang, dan obrolan seru bareng Reno & Dita.'),
-        (2, 'Gaul Waktu Setempat', 'Yoga & Sinta', '15:00', '18:00', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/gaul-waktu-setempat.png', 'Nemenin sore pulang: musik hits, obrolan santai, dan update waktu setempat di 87.8 MHz.'),
-        (3, 'Asupan Gaul', 'Raka', '19:00', '22:00', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/asupan-gaul.png', 'Asupan musik gaul malam hari di 87.8 FM: playlist pilihan, curhat, dan obrolan hangat anak muda.')
+        (1, 'Gaul Morning Show', 'Reno & Dita', '07:00', '10:00', '/programs/gaul-morning-show.png', 'Mulai pagi dengan hits terbaru, info lalu lintas Semarang, dan obrolan seru bareng Reno & Dita.'),
+        (2, 'Gaul Waktu Setempat', 'Yoga & Sinta', '15:00', '18:00', '/programs/gaul-waktu-setempat.png', 'Nemenin sore pulang: musik hits, obrolan santai, dan update waktu setempat di 87.8 MHz.'),
+        (3, 'Asupan Gaul', 'Raka', '19:00', '22:00', '/programs/asupan-gaul.png', 'Asupan musik gaul malam hari di 87.8 FM: playlist pilihan, curhat, dan obrolan hangat anak muda.')
 ) AS slot(id, name, host, start_time, end_time, cover_url, description);
 
 -- -----------------------------------------------------------------------------
@@ -59,10 +59,10 @@ VALUES
 DELETE FROM public.banners;
 INSERT INTO public.banners (id, title, subtitle, image_url, cta_label, link_to, link_url, type, sort_order, is_active)
 VALUES 
-    ('b-1', 'Gaul FM 87.8 Semarang', 'The Best Visual Radio Station — Hits Music & Lifestyle', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-1.png', 'Tonton live', NULL, 'https://www.youtube.com/@radiogaulfm_smg', 'program', 0, true),
-    ('b-2', 'Jadwal Siaran Gaul FM', 'Gaul Morning Show, Gaul Waktu Setempat & Asupan Gaul', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-2.png', 'Lihat Jadwal', 'schedule', NULL, 'program', 1, true),
-    ('b-3', 'Gaulista Community', 'Radio anak muda hits 15-29 tahun di Semarang', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-3.png', 'Instagram', NULL, 'https://www.instagram.com/radiogaulfm_smg/', 'event', 2, true),
-    ('b-4', 'radiogaulfmsmg.com', 'Kunjungi portal web resmi Radio Gaul FM Semarang', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-4.png', 'Kunjungi Web', NULL, 'https://radiogaulfmsmg.com', 'ad', 3, true);
+    ('b-1', 'Gaul FM 87.8 Semarang', 'The Best Visual Radio Station — Hits Music & Lifestyle', '/banners/banner-1.png', 'Tonton live', NULL, 'https://www.youtube.com/@radiogaulfm_smg', 'program', 0, true),
+    ('b-2', 'Jadwal Siaran Gaul FM', 'Gaul Morning Show, Gaul Waktu Setempat & Asupan Gaul', '/banners/banner-2.png', 'Lihat Jadwal', 'schedule', NULL, 'program', 1, true),
+    ('b-3', 'Gaulista Community', 'Radio anak muda hits 15-29 tahun di Semarang', '/banners/banner-3.png', 'Instagram', NULL, 'https://www.instagram.com/radiogaulfm_smg/', 'event', 2, true),
+    ('b-4', 'radiogaulfmsmg.com', 'Kunjungi portal web resmi Radio Gaul FM Semarang', '/banners/banner-4.png', 'Kunjungi Web', NULL, 'https://radiogaulfmsmg.com', 'ad', 3, true);
 
 -- -----------------------------------------------------------------------------
 -- 5. Seed: announcers (Official Gaul Squad Master Profiles)
@@ -70,13 +70,13 @@ VALUES
 DELETE FROM public.announcers;
 INSERT INTO public.announcers (id, name, nickname, photo_url, bio, instagram, sort_order, is_active)
 VALUES 
-    ('ann-1', 'Attaya', 'Attaya', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 1, true),
-    ('ann-2', 'Ega Ratu', 'Ega', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 2, true),
-    ('ann-3', 'Kara Ferina', 'Kara', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 3, true),
-    ('ann-4', 'Nafa', 'Nafa', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 4, true),
-    ('ann-5', 'Nanda', 'Nanda', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 5, true),
-    ('ann-6', 'Rizky', 'Rizky', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 6, true),
-    ('ann-7', 'Tyas', 'Tyas', 'https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/tyas.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 7, true);
+    ('ann-1', 'Attaya', 'Attaya', '/penyiar/attaya.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 1, true),
+    ('ann-2', 'Ega Ratu', 'Ega', '/penyiar/ega-ratu.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 2, true),
+    ('ann-3', 'Kara Ferina', 'Kara', '/penyiar/kara-ferina.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 3, true),
+    ('ann-4', 'Nafa', 'Nafa', '/penyiar/nafa.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 4, true),
+    ('ann-5', 'Nanda', 'Nanda', '/penyiar/nanda.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 5, true),
+    ('ann-6', 'Rizky', 'Rizky', '/penyiar/rizky.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 6, true),
+    ('ann-7', 'Tyas', 'Tyas', '/penyiar/tyas.png', 'Gaul FM Announcer', '@radiogaulfm_smg', 7, true);
 
 -- -----------------------------------------------------------------------------
 -- 6. Seed: live_comments (Vibrant Realistic Chat Stream for Live Demo)

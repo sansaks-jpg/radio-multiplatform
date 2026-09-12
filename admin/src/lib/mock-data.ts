@@ -165,8 +165,7 @@ const seedBanners: Banner[] = [
     type: "program",
     title: "Gaul FM 87.8 Semarang",
     subtitle: "The Best Visual Radio Station — Hits Music & Lifestyle",
-    image_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-1.png",
+    image_url: "/banners/banner-1.png",
     cta_label: "Tonton live",
     link_to: null,
     link_url: "https://www.youtube.com/@radiogaulfm_smg",
@@ -178,8 +177,7 @@ const seedBanners: Banner[] = [
     type: "program",
     title: "Jadwal Siaran Gaul FM",
     subtitle: "Gaul Morning Show, Gaul Waktu Setempat & Asupan Gaul",
-    image_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-2.png",
+    image_url: "/banners/banner-2.png",
     cta_label: "Lihat Jadwal",
     link_to: "schedule",
     link_url: null,
@@ -191,8 +189,7 @@ const seedBanners: Banner[] = [
     type: "event",
     title: "Gaulista Community",
     subtitle: "Radio anak muda hits 15-29 tahun di Semarang",
-    image_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-3.png",
+    image_url: "/banners/banner-3.png",
     cta_label: "Instagram",
     link_to: null,
     link_url: "https://www.instagram.com/radiogaulfm_smg/",
@@ -204,8 +201,7 @@ const seedBanners: Banner[] = [
     type: "ad",
     title: "radiogaulfmsmg.com",
     subtitle: "Kunjungi portal web resmi Radio Gaul FM Semarang",
-    image_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/banners/banner-4.png",
+    image_url: "/banners/banner-4.png",
     cta_label: "Kunjungi Web",
     link_to: null,
     link_url: "https://radiogaulfmsmg.com",
@@ -219,8 +215,7 @@ const seedAnnouncers: Announcer[] = [
     id: "ann-1",
     name: "Attaya",
     nickname: "Attaya",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png?v=1789192301137",
+    photo_url: "/penyiar/attaya.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -231,8 +226,7 @@ const seedAnnouncers: Announcer[] = [
     id: "ann-2",
     name: "Ega Ratu",
     nickname: "Ega",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png?v=1789192301137",
+    photo_url: "/penyiar/ega-ratu.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -243,8 +237,7 @@ const seedAnnouncers: Announcer[] = [
     id: "ann-3",
     name: "Kara Ferina",
     nickname: "Kara",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png?v=1789192301137",
+    photo_url: "/penyiar/kara-ferina.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -255,8 +248,7 @@ const seedAnnouncers: Announcer[] = [
     id: "ann-4",
     name: "Nafa",
     nickname: "Nafa",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png?v=1789192301137",
+    photo_url: "/penyiar/nafa.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -267,8 +259,7 @@ const seedAnnouncers: Announcer[] = [
     id: "ann-5",
     name: "Nanda",
     nickname: "Nanda",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png?v=1789192301137",
+    photo_url: "/penyiar/nanda.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -279,8 +270,7 @@ const seedAnnouncers: Announcer[] = [
     id: "ann-6",
     name: "Rizky",
     nickname: "Rizky",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png?v=1789192301137",
+    photo_url: "/penyiar/rizky.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -291,8 +281,7 @@ const seedAnnouncers: Announcer[] = [
     id: "ann-7",
     name: "Tyas",
     nickname: "Tyas",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/tyas.png?v=1789192301137",
+    photo_url: "/penyiar/tyas.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,

@@ -28,10 +28,17 @@ type FormState = {
   is_active: boolean;
 };
 
+const PRESET_BANNERS = [
+  { label: "Banner 1 (Station Promo)", url: "/banners/banner-1.png" },
+  { label: "Banner 2 (Jadwal Siaran)", url: "/banners/banner-2.png" },
+  { label: "Banner 3 (Community)", url: "/banners/banner-3.png" },
+  { label: "Banner 4 (Web Portal)", url: "/banners/banner-4.png" },
+];
+
 const empty = (): FormState => ({
   title: "",
   subtitle: "",
-  image_url: "",
+  image_url: PRESET_BANNERS[0].url,
   cta_label: "",
   link_to: "",
   link_url: "",
@@ -225,6 +232,29 @@ export default function BannersPage() {
             </Field>
             <Field label="Gambar Banner" className="sm:col-span-2">
               <div className="space-y-3">
+                {/* Pilihan Cepat Banner Statis Server Hosting */}
+                <div>
+                  <span className="text-[11px] font-medium text-muted-foreground block mb-1.5">
+                    Pilih Cepat Banner Server (Bebas Kuota Supabase):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_BANNERS.map((preset) => (
+                      <button
+                        key={preset.url}
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, image_url: preset.url }))}
+                        className={`rounded-md px-2.5 py-1 text-xs transition-all border ${
+                          form.image_url === preset.url
+                            ? "border-brand bg-brand text-brand-foreground font-semibold shadow-xs"
+                            : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted active:scale-95 transition-all shadow-xs">
                     {uploading ? (
@@ -232,7 +262,7 @@ export default function BannersPage() {
                     ) : (
                       <Upload className="h-3.5 w-3.5 text-brand" />
                     )}
-                    <span>{uploading ? "Mengunggah..." : "Upload File Gambar"}</span>
+                    <span>{uploading ? "Mengunggah..." : "Upload File Gambar Baru"}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -242,7 +272,7 @@ export default function BannersPage() {
                     />
                   </label>
                   <span className="text-[11px] text-muted-foreground">
-                    Upload PNG/JPG ke Supabase CDN atau paste URL di bawah
+                    Atau gunakan URL / path statis server di bawah
                   </span>
                 </div>
                 <Input
@@ -250,7 +280,7 @@ export default function BannersPage() {
                   onChange={(e) =>
                     setForm({ ...form, image_url: e.target.value })
                   }
-                  placeholder="https://... URL gambar banner"
+                  placeholder="/banners/banner-1.png atau URL eksternal"
                   required
                 />
                 {form.image_url ? (

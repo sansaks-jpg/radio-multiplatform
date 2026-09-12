@@ -25,13 +25,50 @@ declare global {
   var __gaulfm_server_radio_store: ServerRadioStore | undefined;
 }
 
+/**
+ * Menormalkan URL aset: mengubah URL Supabase Storage menjadi path relatif server lokal.
+ * Mencegah konsumsi kuota bandwidth (egress) dan storage pada Supabase Free Tier.
+ */
+export function normalizeStorageUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+
+  // Rewrite Supabase Storage bucket URLs to local public paths
+  if (trimmed.includes("/storage/v1/object/public/penyiar/")) {
+    const filename = trimmed.split("/storage/v1/object/public/penyiar/")[1]?.split("?")[0];
+    return `/penyiar/${filename}`;
+  }
+  if (trimmed.includes("/storage/v1/object/public/banners/")) {
+    const filename = trimmed.split("/storage/v1/object/public/banners/")[1]?.split("?")[0];
+    return `/banners/${filename}`;
+  }
+  if (trimmed.includes("/storage/v1/object/public/programs/")) {
+    const filename = trimmed.split("/storage/v1/object/public/programs/")[1]?.split("?")[0];
+    return `/programs/${filename}`;
+  }
+
+  return trimmed;
+}
+
 function initStore(): ServerRadioStore {
   const seed = createSeedSnapshot();
   return {
-    nowPlaying: seed.nowPlaying,
-    programs: seed.programs,
-    announcers: seed.announcers,
-    banners: seed.banners,
+    nowPlaying: {
+      ...seed.nowPlaying,
+      current_cover_url: normalizeStorageUrl(seed.nowPlaying.current_cover_url),
+    },
+    programs: seed.programs.map((p) => ({
+      ...p,
+      cover_url: normalizeStorageUrl(p.cover_url),
+    })),
+    announcers: seed.announcers.map((a) => ({
+      ...a,
+      photo_url: normalizeStorageUrl(a.photo_url),
+    })),
+    banners: seed.banners.map((b) => ({
+      ...b,
+      image_url: normalizeStorageUrl(b.image_url),
+    })),
     lastSynced: {
       nowPlaying: 0,
       programs: 0,
@@ -212,7 +249,7 @@ export async function getServerNowPlaying(): Promise<NowPlaying> {
           id: data.id,
           current_program: data.current_program ?? store.nowPlaying.current_program,
           current_host: data.current_host ?? store.nowPlaying.current_host,
-          current_cover_url: data.current_cover_url ?? store.nowPlaying.current_cover_url,
+          current_cover_url: normalizeStorageUrl(data.current_cover_url ?? store.nowPlaying.current_cover_url),
           updated_at: data.updated_at ?? new Date().toISOString(),
         };
         store.lastSynced.nowPlaying = now;
@@ -240,7 +277,10 @@ export async function getServerPrograms(): Promise<Program[]> {
         .order("start_time", { ascending: true });
 
       if (!error && data && data.length > 0) {
-        store.programs = data as Program[];
+        store.programs = (data as Program[]).map((p) => ({
+          ...p,
+          cover_url: normalizeStorageUrl(p.cover_url),
+        }));
         store.lastSynced.programs = now;
       }
     } catch {
@@ -266,7 +306,10 @@ export async function getServerAnnouncers(): Promise<Announcer[]> {
         .order("sort_order", { ascending: true });
 
       if (!error && data && data.length > 0) {
-        store.announcers = data as Announcer[];
+        store.announcers = (data as Announcer[]).map((a) => ({
+          ...a,
+          photo_url: normalizeStorageUrl(a.photo_url),
+        }));
         store.lastSynced.announcers = now;
       }
     } catch {
@@ -292,7 +335,10 @@ export async function getServerBanners(): Promise<Banner[]> {
         .order("sort_order", { ascending: true });
 
       if (!error && data && data.length > 0) {
-        store.banners = data as Banner[];
+        store.banners = (data as Banner[]).map((b) => ({
+          ...b,
+          image_url: normalizeStorageUrl(b.image_url),
+        }));
         store.lastSynced.banners = now;
       }
     } catch {
@@ -330,11 +376,21 @@ export async function getServerLiveState() {
  * Memperbarui memory cache server saat ada mutasi dari panel admin
  */
 export function setServerNowPlaying(data: Partial<NowPlaying>) {
-  store.nowPlaying = { ...store.nowPlaying, ...data, updated_at: new Date().toISOString() };
+  store.nowPlaying = {
+    ...store.nowPlaying,
+    ...data,
+    current_cover_url: data.current_cover_url
+      ? normalizeStorageUrl(data.current_cover_url)
+      : store.nowPlaying.current_cover_url,
+    updated_at: new Date().toISOString(),
+  };
   store.lastSynced.nowPlaying = Date.now();
 }
 
 export function setServerPrograms(programs: Program[]) {
-  store.programs = programs;
+  store.programs = programs.map((p) => ({
+    ...p,
+    cover_url: normalizeStorageUrl(p.cover_url),
+  }));
   store.lastSynced.programs = Date.now();
 }

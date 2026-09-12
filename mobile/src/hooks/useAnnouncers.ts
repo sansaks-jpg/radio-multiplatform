@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase";
-import { buildApiUrl } from "../services/apiConfig";
+import { buildApiUrl, resolveMediaUrl } from "../services/apiConfig";
 import { mockAnnouncers } from "../mocks/announcers";
 import type { Announcer } from "../types";
 
@@ -32,14 +32,8 @@ function parseMobileAnnouncer(item: any): Announcer {
     }
   }
 
-  let photoUrl = item.photo_url || "";
-  if (
-    photoUrl &&
-    photoUrl.includes("/storage/v1/object/public/penyiar/") &&
-    !photoUrl.includes("?")
-  ) {
-    photoUrl = `${photoUrl}?v=1789192301137`;
-  }
+  const rawPhoto = item.photo_url || "";
+  const photoUrl = resolveMediaUrl(rawPhoto);
 
   return {
     id: item.id,

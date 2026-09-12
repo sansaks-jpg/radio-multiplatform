@@ -1,9 +1,22 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSupabase, isSupabaseConfigured } from "../services/supabase";
-import { buildApiUrl } from "../services/apiConfig";
+import { buildApiUrl, resolveMediaUrl } from "../services/apiConfig";
 import { mockPrograms } from "../mocks/programs";
 import type { Program } from "../types";
+
+function parseProgram(p: any): Program {
+  return {
+    id: p.id,
+    name: p.name,
+    host: p.host,
+    day_of_week: p.day_of_week,
+    start_time: p.start_time,
+    end_time: p.end_time,
+    cover_url: p.cover_url ? resolveMediaUrl(p.cover_url) : null,
+    description: p.description,
+  };
+}
 
 async function fetchAllPrograms(): Promise<Program[]> {
   // 1. Ambil dari server API Next.js (cepat & di-cache di memori server)
@@ -13,7 +26,7 @@ async function fetchAllPrograms(): Promise<Program[]> {
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-        return json.data as Program[];
+        return json.data.map(parseProgram);
       }
     }
   } catch {
@@ -30,14 +43,14 @@ async function fetchAllPrograms(): Promise<Program[]> {
         .order("day_of_week", { ascending: true })
         .order("start_time", { ascending: true });
       if (!error && data && data.length > 0) {
-        return data as Program[];
+        return data.map(parseProgram);
       }
     } catch {
       // Fallback ke mock
     }
   }
 
-  return [...mockPrograms].sort((a, b) =>
+  return [...mockPrograms].map(parseProgram).sort((a, b) =>
     a.day_of_week !== b.day_of_week
       ? a.day_of_week - b.day_of_week
       : a.start_time.localeCompare(b.start_time),

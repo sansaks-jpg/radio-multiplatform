@@ -15,8 +15,7 @@ export const mockPrograms: Program[] = [
       day_of_week: day,
       start_time: "07:00",
       end_time: "10:00",
-      cover_url:
-        "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/gaul-morning-show.png",
+      cover_url: "/programs/gaul-morning-show.png",
       description:
         "Program pagi yang membahas info terkini, topik viral, lifestyle anak muda, sampai obrolan relate yang beda setiap hari biar Gaulista nggak bosan dan selalu punya hal baru buat ditemenin tiap pagi.",
     },
@@ -27,8 +26,7 @@ export const mockPrograms: Program[] = [
       day_of_week: day,
       start_time: "15:00",
       end_time: "18:00",
-      cover_url:
-        "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/gaul-waktu-setempat.png",
+      cover_url: "/programs/gaul-waktu-setempat.png",
       description:
         "Program unggulan seputar pembahasan dunia music terkini dilengkapi request lagu dan salam serta playlist lagu yang up to date.",
     },
@@ -39,8 +37,7 @@ export const mockPrograms: Program[] = [
       day_of_week: day,
       start_time: "19:00",
       end_time: "22:00",
-      cover_url:
-        "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/programs/asupan-gaul.png",
+      cover_url: "/programs/asupan-gaul.png",
       description:
         "Program acara malam seputar romance dengan playlist lagu slow yang menarik disertai request lagu dan curhat yang bikin asik.",
     },

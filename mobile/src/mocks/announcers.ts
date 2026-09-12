@@ -5,8 +5,7 @@ export const mockAnnouncers: Announcer[] = [
     id: "ann-1",
     name: "Attaya",
     nickname: "Attaya",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png?v=1789192301137",
+    photo_url: "/penyiar/attaya.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -17,8 +16,7 @@ export const mockAnnouncers: Announcer[] = [
     id: "ann-2",
     name: "Ega Ratu",
     nickname: "Ega",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png?v=1789192301137",
+    photo_url: "/penyiar/ega-ratu.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -29,8 +27,7 @@ export const mockAnnouncers: Announcer[] = [
     id: "ann-3",
     name: "Kara Ferina",
     nickname: "Kara",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png?v=1789192301137",
+    photo_url: "/penyiar/kara-ferina.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -41,8 +38,7 @@ export const mockAnnouncers: Announcer[] = [
     id: "ann-4",
     name: "Nafa",
     nickname: "Nafa",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png?v=1789192301137",
+    photo_url: "/penyiar/nafa.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -53,8 +49,7 @@ export const mockAnnouncers: Announcer[] = [
     id: "ann-5",
     name: "Nanda",
     nickname: "Nanda",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png?v=1789192301137",
+    photo_url: "/penyiar/nanda.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -65,8 +60,7 @@ export const mockAnnouncers: Announcer[] = [
     id: "ann-6",
     name: "Rizky",
     nickname: "Rizky",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png?v=1789192301137",
+    photo_url: "/penyiar/rizky.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -77,8 +71,7 @@ export const mockAnnouncers: Announcer[] = [
     id: "ann-7",
     name: "Tyas",
     nickname: "Tyas",
-    photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/tyas.png",
+    photo_url: "/penyiar/tyas.png",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,

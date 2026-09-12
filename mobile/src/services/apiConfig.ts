@@ -44,3 +44,33 @@ export function buildApiUrl(path: string): string {
 function cleanUrl(url: string): string {
   return url.trim().replace(/\/+$/, "");
 }
+
+/**
+ * Mengubah path relatif atau URL Supabase Storage menjadi URL absolut server SSH backend.
+ * Memastikan tidak ada kuota bandwidth Supabase Storage yang tersedot saat aplikasi memuat gambar.
+ */
+export function resolveMediaUrl(url: string | null | undefined): string {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+
+  // 1. Alihkan URL Supabase Storage ke server SSH backend
+  if (trimmed.includes("/storage/v1/object/public/penyiar/")) {
+    const filename = trimmed.split("/storage/v1/object/public/penyiar/")[1]?.split("?")[0];
+    return buildApiUrl(`/penyiar/${filename}`);
+  }
+  if (trimmed.includes("/storage/v1/object/public/banners/")) {
+    const filename = trimmed.split("/storage/v1/object/public/banners/")[1]?.split("?")[0];
+    return buildApiUrl(`/banners/${filename}`);
+  }
+  if (trimmed.includes("/storage/v1/object/public/programs/")) {
+    const filename = trimmed.split("/storage/v1/object/public/programs/")[1]?.split("?")[0];
+    return buildApiUrl(`/programs/${filename}`);
+  }
+
+  // 2. Jika path relatif (misal: "/penyiar/attaya.png"), sambungkan ke host server backend
+  if (trimmed.startsWith("/")) {
+    return buildApiUrl(trimmed);
+  }
+
+  return trimmed;
+}

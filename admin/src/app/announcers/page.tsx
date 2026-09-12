@@ -26,13 +26,13 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 
 const PRESET_STUDIO_PHOTOS = [
-  { name: "Attaya", url: "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png?v=1789192301137" },
-  { name: "Ega Ratu", url: "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png?v=1789192301137" },
-  { name: "Kara Ferina", url: "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png?v=1789192301137" },
-  { name: "Nafa", url: "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png?v=1789192301137" },
-  { name: "Nanda", url: "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png?v=1789192301137" },
-  { name: "Rizky", url: "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png?v=1789192301137" },
-  { name: "Tyas", url: "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/tyas.png?v=1789192301137" },
+  { name: "Attaya", url: "/penyiar/attaya.png" },
+  { name: "Ega Ratu", url: "/penyiar/ega-ratu.png" },
+  { name: "Kara Ferina", url: "/penyiar/kara-ferina.png" },
+  { name: "Nafa", url: "/penyiar/nafa.png" },
+  { name: "Nanda", url: "/penyiar/nanda.png" },
+  { name: "Rizky", url: "/penyiar/rizky.png" },
+  { name: "Tyas", url: "/penyiar/tyas.png" },
 ];
 
 type FormState = {
