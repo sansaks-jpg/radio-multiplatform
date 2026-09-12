@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Pencil, Plus, Trash2, Upload, Loader2 } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
 import { deleteBanner, upsertBanner } from "@/lib/data-store";
-import { supabase } from "@/lib/supabase";
 import type { Banner, BannerType } from "@/lib/types";
 import { uid } from "@/lib/utils";
 import { PageHeader, EmptyState } from "@/components/ui/page-header";
@@ -35,17 +34,19 @@ const PRESET_BANNERS = [
   { label: "Banner 4 (Web Portal)", url: "/banners/banner-4.png" },
 ];
 
-const empty = (): FormState => ({
-  title: "",
-  subtitle: "",
-  image_url: PRESET_BANNERS[0].url,
-  cta_label: "",
-  link_to: "",
-  link_url: "",
-  type: "program",
-  sort_order: 0,
-  is_active: true,
-});
+function empty(): FormState {
+  return {
+    title: "",
+    subtitle: "",
+    image_url: PRESET_BANNERS[0].url,
+    cta_label: "",
+    link_to: "",
+    link_url: "",
+    type: "program",
+    sort_order: 0,
+    is_active: true,
+  };
+}
 
 export default function BannersPage() {
   const { banners } = useAdminStore();
@@ -57,25 +58,25 @@ export default function BannersPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!supabase) {
-      toast.push("Supabase belum terkonfigurasi untuk upload gambar", "error");
-      return;
-    }
+
     try {
       setUploading(true);
-      const ext = file.name.split(".").pop() || "png";
-      const fileName = `banner-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("banners")
-        .upload(fileName, file, { upsert: true, contentType: file.type });
-      if (uploadError) throw uploadError;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "banners");
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("banners").getPublicUrl(fileName);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-      setForm((prev) => ({ ...prev, image_url: publicUrl }));
-      toast.push("Gambar banner berhasil diunggah!", "success");
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Gagal mengunggah gambar ke server");
+      }
+
+      setForm((prev) => ({ ...prev, image_url: json.data.url }));
+      toast.push("Gambar banner berhasil diunggah ke server!", "success");
     } catch (err) {
       toast.push("Gagal mengunggah: " + (err as Error).message, "error");
     } finally {

@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useAdminStore } from "@/hooks/useAdminStore";
 import { deleteAnnouncer, upsertAnnouncer } from "@/lib/data-store";
-import { supabase } from "@/lib/supabase";
 import type { Announcer } from "@/lib/types";
 import { uid } from "@/lib/utils";
 import { PageHeader, EmptyState } from "@/components/ui/page-header";
@@ -85,25 +84,25 @@ export default function AnnouncersPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!supabase) {
-      toast.push("Supabase belum terkonfigurasi untuk upload gambar", "error");
-      return;
-    }
+
     try {
       setUploading(true);
-      const ext = file.name.split(".").pop() || "png";
-      const cleanFileName = `penyiar-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("penyiar")
-        .upload(cleanFileName, file, { upsert: true, contentType: file.type });
-      if (uploadError) throw uploadError;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "penyiar");
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("penyiar").getPublicUrl(cleanFileName);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-      setForm((prev) => ({ ...prev, photo_url: publicUrl }));
-      toast.push("Foto penyiar berhasil diunggah!", "success");
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Gagal mengunggah gambar ke server");
+      }
+
+      setForm((prev) => ({ ...prev, photo_url: json.data.url }));
+      toast.push("Foto penyiar berhasil diunggah ke server!", "success");
     } catch (err) {
       toast.push("Gagal mengunggah: " + (err as Error).message, "error");
     } finally {
