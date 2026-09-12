@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { getSupabase, isSupabaseConfigured } from "../services/supabase";
 import { buildApiUrl, resolveMediaUrl } from "../services/apiConfig";
 import { mockAnnouncers } from "../mocks/announcers";
 import type { Announcer } from "../types";
@@ -60,24 +59,7 @@ async function fetchAnnouncers(): Promise<Announcer[]> {
       }
     }
   } catch {
-    // Fallback
-  }
-
-  // 2. Fallback darurat ke Supabase
-  const supabase = getSupabase();
-  if (supabase && isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from("announcers")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      if (!error && data && data.length > 0) {
-        return data.map(parseMobileAnnouncer);
-      }
-    } catch {
-      // Fallback ke mock
-    }
+    // Fallback ke mock jika server offline (Supabase hanya untuk auth/user)
   }
 
   return mockAnnouncers;

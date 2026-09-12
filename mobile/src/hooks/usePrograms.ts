@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getSupabase, isSupabaseConfigured } from "../services/supabase";
 import { buildApiUrl, resolveMediaUrl } from "../services/apiConfig";
 import { mockPrograms } from "../mocks/programs";
 import type { Program } from "../types";
@@ -30,24 +29,7 @@ async function fetchAllPrograms(): Promise<Program[]> {
       }
     }
   } catch {
-    // Fallback
-  }
-
-  // 2. Fallback darurat ke Supabase jika server Next.js offline
-  const supabase = getSupabase();
-  if (supabase && isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from("programs")
-        .select("*")
-        .order("day_of_week", { ascending: true })
-        .order("start_time", { ascending: true });
-      if (!error && data && data.length > 0) {
-        return data.map(parseProgram);
-      }
-    } catch {
-      // Fallback ke mock
-    }
+    // Fallback ke mock jika server offline (Supabase hanya untuk auth/user)
   }
 
   return [...mockPrograms].map(parseProgram).sort((a, b) =>

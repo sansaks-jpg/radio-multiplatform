@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getSupabase, isSupabaseConfigured } from "../services/supabase";
 import { buildApiUrl } from "../services/apiConfig";
 import { mockNowPlaying } from "../mocks/nowPlaying";
 import { usePlayerStore } from "../stores/playerStore";
@@ -25,25 +24,7 @@ async function fetchNowPlaying(): Promise<NowPlaying> {
       }
     }
   } catch {
-    // Fallback ke direct Supabase / mock jika server offline
-  }
-
-  // 2. Fallback darurat ke Supabase jika server Next.js tidak terjangkau
-  const supabase = getSupabase();
-  if (supabase && isSupabaseConfigured) {
-    try {
-      const { data, error } = await supabase
-        .from("now_playing")
-        .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!error && data) {
-        return data as NowPlaying;
-      }
-    } catch {
-      // Fallback ke mock
-    }
+    // Fallback ke mock jika server offline (Supabase hanya untuk auth/user)
   }
 
   return mockNowPlaying;
@@ -127,5 +108,3 @@ export function useNowPlaying() {
 
   return query;
 }
-
-export { isSupabaseConfigured };
