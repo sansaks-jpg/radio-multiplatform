@@ -2,11 +2,11 @@ const http = require("http");
 const { exec } = require("child_process");
 
 function ensureAdbReverse() {
-  exec("adb reverse tcp:3000 tcp:3000", (err) => {
+  exec("adb connect 192.168.100.9:35645 && adb reverse tcp:3000 tcp:3000 && adb reverse tcp:8081 tcp:8081", (err) => {
     if (err) {
       console.warn("[Bridge] adb reverse warning:", err.message);
     } else {
-      console.log("[Bridge] adb reverse tcp:3000 tcp:3000 OK");
+      console.log("[Bridge] adb connected & ports 3000, 8081 reversed OK");
     }
   });
 }
