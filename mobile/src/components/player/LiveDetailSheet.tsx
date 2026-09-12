@@ -365,11 +365,12 @@ export function LiveDetailSheet({
               className="min-w-0 flex-1 flex-row items-center gap-2.5 active:opacity-75"
             >
               {/* Logo Program Kecil Resmi */}
-              <View className="h-9 w-9 overflow-hidden rounded-lg border border-brand/35 bg-surface-3">
+              <View className="h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-brand/35 bg-surface-3 p-0.5">
                 <Image
                   source={programArtwork}
-                  style={{ width: 36, height: 36 }}
-                  contentFit="cover"
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit="contain"
+                  contentPosition="center"
                   transition={150}
                 />
               </View>
@@ -494,11 +495,12 @@ export function LiveDetailSheet({
             {!isVisualActive ? (
               <View className="w-full overflow-hidden bg-surface">
                 {!keyboardOpen ? (
-                  <View className="relative aspect-[16/9] w-full bg-surface-2">
+                  <View className="relative aspect-[16/9] w-full items-center justify-center overflow-hidden bg-surface-2">
                     <Image
                       source={programArtwork}
                       style={{ width: "100%", height: "100%" }}
                       contentFit="cover"
+                      contentPosition="center"
                       transition={200}
                     />
                     <View className="absolute left-2.5 top-2.5">
@@ -906,11 +908,12 @@ export function LiveDetailSheet({
                 keyboardShouldPersistTaps="handled"
               >
                 <View className="flex-row gap-3">
-                  <View className="h-20 w-20 overflow-hidden rounded-2xl border border-brand/30 bg-surface-2">
+                  <View className="h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-brand/30 bg-surface-2 p-1.5">
                     <Image
                       source={programArtwork}
-                      style={{ width: 80, height: 80 }}
-                      contentFit="cover"
+                      style={{ width: "100%", height: "100%" }}
+                      contentFit="contain"
+                      contentPosition="center"
                       transition={150}
                     />
                   </View>
