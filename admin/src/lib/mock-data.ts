@@ -220,7 +220,7 @@ export const seedAnnouncers: Announcer[] = [
     name: "Attaya",
     nickname: "Attaya",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -232,7 +232,7 @@ export const seedAnnouncers: Announcer[] = [
     name: "Ega Ratu",
     nickname: "Ega",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -244,7 +244,7 @@ export const seedAnnouncers: Announcer[] = [
     name: "Kara Ferina",
     nickname: "Kara",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -256,7 +256,7 @@ export const seedAnnouncers: Announcer[] = [
     name: "Nafa",
     nickname: "Nafa",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -268,7 +268,7 @@ export const seedAnnouncers: Announcer[] = [
     name: "Nanda",
     nickname: "Nanda",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -280,7 +280,7 @@ export const seedAnnouncers: Announcer[] = [
     name: "Rizky",
     nickname: "Rizky",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -292,7 +292,7 @@ export const seedAnnouncers: Announcer[] = [
     name: "Tyas",
     nickname: "Tyas",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/tyas.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/tyas.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,

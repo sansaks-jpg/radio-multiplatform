@@ -6,7 +6,7 @@ export const mockAnnouncers: Announcer[] = [
     name: "Attaya",
     nickname: "Attaya",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/attaya.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -18,7 +18,7 @@ export const mockAnnouncers: Announcer[] = [
     name: "Ega Ratu",
     nickname: "Ega",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/ega-ratu.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -30,7 +30,7 @@ export const mockAnnouncers: Announcer[] = [
     name: "Kara Ferina",
     nickname: "Kara",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/kara-ferina.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -42,7 +42,7 @@ export const mockAnnouncers: Announcer[] = [
     name: "Nafa",
     nickname: "Nafa",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nafa.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -54,7 +54,7 @@ export const mockAnnouncers: Announcer[] = [
     name: "Nanda",
     nickname: "Nanda",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/nanda.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,
@@ -66,7 +66,7 @@ export const mockAnnouncers: Announcer[] = [
     name: "Rizky",
     nickname: "Rizky",
     photo_url:
-      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png",
+      "https://idnxegollxhdcoexvndx.supabase.co/storage/v1/object/public/penyiar/rizky.png?v=1789192301137",
     bio: "Gaul FM Announcer",
     instagram: "@radiogaulfm_smg",
     is_active: true,

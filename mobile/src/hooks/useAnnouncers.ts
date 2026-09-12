@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { getSupabase } from "../services/supabase";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getSupabase, isSupabaseConfigured } from "../services/supabase";
 import { mockAnnouncers } from "../mocks/announcers";
 import type { Announcer } from "../types";
 
@@ -31,11 +32,20 @@ function parseMobileAnnouncer(item: any): Announcer {
     }
   }
 
+  let photoUrl = item.photo_url || "";
+  if (
+    photoUrl &&
+    photoUrl.includes("/storage/v1/object/public/penyiar/") &&
+    !photoUrl.includes("?")
+  ) {
+    photoUrl = `${photoUrl}?v=1789192301137`;
+  }
+
   return {
     id: item.id,
     name: item.name,
     nickname: item.nickname ?? null,
-    photo_url: item.photo_url,
+    photo_url: photoUrl,
     bio: bio || null,
     instagram: item.instagram ?? null,
     is_active: item.is_active ?? true,
@@ -63,9 +73,38 @@ async function fetchAnnouncers(): Promise<Announcer[]> {
 }
 
 export function useAnnouncers() {
+  const queryClient = useQueryClient();
+
+  // Supabase Realtime: dengarkan perubahan tabel announcers dari panel admin secara langsung
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase || !isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel("announcers_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "announcers",
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["announcers"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["announcers"],
     queryFn: fetchAnnouncers,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 1000,
+    refetchOnMount: "always",
   });
 }
+
