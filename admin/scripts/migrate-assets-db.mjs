@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { readFileSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
@@ -6,7 +5,6 @@ import { dirname, resolve } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Helper to read env variables manually without external dotenv dependency
 function loadEnv(file) {
   if (!existsSync(file)) return;
   const content = readFileSync(file, "utf8");
@@ -27,7 +25,7 @@ function loadEnv(file) {
 loadEnv(resolve(__dirname, "../.env.local"));
 loadEnv(resolve(__dirname, "../.env"));
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").replace(/\/+$/, "");
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!url || !key) {
@@ -35,7 +33,12 @@ if (!url || !key) {
   process.exit(1);
 }
 
-const supabase = createClient(url, key);
+const headers = {
+  apikey: key,
+  Authorization: `Bearer ${key}`,
+  "Content-Type": "application/json",
+  Prefer: "return=representation",
+};
 
 function normalize(urlStr) {
   if (!urlStr || typeof urlStr !== "string") return urlStr;
@@ -55,63 +58,84 @@ function normalize(urlStr) {
   return trimmed;
 }
 
+async function getRows(table, columns) {
+  const res = await fetch(`${url}/rest/v1/${table}?select=${columns}`, { headers });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${table}: ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+async function patchRow(table, idCol, idVal, updatePayload) {
+  const res = await fetch(`${url}/rest/v1/${table}?${idCol}=eq.${encodeURIComponent(idVal)}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(updatePayload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to update ${table} (${idVal}): ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
 async function migrate() {
   console.log("=== Migrating Supabase DB Asset URLs to Local Server Paths ===");
 
   // 1. Announcers
-  const { data: announcers, error: annErr } = await supabase.from("announcers").select("id, photo_url");
-  if (annErr) {
-    console.warn("Could not query announcers:", annErr.message);
-  } else if (announcers) {
+  try {
+    const announcers = await getRows("announcers", "id,photo_url");
     for (const a of announcers) {
       const updated = normalize(a.photo_url);
       if (updated !== a.photo_url) {
-        const { error } = await supabase.from("announcers").update({ photo_url: updated }).eq("id", a.id);
-        console.log(`Updated announcer ${a.id}: ${a.photo_url} -> ${updated} (${error ? error.message : "OK"})`);
+        await patchRow("announcers", "id", a.id, { photo_url: updated });
+        console.log(`Updated announcer ${a.id}: ${a.photo_url} -> ${updated}`);
       }
     }
+  } catch (err) {
+    console.warn("Announcers migration note:", err.message);
   }
 
   // 2. Banners
-  const { data: banners, error: banErr } = await supabase.from("banners").select("id, image_url");
-  if (banErr) {
-    console.warn("Could not query banners:", banErr.message);
-  } else if (banners) {
+  try {
+    const banners = await getRows("banners", "id,image_url");
     for (const b of banners) {
       const updated = normalize(b.image_url);
       if (updated !== b.image_url) {
-        const { error } = await supabase.from("banners").update({ image_url: updated }).eq("id", b.id);
-        console.log(`Updated banner ${b.id}: ${b.image_url} -> ${updated} (${error ? error.message : "OK"})`);
+        await patchRow("banners", "id", b.id, { image_url: updated });
+        console.log(`Updated banner ${b.id}: ${b.image_url} -> ${updated}`);
       }
     }
+  } catch (err) {
+    console.warn("Banners migration note:", err.message);
   }
 
   // 3. Programs
-  const { data: programs, error: progErr } = await supabase.from("programs").select("id, cover_url");
-  if (progErr) {
-    console.warn("Could not query programs:", progErr.message);
-  } else if (programs) {
+  try {
+    const programs = await getRows("programs", "id,cover_url");
     for (const p of programs) {
       const updated = normalize(p.cover_url);
       if (updated !== p.cover_url) {
-        const { error } = await supabase.from("programs").update({ cover_url: updated }).eq("id", p.id);
-        console.log(`Updated program ${p.id}: ${p.cover_url} -> ${updated} (${error ? error.message : "OK"})`);
+        await patchRow("programs", "id", p.id, { cover_url: updated });
+        console.log(`Updated program ${p.id}: ${p.cover_url} -> ${updated}`);
       }
     }
+  } catch (err) {
+    console.warn("Programs migration note:", err.message);
   }
 
   // 4. Now Playing
-  const { data: np, error: npErr } = await supabase.from("now_playing").select("id, current_cover_url");
-  if (npErr) {
-    console.warn("Could not query now_playing:", npErr.message);
-  } else if (np) {
+  try {
+    const np = await getRows("now_playing", "id,current_cover_url");
     for (const item of np) {
       const updated = normalize(item.current_cover_url);
       if (updated !== item.current_cover_url) {
-        const { error } = await supabase.from("now_playing").update({ current_cover_url: updated }).eq("id", item.id);
-        console.log(`Updated now_playing ${item.id}: ${item.current_cover_url} -> ${updated} (${error ? error.message : "OK"})`);
+        await patchRow("now_playing", "id", item.id, { current_cover_url: updated });
+        console.log(`Updated now_playing ${item.id}: ${item.current_cover_url} -> ${updated}`);
       }
     }
+  } catch (err) {
+    console.warn("Now Playing migration note:", err.message);
   }
 
   console.log("Migration completed successfully!");
