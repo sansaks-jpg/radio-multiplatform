@@ -12,7 +12,7 @@ export interface LiveTrackMeta {
   url: string;
   title: string;
   artist: string;
-  artwork: string | null;
+  artwork?: any;
 }
 
 export interface EngineEvents {

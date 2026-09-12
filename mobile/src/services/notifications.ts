@@ -1,4 +1,4 @@
-import { Linking, Platform } from "react-native";
+import { Image, Linking, Platform } from "react-native";
 import Constants from "expo-constants";
 import { useNotificationPreferenceStore } from "../stores/notificationPreferenceStore";
 
@@ -8,12 +8,7 @@ import { useNotificationPreferenceStore } from "../stores/notificationPreference
  * ProgramDetail scheduleProgramReminder; AppSettingsScreen enable/disable.
  * API: enableNotifications, disableNotifications, getNotificationPermissionStatus,
  * openNotificationSystemSettings, scheduleProgramReminder, registerPushToken,
- * configureNotificationHandler.
- * Schema: none (OS permission + Expo token string → profiles.push_token).
- * User: "sekalian implementasikan notifikasi" + Context7 expo-notifications.
- *
- * Expo Go: no-op (executionEnvironment storeClient).
- * Android 13+: create channel before permission prompt (Expo docs).
+ * configureNotificationHandler, showLivePlaybackNotification, dismissLivePlaybackNotification.
  */
 
 const isExpoGo = Constants.executionEnvironment === "storeClient";
@@ -54,7 +49,7 @@ async function ensureAndroidChannel(
 
 export async function getNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
   try {
-    if (Platform.OS === "web" || isExpoGo) return "unavailable";
+    if (Platform.OS === "web") return "unavailable";
     const Notifications = await import("expo-notifications");
     const existing = await Notifications.getPermissionsAsync();
     return mapStatus(existing.status);
@@ -65,7 +60,7 @@ export async function getNotificationPermissionStatus(): Promise<NotificationPer
 
 export async function requestNotificationPermission(): Promise<NotificationPermissionStatus> {
   try {
-    if (Platform.OS === "web" || isExpoGo) return "unavailable";
+    if (Platform.OS === "web") return "unavailable";
     const Notifications = await import("expo-notifications");
     await ensureAndroidChannel(Notifications);
 
@@ -106,7 +101,7 @@ export async function enableNotifications(): Promise<{
 export async function disableNotifications(): Promise<void> {
   await useNotificationPreferenceStore.getState().setEnabled(false);
   try {
-    if (Platform.OS === "web" || isExpoGo) return;
+    if (Platform.OS === "web") return;
     const Notifications = await import("expo-notifications");
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch (e) {
@@ -126,7 +121,7 @@ export async function scheduleProgramReminder(
   coverUrl?: string | null,
 ): Promise<string | null> {
   try {
-    if (Platform.OS === "web" || isExpoGo) return null;
+    if (Platform.OS === "web") return null;
     if (!useNotificationPreferenceStore.getState().enabled) return null;
 
     const Notifications = await import("expo-notifications");
@@ -198,7 +193,7 @@ export async function scheduleProgramReminder(
 
 export async function cancelProgramReminder(identifier: string): Promise<void> {
   try {
-    if (Platform.OS === "web" || isExpoGo) return;
+    if (Platform.OS === "web") return;
     const Notifications = await import("expo-notifications");
     await Notifications.cancelScheduledNotificationAsync(identifier);
   } catch (e) {
@@ -234,7 +229,7 @@ export async function registerPushToken(): Promise<string | null> {
 
 export async function configureNotificationHandler(): Promise<void> {
   try {
-    if (Platform.OS === "web" || isExpoGo) return;
+    if (Platform.OS === "web") return;
     const Notifications = await import("expo-notifications");
     await ensureAndroidChannel(Notifications);
     Notifications.setNotificationHandler({
@@ -247,5 +242,88 @@ export async function configureNotificationHandler(): Promise<void> {
     });
   } catch {
     // Non-fatal.
+  }
+}
+
+let livePlaybackNotificationId: string | null = null;
+
+/**
+ * Menampilkan notifikasi ongoing siaran live aktif di Android notification tray.
+ * Tetap muncul saat aplikasi di-minimize/keluar, menampilkan cover/artwork program.
+ */
+export async function showLivePlaybackNotification(
+  programName: string,
+  host: string,
+  coverArtwork?: any
+): Promise<void> {
+  if (Platform.OS === "web") return;
+  try {
+    const Notifications = await import("expo-notifications");
+    await ensureAndroidChannel(Notifications);
+
+    let coverUrl: string | undefined;
+    if (coverArtwork) {
+      if (typeof coverArtwork === "string") {
+        coverUrl = coverArtwork;
+      } else {
+        try {
+          const resolved = Image.resolveAssetSource(coverArtwork);
+          coverUrl = resolved?.uri;
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    // Bersihkan notifikasi sebelumnya bila ada
+    if (livePlaybackNotificationId) {
+      await Notifications.dismissNotificationAsync(livePlaybackNotificationId).catch(() => {});
+    }
+
+    const content: Record<string, unknown> = {
+      title: programName || "Gaul FM Semarang",
+      body: `${host || "87.8 FM"} • On Air Sekarang`,
+      sound: false,
+      color: "#007A3E",
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+      sticky: true,
+      data: {
+        type: "live_playback",
+        programName: programName || "Gaul FM",
+        ...(coverUrl ? { coverUrl } : {}),
+      },
+    };
+
+    if (coverUrl) {
+      if (Platform.OS === "ios") {
+        content.attachments = [
+          { identifier: "program-cover", url: coverUrl, type: "public.image" },
+        ];
+      } else if (Platform.OS === "android") {
+        content.richContent = { image: coverUrl };
+      }
+    }
+
+    livePlaybackNotificationId = await Notifications.scheduleNotificationAsync({
+      content: content as any,
+      trigger: null,
+    });
+  } catch (err) {
+    console.warn("[GaulFM] showLivePlaybackNotification error:", err);
+  }
+}
+
+/**
+ * Menghilangkan notifikasi ongoing siaran saat audio dihentikan/pause.
+ */
+export async function dismissLivePlaybackNotification(): Promise<void> {
+  if (Platform.OS === "web") return;
+  if (!livePlaybackNotificationId) return;
+  try {
+    const Notifications = await import("expo-notifications");
+    await Notifications.dismissNotificationAsync(livePlaybackNotificationId);
+    livePlaybackNotificationId = null;
+  } catch {
+    // ignore
   }
 }

@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   LayoutDashboard,
   MessageSquare,
+  Mic,
   Newspaper,
   Radio,
   Users,
@@ -34,6 +35,7 @@ const navigation = [
     section: "Konten",
     items: [
       { name: "Jadwal Siaran", href: "/schedule", icon: CalendarDays },
+      { name: "Penyiar", href: "/announcers", icon: Mic },
       { name: "Berita", href: "/news", icon: Newspaper },
       { name: "Banner", href: "/banners", icon: ImageIcon },
     ],

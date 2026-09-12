@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuthStore } from "../stores/authStore";
 import { useOnboardingStore } from "../stores/onboardingStore";
@@ -24,21 +24,11 @@ export function RootNavigator() {
   const hasSeenOnboarding = useOnboardingStore((s) => s.hasSeenOnboarding);
   const colors = useThemeStore((s) => s.colors);
 
-  const [splashVisible, setSplashVisible] = useState(true);
-
-  // Berikan durasi minimal 1.2 detik untuk in-app launch screen yang halus & elegan
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSplashVisible(false);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
-
   // Poll Now Playing app-wide so Home, Mini Player and lock-screen
   // metadata stay in sync wherever the user is.
   useNowPlaying();
 
-  const showSplash = initializing || !onboardingHydrated || splashVisible;
+  const showSplash = initializing || !onboardingHydrated;
 
   return (
     <Stack.Navigator

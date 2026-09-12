@@ -237,40 +237,52 @@ export function ProgramDetailScreen() {
                 className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
                 style={{ fontFamily: "PlusJakartaSans_700Bold" }}
               >
-                Penyiar Gaul FM
+                Penyiar Program Ini
               </Text>
             </View>
 
             <View className="mt-3 flex-row flex-wrap gap-3">
-              {(announcersQuery.data && announcersQuery.data.length > 0
-                ? announcersQuery.data
-                : []
-              ).map((item) => {
-                const isOnAirNow =
-                  onAir && Boolean(isHostOnAir(item.name, nowPlaying.current_host));
+              {(() => {
+                const allAnnouncers = announcersQuery.data && announcersQuery.data.length > 0
+                  ? announcersQuery.data
+                  : [];
+                const matched = allAnnouncers.filter((ann) => {
+                  if (!ann.programs || ann.programs.length === 0) return false;
+                  const progNorm = program.name.toLowerCase();
+                  return ann.programs.some((pName) => {
+                    const pNorm = pName.toLowerCase();
+                    return progNorm.includes(pNorm) || pNorm.includes(progNorm);
+                  });
+                });
+                const list = matched.length > 0 ? matched : allAnnouncers;
 
-                return (
-                  <View key={item.id} className="w-16 items-center">
-                    <View
-                      className={`relative h-14 w-14 items-center justify-center rounded-full p-0.5 ${
-                        isOnAirNow ? "bg-live" : "border-2 border-brand/40"
-                      }`}
-                      style={isOnAirNow ? { elevation: 3 } : undefined}
-                    >
-                      <View className="h-full w-full overflow-hidden rounded-full bg-surface-3">
-                        {item.photo_url ? (
-                          <Image
-                            source={{ uri: item.photo_url }}
-                            style={{ width: "100%", height: "100%" }}
-                            contentFit="cover"
-                            transition={200}
-                          />
-                        ) : (
-                          <View className="h-full w-full items-center justify-center">
-                            <Ionicons name="mic" size={18} color={colors.brand} />
-                          </View>
-                        )}
-                      </View>
+                return list.map((item) => {
+                  const isOnAirNow =
+                    onAir && Boolean(isHostOnAir(item.name, nowPlaying.current_host));
+
+                  return (
+                    <View key={item.id} className="w-16 items-center">
+                      <View
+                        className={`relative h-14 w-14 items-center justify-center rounded-full p-0.5 ${
+                          isOnAirNow ? "bg-live" : "border-2 border-brand/40"
+                        }`}
+                        style={isOnAirNow ? { elevation: 3 } : undefined}
+                      >
+                        <View className="h-full w-full overflow-hidden rounded-full bg-surface-3">
+                          {item.photo_url ? (
+                            <Image
+                              source={{ uri: item.photo_url }}
+                              style={{ width: "100%", height: "100%" }}
+                              contentFit="cover"
+                              contentPosition="center"
+                              transition={200}
+                            />
+                          ) : (
+                            <View className="h-full w-full items-center justify-center">
+                              <Ionicons name="mic" size={18} color={colors.brand} />
+                            </View>
+                          )}
+                        </View>
 
                       {isOnAirNow ? (
                         <View className="absolute -bottom-1 rounded-full bg-live px-1 py-0.2">
@@ -293,7 +305,8 @@ export function ProgramDetailScreen() {
                     </Text>
                   </View>
                 );
-              })}
+              });
+            })()}
             </View>
 
             <View className="mt-4 flex-row gap-2">

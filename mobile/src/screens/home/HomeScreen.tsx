@@ -7,6 +7,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { usePrograms, useProgramsRealtime } from "../../hooks/usePrograms";
 import { flattenNewsPages, useNews } from "../../hooks/useNews";
 import { useBanners } from "../../hooks/useBanners";
+import { usePlayerControls } from "../../hooks/usePlayerControls";
 import { isOnAirNow, todayDow, getWibParts } from "../../utils/datetime";
 import { openExternalUrl } from "../../services/youtube";
 import { Screen } from "../../components/ui/Screen";
@@ -79,14 +80,19 @@ export function HomeScreen() {
 
   const newsItems = flattenNewsPages(news.data?.pages).slice(0, 5);
   const openLiveSheet = usePlayerStore((s) => s.openLiveSheet);
+  const playerStatus = usePlayerStore((s) => s.status);
+  const { play } = usePlayerControls();
 
   const openVisualRadio = useCallback(() => {
     openLiveSheet({ visual: true });
   }, [openLiveSheet]);
 
   const openAudioRadio = useCallback(() => {
-    openLiveSheet({ visual: false });
-  }, [openLiveSheet]);
+    openLiveSheet({ visual: false, autoPlay: true });
+    if (playerStatus !== "playing" && playerStatus !== "buffering") {
+      void play();
+    }
+  }, [openLiveSheet, playerStatus, play]);
 
   const name = displayName(profile?.full_name);
 

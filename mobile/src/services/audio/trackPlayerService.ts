@@ -1,6 +1,12 @@
+import { Image } from "react-native";
 import { engine } from "./playerEngine";
 import { resolveStreamUrl } from "./streamResolver";
 import { usePlayerStore } from "../../stores/playerStore";
+import { getTrackArtwork } from "../../utils/programAssets";
+import {
+  showLivePlaybackNotification,
+  dismissLivePlaybackNotification,
+} from "../notifications";
 import type { NowPlaying } from "../../types";
 
 /**
@@ -57,13 +63,31 @@ export async function playLive(nowPlaying?: NowPlaying): Promise<void> {
 
   if (generation !== currentOperationGeneration) return;
 
+  const rawArtwork = getTrackArtwork(np.current_program, np.current_cover_url);
+  let resolvedArtwork = rawArtwork;
+  if (rawArtwork && typeof rawArtwork !== "string") {
+    try {
+      const source = Image.resolveAssetSource(rawArtwork);
+      if (source?.uri) resolvedArtwork = source.uri;
+    } catch {
+      // ignore
+    }
+  }
+
   await engine.loadAndPlay({
     url: resolvedUrl,
     title: np.current_program,
     artist: np.current_host,
-    artwork: np.current_cover_url,
+    artwork: resolvedArtwork,
   });
   console.log(`[GaulFM] live stream requested in ${Date.now() - startedAt}ms`);
+
+  // Tampilkan notifikasi ongoing di drawer notifikasi Android
+  void showLivePlaybackNotification(
+    np.current_program,
+    np.current_host,
+    rawArtwork
+  );
 }
 
 /** Pause live stream. */
@@ -73,6 +97,7 @@ export async function pauseLive(): Promise<void> {
   await engine.pause();
   resolvedUrl = null;
   usePlayerStore.getState().setStatus("paused");
+  void dismissLivePlaybackNotification();
 }
 
 export async function stopLive(): Promise<void> {
@@ -81,6 +106,7 @@ export async function stopLive(): Promise<void> {
   await engine.stop();
   resolvedUrl = null;
   usePlayerStore.getState().setStatus("paused");
+  void dismissLivePlaybackNotification();
 }
 
 /** Retry after an error: re-resolve the playlist and start over. */
@@ -95,11 +121,31 @@ export async function retryLive(): Promise<void> {
 export async function updateLiveMetadata(nowPlaying: NowPlaying): Promise<void> {
   try {
     await ensureSetup();
+    const rawArtwork = getTrackArtwork(
+      nowPlaying.current_program,
+      nowPlaying.current_cover_url
+    );
+    let resolvedArtwork = rawArtwork;
+    if (rawArtwork && typeof rawArtwork !== "string") {
+      try {
+        const source = Image.resolveAssetSource(rawArtwork);
+        if (source?.uri) resolvedArtwork = source.uri;
+      } catch {
+        // ignore
+      }
+    }
+
     await engine.updateMetadata({
       title: nowPlaying.current_program || "Gaul FM Semarang",
       artist: nowPlaying.current_host || "87.8 FM",
-      artwork: nowPlaying.current_cover_url ?? null,
+      artwork: resolvedArtwork,
     });
+
+    void showLivePlaybackNotification(
+      nowPlaying.current_program,
+      nowPlaying.current_host,
+      rawArtwork
+    );
   } catch (err) {
     console.warn("[GaulFM] Non-fatal error updating live metadata:", err);
   }

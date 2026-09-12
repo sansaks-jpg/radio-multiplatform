@@ -247,7 +247,8 @@ export function LiveDetailSheet({
 
   const isPlaying = status === "playing";
   const isBuffering = status === "buffering";
-  const streamHealthy = isPlaying || isBuffering;
+  const isServerLive = stats.isLive || Boolean(matchedProgram);
+  const streamHealthy = isServerLive && status !== "error";
   const isDark = mode === "dark";
   const canSend = draftMessage.trim().length > 0;
   const displayName = profile?.full_name?.trim() || "Kamu";
@@ -519,7 +520,11 @@ export function LiveDetailSheet({
                     </Pressable>
 
                     <View className="absolute bottom-2.5 right-2.5 flex-row items-center gap-1 rounded-full bg-black/55 px-2 py-1">
-                      <Ionicons name="eye" size={12} color="#FFFFFF" />
+                      <Ionicons
+                        name={isVisualActive ? "eye" : "headset"}
+                        size={12}
+                        color="#FFFFFF"
+                      />
                       <Text
                         className="text-[11px] font-bold text-white"
                         style={{ fontFamily: "PlusJakartaSans_700Bold" }}
@@ -1002,6 +1007,7 @@ export function LiveDetailSheet({
                                 source={{ uri: item.photo_url }}
                                 style={{ width: "100%", height: "100%" }}
                                 contentFit="cover"
+                                contentPosition="center"
                                 transition={150}
                               />
                             ) : (

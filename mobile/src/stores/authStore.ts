@@ -41,6 +41,8 @@ interface AuthStoreState {
   signUp: (payload: RegisterPayload) => Promise<string | null>;
   /** Login / Daftar via Akun Google OAuth */
   signInWithGoogle: () => Promise<{ error: string | null; isNewUser?: boolean }>;
+  /** Masuk Cepat / Instant Login untuk pengujian & verifikasi dev */
+  signInDemo: () => Promise<void>;
   /** Lengkapi biodata diri pertama kali (nama, gender, wa, kota) */
   completeBiodata: (payload: BiodataPayload) => Promise<string | null>;
   signOut: () => Promise<void>;
@@ -357,6 +359,27 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       set({ session, profile });
       return { error: null, isNewUser: false };
     }
+  },
+
+  signInDemo: async () => {
+    const email = "pendengar.gaul@gmail.com";
+    const session = demoSession(email, "Pendengar Gaul");
+    const profile: Profile = {
+      id: "demo-google-user",
+      full_name: "Pendengar Gaul",
+      email,
+      whatsapp: "081234567890",
+      gender: "Laki-laki",
+      device_os: "Android",
+      device_model: "Perangkat Uji Coba",
+      city: "Semarang",
+      latitude: -6.9667,
+      longitude: 110.4167,
+      push_token: null,
+      last_login: new Date().toISOString(),
+    };
+    set({ session, profile });
+    await AsyncStorage.setItem("demo_auth", JSON.stringify({ session, profile })).catch(() => {});
   },
 
   completeBiodata: async ({ fullName, gender, whatsapp, city }) => {

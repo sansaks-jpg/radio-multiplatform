@@ -35,6 +35,7 @@ export interface Announcer {
   instagram?: string | null;
   is_active?: boolean;
   sort_order?: number;
+  programs?: string[];
 }
 
 /**

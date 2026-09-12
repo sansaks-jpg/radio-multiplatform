@@ -97,6 +97,7 @@ async function setup(events: EngineEvents = {}): Promise<void> {
     android: {
       appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
     },
+    icon: require("../../../assets/icon.png"),
     capabilities: [Capability.Play, Capability.Pause, Capability.Stop],
     compactCapabilities: [Capability.Play, Capability.Pause],
     notificationCapabilities: [

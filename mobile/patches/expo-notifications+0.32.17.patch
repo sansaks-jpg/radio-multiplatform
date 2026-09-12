@@ -1,0 +1,44 @@
+diff --git a/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/presentation/builders/ExpoNotificationBuilder.kt b/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/presentation/builders/ExpoNotificationBuilder.kt
+index 610d303..78a0617 100644
+--- a/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/presentation/builders/ExpoNotificationBuilder.kt
++++ b/node_modules/expo-notifications/android/src/main/java/expo/modules/notifications/notifications/presentation/builders/ExpoNotificationBuilder.kt
+@@ -147,7 +147,38 @@ open class ExpoNotificationBuilder(
+       )
+     )
+ 
+-    if (notificationContent.containsImage()) {
++    var customImageBitmap: Bitmap? = null
++    try {
++      val bodyObj = notificationContent.body
++      if (bodyObj != null) {
++        val progName = bodyObj.optString("programName", "").lowercase()
++        val coverUrl = bodyObj.optString("coverUrl", "")
++
++        val resName = when {
++          progName.contains("morning") -> "program_gaul_morning_show"
++          progName.contains("setempat") || progName.contains("waktu") -> "program_gaul_waktu_setempat"
++          progName.contains("asupan") -> "program_asupan_gaul"
++          else -> null
++        }
++        if (resName != null) {
++          val resId = context.resources.getIdentifier(resName, "drawable", context.packageName)
++          if (resId != 0) {
++            customImageBitmap = BitmapFactory.decodeResource(context.resources, resId)
++          }
++        }
++
++        if (customImageBitmap == null && coverUrl.isNotEmpty() && (coverUrl.startsWith("http://") || coverUrl.startsWith("https://"))) {
++          customImageBitmap = downloadImage(android.net.Uri.parse(coverUrl))
++        }
++      }
++    } catch (e: Exception) {
++      Log.w("expo-notifications", "Failed to load custom notification artwork: ${e.message}")
++    }
++
++    if (customImageBitmap != null) {
++      builder.setLargeIcon(customImageBitmap)
++      builder.setStyle(NotificationCompat.BigPictureStyle().bigPicture(customImageBitmap).bigLargeIcon(null as Bitmap?))
++    } else if (notificationContent.containsImage()) {
+       val bitmap = notificationContent.getImage(context)
+       bitmap?.let { builder.setLargeIcon(it) }
+     } else {

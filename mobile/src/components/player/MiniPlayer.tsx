@@ -67,11 +67,12 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
             accessibilityLabel={`Buka live chat: ${displayTitle}`}
             className="min-w-0 flex-1 flex-row items-center gap-3 active:opacity-90"
           >
-            <View className="h-12 w-12 overflow-hidden rounded-md bg-surface-3">
+            <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-surface-3">
               <Image
                 source={getProgramArtwork(displayTitle, displayCover)}
                 style={{ width: 48, height: 48 }}
-                contentFit="cover"
+                contentFit="contain"
+                contentPosition="center"
               />
             </View>
 
@@ -93,7 +94,7 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
                       Visual
                     </Text>
                   </View>
-                ) : playing ? (
+                ) : (stats.isLive || Boolean(matchedProgram)) ? (
                   <View
                     style={{
                       width: 6,
@@ -111,7 +112,7 @@ export function MiniPlayer(_props: MiniPlayerProps = {}) {
                   {displayHost}
                 </Text>
                 <View className="flex-row items-center gap-0.5">
-                  <Ionicons name="eye" size={12} color={colors.brand} />
+                  <Ionicons name="headset" size={12} color={colors.brand} />
                   <Text
                     className="text-[11px] font-bold text-brand"
                     style={{ fontFamily: "PlusJakartaSans_700Bold" }}

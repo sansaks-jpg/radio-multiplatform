@@ -11,6 +11,7 @@ export const mockAnnouncers: Announcer[] = [
     instagram: "@radiogaulfm_smg",
     is_active: true,
     sort_order: 1,
+    programs: ["Gaul Morning Show", "Gaul Waktu Setempat"],
   },
   {
     id: "ann-2",
@@ -22,6 +23,7 @@ export const mockAnnouncers: Announcer[] = [
     instagram: "@radiogaulfm_smg",
     is_active: true,
     sort_order: 2,
+    programs: ["Gaul Waktu Setempat", "Asupan Gaul"],
   },
   {
     id: "ann-3",
@@ -33,6 +35,7 @@ export const mockAnnouncers: Announcer[] = [
     instagram: "@radiogaulfm_smg",
     is_active: true,
     sort_order: 3,
+    programs: ["Gaul Morning Show"],
   },
   {
     id: "ann-4",
@@ -44,6 +47,7 @@ export const mockAnnouncers: Announcer[] = [
     instagram: "@radiogaulfm_smg",
     is_active: true,
     sort_order: 4,
+    programs: ["Asupan Gaul"],
   },
   {
     id: "ann-5",
@@ -55,6 +59,7 @@ export const mockAnnouncers: Announcer[] = [
     instagram: "@radiogaulfm_smg",
     is_active: true,
     sort_order: 5,
+    programs: ["Gaul Morning Show", "Asupan Gaul"],
   },
   {
     id: "ann-6",
@@ -66,6 +71,7 @@ export const mockAnnouncers: Announcer[] = [
     instagram: "@radiogaulfm_smg",
     is_active: true,
     sort_order: 6,
+    programs: ["Gaul Waktu Setempat"],
   },
   {
     id: "ann-7",
@@ -77,5 +83,6 @@ export const mockAnnouncers: Announcer[] = [
     instagram: "@radiogaulfm_smg",
     is_active: true,
     sort_order: 7,
+    programs: ["Gaul Morning Show", "Gaul Waktu Setempat"],
   },
 ];

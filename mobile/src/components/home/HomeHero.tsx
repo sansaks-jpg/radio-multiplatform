@@ -32,7 +32,9 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
 
   const playing = status === "playing";
   const buffering = status === "buffering";
-  const streamHealthy = playing || buffering;
+  // Siaran di server selalu live jika Icecast aktif atau ada program on-air terjadwal
+  const isServerLive = stats.isLive || Boolean(matchedProgram);
+  const streamHealthy = isServerLive && status !== "error";
   const hasError = status === "error";
 
   const liveHost = getOfficialLiveHost(nowPlaying.current_host);

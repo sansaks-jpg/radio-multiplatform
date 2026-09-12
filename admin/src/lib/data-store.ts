@@ -95,6 +95,57 @@ export function resolveProgramCover(
   return anyProgramWithCover?.cover_url || DEFAULT_PROGRAM_COVER;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function parseAnnouncerRow(row: any): Announcer {
+  let programs: string[] = [];
+  let bio = (row.bio as string) || "";
+
+  if (Array.isArray(row.programs)) {
+    programs = row.programs;
+  } else if (bio && typeof bio === "string" && bio.includes("<!--programs:")) {
+    const match = bio.match(/<!--programs:(.*?)-->/);
+    if (match && match[1]) {
+      try {
+        programs = JSON.parse(match[1]);
+      } catch {
+        programs = match[1].split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+      bio = bio.replace(/<!--programs:.*?-->/, "").trim();
+    }
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    nickname: row.nickname || null,
+    photo_url: row.photo_url,
+    bio: bio || null,
+    instagram: row.instagram || null,
+    is_active: typeof row.is_active === "boolean" ? row.is_active : true,
+    sort_order: typeof row.sort_order === "number" ? row.sort_order : 0,
+    programs,
+    created_at: row.created_at,
+  };
+}
+
+export function formatAnnouncerPayload(ann: Announcer) {
+  const programsList = ann.programs && ann.programs.length > 0 ? ann.programs : [];
+  const meta = programsList.length > 0 ? ` <!--programs:${JSON.stringify(programsList)}-->` : "";
+  const rawBio = (ann.bio || "").replace(/<!--programs:.*?-->/, "").trim();
+  const bioWithMeta = rawBio ? `${rawBio}${meta}` : meta.trim();
+
+  return {
+    id: ann.id,
+    name: ann.name,
+    nickname: ann.nickname || null,
+    photo_url: ann.photo_url,
+    bio: bioWithMeta || null,
+    instagram: ann.instagram || null,
+    is_active: ann.is_active,
+    sort_order: ann.sort_order,
+  };
+}
+
 export async function syncFromSupabase() {
   if (!supabase) return;
   try {
@@ -108,12 +159,7 @@ export async function syncFromSupabase() {
         .from("banners")
         .select("*")
         .order("sort_order", { ascending: true }),
-      supabase
-        .from("now_playing")
-        .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      supabase.from("now_playing").select("*").eq("id", "current").single(),
       supabase
         .from("news")
         .select("*")
@@ -145,7 +191,7 @@ export async function syncFromSupabase() {
       changed = true;
     }
     if (annRes.data && annRes.data.length > 0) {
-      nextAnnouncers = annRes.data as Announcer[];
+      nextAnnouncers = annRes.data.map(parseAnnouncerRow);
       changed = true;
     }
     if (npRes.data) {
@@ -382,6 +428,82 @@ export function setBroadcasterOnAir(announcer: Announcer | null): NowPlaying {
     current_host: announcer ? announcer.name : "",
     current_cover_url: safeCover,
   });
+}
+
+/* ---------- Announcers (Gaul Squad) ---------- */
+
+export function upsertAnnouncer(
+  input: Omit<Announcer, "id"> & { id?: string },
+): Announcer {
+  const id = input.id ?? uid("ann");
+  const next: Announcer = {
+    id,
+    name: input.name,
+    nickname: input.nickname || null,
+    photo_url: input.photo_url,
+    bio: input.bio || null,
+    instagram: input.instagram || null,
+    is_active: typeof input.is_active === "boolean" ? input.is_active : true,
+    sort_order:
+      typeof input.sort_order === "number"
+        ? input.sort_order
+        : snapshot.announcers.length + 1,
+    programs: input.programs ?? [],
+    created_at: input.created_at ?? new Date().toISOString(),
+  };
+
+  const idx = snapshot.announcers.findIndex((a) => a.id === id);
+  const announcers =
+    idx >= 0
+      ? snapshot.announcers.map((a, i) => (i === idx ? next : a))
+      : [...snapshot.announcers, next];
+
+  snapshot = { ...snapshot, announcers };
+  emit();
+
+  if (supabase) {
+    const payload = formatAnnouncerPayload(next);
+    // Coba simpan dengan field programs native jika kolom sudah ada di Supabase
+    supabase
+      .from("announcers")
+      .upsert({
+        ...payload,
+        programs: next.programs || [],
+      })
+      .then(({ error }) => {
+        if (error) {
+          // Fallback tanpa kolom native programs (tersimpan aman di bio metadata)
+          supabase!
+            .from("announcers")
+            .upsert(payload)
+            .then(({ error: fallbackErr }) => {
+              if (fallbackErr) {
+                console.error("[data-store] Supabase upsertAnnouncer error:", fallbackErr);
+              }
+            });
+        }
+      });
+  }
+
+  return next;
+}
+
+export function deleteAnnouncer(id: string) {
+  snapshot = {
+    ...snapshot,
+    announcers: snapshot.announcers.filter((a) => a.id !== id),
+  };
+  emit();
+
+  if (supabase) {
+    supabase
+      .from("announcers")
+      .delete()
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) console.error("[data-store] Supabase deleteAnnouncer error:", error);
+      });
+  }
 }
 
 /* ---------- Programs ---------- */

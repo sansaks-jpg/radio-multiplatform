@@ -51,6 +51,7 @@ export function HomeAnnouncers({ announcers }: HomeAnnouncersProps) {
                       source={{ uri: item.photo_url }}
                       style={{ width: "100%", height: "100%" }}
                       contentFit="cover"
+                      contentPosition="center"
                       transition={200}
                     />
                   ) : (

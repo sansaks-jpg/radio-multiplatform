@@ -37,6 +37,39 @@ export function getProgramArtwork(
   return GAUL_MORNING_SHOW_COVER;
 }
 
+/**
+ * Mengembalikan artwork untuk player & notifikasi media Android/iOS:
+ * Mengutamakan cover program resmi (aset lokal require) atau URL cover valid,
+ * dan menghindari URL Supabase 400 Bad Request atau mockup WhatsApp lama.
+ */
+export function getTrackArtwork(
+  programName?: string | null,
+  coverUrl?: string | null
+): any {
+  if (programName) {
+    const trimmed = programName.trim();
+    if (OFFICIAL_PROGRAM_COVERS[trimmed]) {
+      return OFFICIAL_PROGRAM_COVERS[trimmed];
+    }
+    const lower = trimmed.toLowerCase();
+    if (lower.includes("morning")) return GAUL_MORNING_SHOW_COVER;
+    if (lower.includes("setempat") || lower.includes("waktu")) {
+      return GAUL_WAKTU_SETEMPAT_COVER;
+    }
+    if (lower.includes("asupan")) return ASUPAN_GAUL_COVER;
+  }
+
+  if (
+    coverUrl &&
+    !coverUrl.includes("WhatsApp-Image") &&
+    !coverUrl.includes("storage/v1/object/public/programs")
+  ) {
+    return coverUrl;
+  }
+
+  return GAUL_MORNING_SHOW_COVER;
+}
+
 export interface OfficialProgramInfo {
   name: string;
   host: string;

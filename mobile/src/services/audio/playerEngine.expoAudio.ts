@@ -78,7 +78,7 @@ async function loadAndPlay(track: LiveTrackMeta): Promise<void> {
     player.setActiveForLockScreen(true, {
       title: track.title,
       artist: track.artist,
-      artworkUrl: track.artwork ?? undefined,
+      artworkUrl: typeof track.artwork === "string" ? track.artwork : undefined,
     });
   } catch {
     // Best-effort — lock screen metadata not critical in Expo Go.
@@ -99,7 +99,6 @@ async function stop(): Promise<void> {
     cleanupSubscription();
     try {
       player.pause();
-      player.replace(null);
       player.remove();
     } catch (err) {
       console.warn("[GaulFM] Error during expo-audio stop/cleanup:", err);
@@ -116,7 +115,7 @@ async function updateMetadata(
       player.setActiveForLockScreen(true, {
         title: meta.title,
         artist: meta.artist,
-        artworkUrl: meta.artwork ?? undefined,
+        artworkUrl: typeof meta.artwork === "string" ? meta.artwork : undefined,
       });
     } catch {
       // Best-effort — lock screen metadata not critical in Expo Go.

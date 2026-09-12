@@ -27,6 +27,7 @@ export function LoginScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
+  const signInDemo = useAuthStore((s) => s.signInDemo);
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -121,6 +122,34 @@ export function LoginScreen() {
                 </Text>
               </>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => void signInDemo()}
+            accessibilityRole="button"
+            accessibilityLabel="Masuk Cepat Mode Uji Coba"
+            style={{
+              minHeight: 50,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: colors.brand,
+              backgroundColor: colors.brand + "18",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: 12,
+              paddingHorizontal: 20,
+            }}
+          >
+            <Ionicons name="flash-outline" size={18} color={colors.brand} />
+            <Text
+              className="text-[14px] font-bold tracking-wide"
+              style={{ fontFamily: "PlusJakartaSans_700Bold", color: colors.brand }}
+            >
+              Masuk Cepat (Mode Uji Coba)
+            </Text>
           </TouchableOpacity>
         </View>
       </AuthFormLayout>

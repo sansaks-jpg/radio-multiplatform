@@ -22,7 +22,8 @@ function resolveMode(
 ): ThemeMode {
   if (preference === "light") return "light";
   if (preference === "dark") return "dark";
-  return system === "dark" ? "dark" : "light";
+  const current = system ?? Appearance.getColorScheme();
+  return current === "dark" ? "dark" : "light";
 }
 
 function paletteFor(mode: ThemeMode): ColorPalette {
@@ -52,7 +53,7 @@ function applyResolved(
   const mode = resolveMode(preference, systemScheme);
   const colors = paletteFor(mode);
   try {
-    colorScheme.set(mode);
+    colorScheme.set(preference === "system" ? "system" : mode);
   } catch {
     // safe fallback in test / non-dom environments
   }
@@ -60,7 +61,7 @@ function applyResolved(
 }
 
 const initialSystemScheme = Appearance.getColorScheme();
-const initialPreference: ThemePreference = "dark";
+const initialPreference: ThemePreference = "system";
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   preference: initialPreference,
@@ -74,7 +75,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       const preference: ThemePreference =
         raw === "light" || raw === "dark" || raw === "system"
           ? raw
-          : "dark";
+          : "system";
       const systemScheme = Appearance.getColorScheme();
       set({
         preference,
@@ -88,8 +89,12 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   },
 
   setPreference: (preference) => {
-    const { systemScheme } = get();
-    set({ preference, ...applyResolved(preference, systemScheme) });
+    const currentSystem = Appearance.getColorScheme();
+    set({
+      preference,
+      systemScheme: currentSystem,
+      ...applyResolved(preference, currentSystem),
+    });
     void AsyncStorage.setItem(STORAGE_KEY, preference);
   },
 

@@ -58,11 +58,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // The Icecast stream is plain HTTP (http://27.50.19.173:9000) — allow
     // cleartext so playback does not silently fail on Android 9+.
     ["expo-build-properties", { android: { usesCleartextTraffic: true } }],
-    // Native splash — dark background (#050505) + centered brand logo.
+    // Native splash — light background (#F3F6F4) for light mode, dark (#050505) for dark mode.
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#050505",
+        backgroundColor: "#F3F6F4",
         image: "./assets/icon.png",
         imageWidth: 200,
         resizeMode: "contain",
@@ -73,7 +73,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     "expo-web-browser",
-    ["expo-notifications", { color: "#FF3B30" }],
+    [
+      "expo-notifications",
+      {
+        icon: "./assets/icon.png",
+        color: "#007A3E",
+      },
+    ],
     [
       "expo-location",
       {
@@ -82,6 +88,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     "./plugins/withAndroidSplits.js",
+    "./plugins/withProgramDrawables.js",
   ],
   extra: {
     adminApiUrl:

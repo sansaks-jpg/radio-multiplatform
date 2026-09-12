@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo } from "react";
-import { Appearance, StatusBar, View } from "react-native";
+import {
+  Appearance,
+  AppState,
+  StatusBar,
+  View,
+  useColorScheme,
+} from "react-native";
 import { vars } from "nativewind";
 import {
   DarkTheme,
@@ -25,12 +31,29 @@ export function ThemeRoot() {
   const mode = useThemeStore((s) => s.mode);
   const colors = useThemeStore((s) => s.colors);
   const setSystemScheme = useThemeStore((s) => s.setSystemScheme);
+  const systemScheme = useColorScheme();
 
+  // Sinkronisasi real-time via React Native useColorScheme hook
   useEffect(() => {
-    const sub = Appearance.addChangeListener(({ colorScheme }) => {
+    if (systemScheme) {
+      setSystemScheme(systemScheme);
+    }
+  }, [systemScheme, setSystemScheme]);
+
+  // Sinkronisasi saat app kembali aktif dari Background / Pengaturan Sistem
+  useEffect(() => {
+    const subAppearance = Appearance.addChangeListener(({ colorScheme }) => {
       setSystemScheme(colorScheme);
     });
-    return () => sub.remove();
+    const subAppState = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        setSystemScheme(Appearance.getColorScheme());
+      }
+    });
+    return () => {
+      subAppearance.remove();
+      subAppState.remove();
+    };
   }, [setSystemScheme]);
 
   const themeVars = useMemo(

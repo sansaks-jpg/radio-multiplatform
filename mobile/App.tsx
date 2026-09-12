@@ -67,13 +67,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded && bootstrapped) {
       void SplashScreen.hideAsync().catch(() => undefined);
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, bootstrapped]);
 
-  // While fonts not loaded, native splash stays on top
-  if (!fontsLoaded) return null;
+  // While fonts not loaded or bootstrap pending, native splash stays on top
+  if (!fontsLoaded || !bootstrapped) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
