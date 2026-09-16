@@ -1,5 +1,6 @@
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { MotionPressable as Pressable } from "../ui/MotionPressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "../../stores/themeStore";
 
@@ -26,7 +27,7 @@ export function HomeQuickActions({ actions }: HomeQuickActionsProps) {
     key === "brand" ? colors.brand : key === "orange" ? colors.orange : colors.live;
 
   return (
-    <View className="flex-row justify-between px-2 py-2">
+    <View className="flex-row justify-between py-1">
       {actions.map((action) => {
         const tint = colorFor(action.colorKey);
         return (
@@ -35,17 +36,17 @@ export function HomeQuickActions({ actions }: HomeQuickActionsProps) {
             onPress={action.onPress}
             accessibilityRole="button"
             accessibilityLabel={action.label}
-            className="items-center gap-2 active:opacity-75"
+            className="flex-1 items-center gap-1.5 active:opacity-75"
           >
             <View
-              className="h-14 w-14 items-center justify-center rounded-full bg-surface border shadow-sm"
+              className="h-12 w-12 items-center justify-center rounded-full border bg-surface shadow-sm"
               style={{ borderColor: `${colors.line}60` }}
             >
-              <Ionicons name={action.icon} size={24} color={tint} />
+              <Ionicons name={action.icon} size={21} color={tint} />
             </View>
             <Text
-              className="text-[12px] font-bold text-text"
-              numberOfLines={1}
+              className="text-center text-[11px] font-bold text-text"
+              numberOfLines={2}
               style={{ fontFamily: "PlusJakartaSans_700Bold" }}
             >
               {action.label}

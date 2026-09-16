@@ -26,6 +26,8 @@ interface ScreenProps {
   contentStyle?: StyleProp<ViewStyle>;
   /** Optional ref to the inner ScrollView (scroll mode only) — for scrollTo. */
   scrollRef?: React.RefObject<ScrollView | null>;
+  /** Direct child indexes that remain visible while the screen scrolls. */
+  stickyHeaderIndices?: number[];
   /**
    * Form mode: lift fields above keyboard.
    * iOS: KeyboardAvoidingView(padding) + automaticallyAdjustKeyboardInsets.
@@ -47,6 +49,7 @@ export function Screen({
   className = "",
   contentStyle,
   scrollRef,
+  stickyHeaderIndices,
   keyboardAvoiding = false,
   dockInset = "tabs",
   padded = true,
@@ -86,6 +89,7 @@ export function Screen({
       ref={scrollRef}
       className="flex-1"
       contentContainerStyle={scrollContentStyle}
+      stickyHeaderIndices={stickyHeaderIndices}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}

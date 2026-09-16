@@ -14,26 +14,38 @@ export function useLiveComments(enabled: boolean) {
   const [comments, setComments] = useState<LiveComment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
 
   const pendingSendsCount = useRef(0);
   const lastSendTime = useRef(0);
   const lastSessionRef = useRef<string | null>(null);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+  const lifecycle = useRef(0);
+  const sendRevision = useRef(0);
 
   // Initial load when opened
   const loadInitial = useCallback(async () => {
+    const generation = lifecycle.current;
+    const revision = sendRevision.current;
     setIsLoading(true);
     try {
-      const { comments: data, sessionStartIso } = await fetchRecentCommentsWithSession(MAX_COMMENTS_LIMIT);
+      const { comments: data, sessionStartIso, offline: unavailable } = await fetchRecentCommentsWithSession(MAX_COMMENTS_LIMIT);
+      if (!enabledRef.current || generation !== lifecycle.current || revision !== sendRevision.current) return;
+      setOffline(Boolean(unavailable));
       lastSessionRef.current = sessionStartIso;
       setComments(data.slice(0, MAX_COMMENTS_LIMIT));
     } catch {
-      // Ignored
+      if (enabledRef.current && generation === lifecycle.current) setOffline(true);
     } finally {
-      setIsLoading(false);
+      if (generation === lifecycle.current) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    lifecycle.current += 1;
+    const generation = lifecycle.current;
     if (!enabled) return;
 
     void loadInitial();
@@ -41,6 +53,9 @@ export function useLiveComments(enabled: boolean) {
     // 1. Jika di platform Web, manfaatkan EventSource SSE langsung
     if (Platform.OS === "web" && typeof window !== "undefined" && "EventSource" in window) {
       const es = new window.EventSource(`${getAdminApiUrl()}/api/comments/stream`);
+
+      es.addEventListener("open", () => { if (enabledRef.current) { setOffline(false); void loadInitial(); } });
+      es.addEventListener("error", () => { if (enabledRef.current) setOffline(true); });
 
       es.addEventListener("new", (e: MessageEvent) => {
         try {
@@ -95,9 +110,17 @@ export function useLiveComments(enabled: boolean) {
     }
 
     // 2. Di platform Native Android / iOS: Smart reconciliation polling (2 detik)
+    let syncing = false;
     const syncNative = async () => {
+      if (syncing || pendingSendsCount.current > 0 || !enabledRef.current) return;
+      syncing = true;
+      const revision = sendRevision.current;
       try {
-        const { comments: fresh, sessionStartIso } = await fetchRecentCommentsWithSession(MAX_COMMENTS_LIMIT);
+        const { comments: fresh, sessionStartIso, offline: unavailable } = await fetchRecentCommentsWithSession(MAX_COMMENTS_LIMIT);
+
+        if (!enabledRef.current || generation !== lifecycle.current || revision !== sendRevision.current) return;
+        setOffline(Boolean(unavailable));
+        if (unavailable) return;
 
         // Jika sesi program siaran berganti, bersihkan riwayat komentar seketika
         if (sessionStartIso && sessionStartIso !== lastSessionRef.current) {
@@ -125,7 +148,9 @@ export function useLiveComments(enabled: boolean) {
           return [...retainedPending, ...fresh].slice(0, MAX_COMMENTS_LIMIT);
         });
       } catch {
-        // Safe fail
+        if (enabledRef.current && generation === lifecycle.current) setOffline(true);
+      } finally {
+        syncing = false;
       }
     };
 
@@ -142,14 +167,17 @@ export function useLiveComments(enabled: boolean) {
   const send = useCallback(
     async (message: string, userName: string, avatarSeed?: string | null) => {
       const text = message.trim();
-      if (!text) return;
+      if (!text || pendingSendsCount.current > 0) return false;
 
       // Throttle ringan (200ms) untuk mencegah double-tap spam tidak sengaja
       const now = Date.now();
       if (now - lastSendTime.current < 200) {
-        return;
+        return false;
       }
       lastSendTime.current = now;
+      setError(null);
+      sendRevision.current += 1;
+      const sessionAtSend = lastSessionRef.current;
 
       pendingSendsCount.current += 1;
       setIsSending(true);
@@ -177,12 +205,20 @@ export function useLiveComments(enabled: boolean) {
         });
 
         // Replace tempId with actual id
-        setComments((prev) =>
-          prev.map((c) => (c.id === tempId ? saved : c))
-        );
+        setComments((prev) => {
+          if (sessionAtSend !== lastSessionRef.current) return prev.filter((comment) => comment.id !== tempId);
+          const withoutDuplicates = prev.filter((comment) => comment.id !== saved.id);
+          return (withoutDuplicates.some((comment) => comment.id === tempId)
+            ? withoutDuplicates.map((comment) => comment.id === tempId ? saved : comment)
+            : [saved, ...withoutDuplicates]).slice(0, MAX_COMMENTS_LIMIT);
+        });
+        return true;
       } catch {
-        // Biarkan pesan optimis tetap tampil di sesi lokal
+        setComments((prev) => prev.filter((comment) => comment.id !== tempId));
+        setError("Pesan belum terkirim. Periksa koneksi lalu coba lagi.");
+        return false;
       } finally {
+        sendRevision.current += 1;
         pendingSendsCount.current = Math.max(0, pendingSendsCount.current - 1);
         if (pendingSendsCount.current === 0) {
           setIsSending(false);
@@ -194,6 +230,8 @@ export function useLiveComments(enabled: boolean) {
 
   return {
     comments,
+    error,
+    offline,
     isLoading,
     isSending,
     send,

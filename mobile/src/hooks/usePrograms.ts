@@ -40,7 +40,7 @@ async function fetchAllPrograms(): Promise<Program[]> {
 
 async function fetchPrograms(dayOfWeek: number): Promise<Program[]> {
   const all = await fetchAllPrograms();
-  return all.filter((p) => p.day_of_week === dayOfWeek);
+  return all.filter((p) => p.day_of_week === dayOfWeek).sort((a, b) => a.start_time.localeCompare(b.start_time));
 }
 
 /** Programs for one day of week (0 = Minggu … 6 = Sabtu), chronological. */

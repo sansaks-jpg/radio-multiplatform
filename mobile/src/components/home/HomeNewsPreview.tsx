@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
@@ -41,8 +42,8 @@ export function HomeNewsPreview({ items }: HomeNewsPreviewProps) {
   if (items.length === 0) return null;
 
   return (
-    <View className="mt-2 mb-6">
-      <SectionHeader title="Berita terbaru" />
+    <View className="mt-2 mb-3">
+      <SectionHeader title="Berita terbaru" actionLabel="Lihat semua" onAction={() => navigation.navigate("News", { screen: "NewsFeed" })} />
 
       <FlatList
         ref={listRef}
@@ -83,7 +84,7 @@ export function HomeNewsPreview({ items }: HomeNewsPreviewProps) {
                 )}
                 
                 {/* Gradient to make text readable */}
-                <View className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                <LinearGradient colors={["transparent", "rgba(0,0,0,0.8)"]} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "75%" }} pointerEvents="none" />
 
                 {item.category ? (
                   <View className="absolute left-3 top-3">

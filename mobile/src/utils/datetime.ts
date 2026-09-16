@@ -147,6 +147,21 @@ export function getMinutesToProgram(
   return daysAhead * 24 * 60 + start - totalMinutes;
 }
 
+/** Earliest future airing across all slots of a show, without mutating query data. */
+export function getNextProgramSlot<T extends Pick<Program, "day_of_week" | "start_time" | "end_time">>(slots: readonly T[], now = new Date()): T | null {
+  return slots.reduce<T | null>((next, slot) =>
+    !next || getMinutesToProgram(slot, now) < getMinutesToProgram(next, now) ? slot : next,
+  null);
+}
+
+/** Calendar label for the next occurrence of a selected weekday, always WIB. */
+export function formatScheduleDay(day: number, now = new Date()): string {
+  const offset = (day + 7 - todayDow(now)) % 7;
+  const target = new Date(now.getTime() + offset * 86_400_000);
+  const parts = getWibParts(target);
+  return `${offset === 0 ? "Hari ini" : DAY_FULL_ID[day]}, ${parts.date} ${MONTH_SHORT_ID[parts.month]}`;
+}
+
 /** "2026-07-12T08:00:00Z" → "12 Jul 2026" (in WIB) */
 export function formatDateID(iso: string): string {
   const d = new Date(iso);

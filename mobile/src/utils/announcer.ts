@@ -1,3 +1,14 @@
+import type { Announcer } from "../types";
+
+export function getProgramAnnouncers(announcers: Announcer[], programName: string) {
+  const normalized = programName.trim().toLowerCase();
+  const matched = normalized ? announcers.filter((announcer) => announcer.programs?.some((name) => {
+    const candidate = name.trim().toLowerCase();
+    return candidate && (normalized.includes(candidate) || candidate.includes(normalized));
+  })) : [];
+  return { announcers: matched.length ? matched : announcers, label: matched.length ? "Penyiar program ini" : "Gaul Squad" };
+}
+
 /**
  * Helper utilitas untuk penyiar Gaul FM 87.8 Semarang.
  * Mengelola daftar 7 penyiar resmi dan logika on-air.

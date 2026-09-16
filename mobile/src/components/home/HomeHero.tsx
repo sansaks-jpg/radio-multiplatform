@@ -1,12 +1,14 @@
 import React from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { MotionPressable as Pressable } from "../ui/MotionPressable";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "../../stores/themeStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { usePlayerControls } from "../../hooks/usePlayerControls";
 import { useIcecastStats } from "../../hooks/useIcecastStats";
-import { formatDurationMinutes, getProgramProgress } from "../../utils/datetime";
+import { getProgramProgress } from "../../utils/datetime";
 import { getOfficialLiveHost } from "../../utils/announcer";
 import { getProgramArtwork } from "../../utils/programAssets";
 import type { Program } from "../../types";
@@ -38,8 +40,10 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
   const hasError = status === "error";
 
   const liveHost = getOfficialLiveHost(nowPlaying.current_host);
-  const title = nowPlaying.current_program || matchedProgram?.name || "Gaul FM Semarang";
-  const cover = nowPlaying.current_cover_url || matchedProgram?.cover_url || null;
+  // The scheduled on-air slot is the canonical program identity across Home,
+  // Schedule, and Program Detail. Remote metadata remains a safe fallback.
+  const title = matchedProgram?.name || nowPlaying.current_program || "Gaul FM Semarang";
+  const cover = matchedProgram?.cover_url || nowPlaying.current_cover_url || null;
   const listeners = stats.isLive ? stats.listeners.toLocaleString("id-ID") : null;
   const timeRange = matchedProgram
     ? `${matchedProgram.start_time}–${matchedProgram.end_time} WIB`
@@ -54,10 +58,10 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
       <Pressable
         onPress={onOpenDetail}
         accessibilityRole="button"
-        accessibilityLabel={`Buka live chat: ${title}`}
+        accessibilityLabel={`Buka siaran: ${title}`}
         className="active:opacity-95"
       >
-        <View className="h-[210px] w-full overflow-hidden rounded-t-[28px] bg-surface-3 relative">
+        <View className="h-[148px] w-full overflow-hidden rounded-t-[28px] bg-surface-3 relative">
           <Image
             source={getProgramArtwork(title, cover)}
             style={{ width: "100%", height: "100%" }}
@@ -66,7 +70,7 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
           />
 
           {/* Gradient scrims for text visibility and badge */}
-          <View className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-black/60 to-transparent" />
+          <LinearGradient colors={["rgba(0,0,0,0.4)", "transparent"]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50%" }} pointerEvents="none" />
           
           <View className="absolute left-4 right-4 top-4 flex-row items-center justify-between">
             <View
@@ -106,7 +110,7 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
       </Pressable>
 
       {/* Floating Play Button */}
-      <View className="absolute top-[182px] right-5 z-20">
+      <View className="absolute right-5 top-[120px] z-20">
         <Pressable
           onPress={(e) => {
             e.stopPropagation?.();
@@ -115,7 +119,7 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
           disabled={buffering}
           accessibilityRole="button"
           accessibilityLabel={playing ? "Stop siaran" : "Putar siaran"}
-          className="h-14 w-14 items-center justify-center rounded-full bg-orange active:opacity-80 active:scale-95 shadow-md shadow-orange/40"
+          className="h-14 w-14 items-center justify-center rounded-full bg-orange active:opacity-80 shadow-md shadow-orange/40"
           style={streamHealthy ? glow.orange : undefined}
         >
           {buffering ? (
@@ -144,11 +148,11 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
       {/* Bottom Info Section */}
       <Pressable 
         onPress={onOpenDetail}
-        className="px-5 pt-4 pb-5 active:opacity-80"
+        className="px-5 pb-4 pt-3.5 active:opacity-80"
       >
         <View className="pr-16">
           <Text
-            className="text-[22px] font-extrabold leading-7 text-text"
+            className="text-[20px] font-extrabold leading-6 text-text"
             numberOfLines={2}
             style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
           >
@@ -184,10 +188,10 @@ export function HomeHero({ matchedProgram = null, onOpenDetail, now }: HomeHeroP
             <View className="mt-2.5 flex-row items-center gap-1.5">
               <Ionicons name="time-outline" size={14} color={colors.orange} />
               <Text
-                className="text-[12px] font-bold text-orange"
+                className="text-[12px] font-bold text-text-dim"
                 style={{ fontFamily: "PlusJakartaSans_700Bold" }}
               >
-                {formatDurationMinutes(progress.remainingMinutes)} lagi selesai
+                Berakhir {matchedProgram?.end_time} WIB
               </Text>
             </View>
           ) : null}

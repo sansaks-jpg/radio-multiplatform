@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AccessibilityInfo, Animated, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
 import { useThemeStore } from "../../stores/themeStore";
@@ -10,15 +10,13 @@ import { useReminderStore } from "../../stores/reminderStore";
 import { usePlayerControls } from "../../hooks/usePlayerControls";
 import { usePrograms } from "../../hooks/usePrograms";
 import {
+  formatScheduleDay,
   DAY_FULL_ID,
   isOnAirNow,
   todayDow,
   getMinutesToProgram,
   getWibParts,
   getProgramProgress,
-  partOfDay,
-  PART_OF_DAY_LABEL,
-  type PartOfDay,
 } from "../../utils/datetime";
 import { showToast } from "../../stores/toastStore";
 import { Screen } from "../../components/ui/Screen";
@@ -62,22 +60,42 @@ export function ScheduleScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<ScheduleStackParamList>>();
   const playerStatus = usePlayerStore((s) => s.status);
-  const { toggle, play } = usePlayerControls();
+  const { toggle } = usePlayerControls();
   const queryClient = useQueryClient();
 
-  const [selectedDay, setSelectedDay] = useState(todayDow());
-  const openLiveSheet = usePlayerStore((s) => s.openLiveSheet);
+  const [selectedDay, setSelectedDay] = useState(() => todayDow());
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const dayContentOpacity = useRef(new Animated.Value(1)).current;
+  const dayContentX = useRef(new Animated.Value(0)).current;
+
   const reminders = useReminderStore((s) => s.reminders);
   const addReminder = useReminderStore((s) => s.addReminder);
   const removeReminder = useReminderStore((s) => s.removeReminder);
 
   const [now, setNow] = useState(() => new Date());
 
+  useFocusEffect(useCallback(() => {
+    const current = new Date();
+    setNow(current);
+    setSelectedDay(todayDow(current));
+    dayContentOpacity.setValue(1);
+    dayContentX.setValue(0);
+  }, [dayContentOpacity, dayContentX]));
+
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(new Date());
     }, 15000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReduceMotion,
+    );
+    return () => subscription.remove();
   }, []);
 
   const programs = usePrograms(selectedDay);
@@ -100,37 +118,14 @@ export function ScheduleScreen() {
     [onAir, now],
   );
 
-  /** Group programs by time-of-day (Pagi/Siang/Sore/Malam) for easier scanning. */
-  const groupedList = useMemo(() => {
-    const order: PartOfDay[] = ["pagi", "siang", "sore", "malam"];
-    const groups = new Map<PartOfDay, Program[]>();
-    for (const program of list) {
-      const hour = parseInt(program.start_time.split(":")[0] ?? "0", 10);
-      const part = partOfDay(Number.isFinite(hour) ? hour : 0);
-      const arr = groups.get(part) ?? [];
-      arr.push(program);
-      groups.set(part, arr);
-    }
-    return order
-      .map((part) => ({ part, programs: groups.get(part) ?? [] }))
-      .filter((g) => g.programs.length > 0);
-  }, [list]);
-
   const statusOf = (program: Program): ProgramCardStatus => {
-    if (isOnAirNow(program, now)) return "live";
+    if (isToday && isOnAirNow(program, now)) return "live";
     if (isToday && isPastToday(program, now)) return "done";
     if (program.id === upNextId) return "upNext";
     return "upcoming";
   };
 
   const openProgram = (program: Program) => {
-    if (isOnAirNow(program, now)) {
-      openLiveSheet();
-      if (playerStatus !== "playing" && playerStatus !== "buffering") {
-        void play();
-      }
-      return;
-    }
     navigation.navigate("ProgramDetail", { id: program.id });
   };
 
@@ -153,7 +148,39 @@ export function ScheduleScreen() {
     }
   };
 
-  const goToday = () => setSelectedDay(todayDow());
+  const selectDay = useCallback(
+    (day: number) => {
+      if (day === selectedDay) return;
+      if (reduceMotion) {
+        setSelectedDay(day);
+        return;
+      }
+
+      const direction = (day + 6) % 7 > (selectedDay + 6) % 7 ? 1 : -1;
+      dayContentOpacity.stopAnimation();
+      dayContentX.stopAnimation();
+      setSelectedDay(day);
+      dayContentOpacity.setValue(0);
+      dayContentX.setValue(8 * direction);
+      Animated.parallel([
+        Animated.timing(dayContentOpacity, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: true,
+          isInteraction: false,
+        }),
+        Animated.timing(dayContentX, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+          isInteraction: false,
+        }),
+      ]).start();
+    },
+    [dayContentOpacity, dayContentX, reduceMotion, selectedDay],
+  );
+
+  const goToday = () => selectDay(todayDow());
 
   const onRefresh = async () => {
     setNow(new Date());
@@ -169,46 +196,29 @@ export function ScheduleScreen() {
       dockInset="dock"
       refreshing={programs.isRefetching}
       onRefresh={() => void onRefresh()}
-      contentStyle={{ paddingHorizontal: 0 }}
+      contentStyle={{ paddingHorizontal: 0, paddingBottom: 16 }}
+      stickyHeaderIndices={[3]}
     >
       <TopNavbar className="mt-1 px-5" />
 
-      <View className="mt-4 flex-row items-end justify-between px-5">
+      <View className="mt-2 flex-row items-end justify-between px-5">
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center gap-2">
             <Text
-              className="text-[28px] font-extrabold tracking-tight text-text"
+              className="text-[26px] font-extrabold tracking-tight text-text"
               style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
             >
               Jadwal
             </Text>
-            {onAir ? (
-              <View className="mb-1 flex-row items-center gap-1 rounded-full bg-live/15 px-2 py-0.5">
-                <View
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: 2.5,
-                    backgroundColor: colors.live,
-                  }}
-                />
-                <Text
-                  className="text-[10px] font-bold uppercase tracking-widest text-live"
-                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                >
-                  Live
-                </Text>
-              </View>
-            ) : null}
+
           </View>
           <Text
             className="mt-1 text-sm text-text-dim"
-            numberOfLines={1}
+            numberOfLines={2}
             style={{ fontFamily: "PlusJakartaSans_400Regular" }}
           >
-            {isToday ? "Hari ini" : DAY_FULL_ID[selectedDay]}
-            {list.length > 0 ? ` · ${list.length} program` : ""}
-            {onAir ? ` · ${onAir.name} sedang mengudara` : ""}
+            {formatScheduleDay(selectedDay, now)}
+            
           </Text>
         </View>
 
@@ -233,12 +243,22 @@ export function ScheduleScreen() {
       <OfflineBanner />
 
       {/* Day strip */}
-      <View className="mt-5">
-        <DaySelector selected={selectedDay} onSelect={setSelectedDay} />
+      <View className="mt-4 bg-bg py-2">
+        <DaySelector
+          selected={selectedDay}
+          onSelect={selectDay}
+          reduceMotion={reduceMotion}
+        />
       </View>
 
       {/* List — grouped by Pagi/Siang/Sore/Malam; on-air row doubles as now-playing */}
-      <View className="mt-6 px-5">
+      <Animated.View
+        className="mt-3 px-4"
+        style={{
+          opacity: dayContentOpacity,
+          transform: [{ translateX: dayContentX }],
+        }}
+      >
         {programs.isLoading ? (
           <View className="gap-3">
             <Skeleton className="h-[76px] w-full rounded-2xl" />
@@ -266,39 +286,19 @@ export function ScheduleScreen() {
                 </Text>
               </View>
             ) : null}
-            {groupedList.map(({ part, programs: segmentPrograms }, groupIndex) => (
-              <View key={part} className={groupIndex > 0 ? "mt-5" : undefined}>
-                <View className="mb-3 flex-row items-center gap-2.5">
-                  <Text
-                    className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
-                    style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                  >
-                    {PART_OF_DAY_LABEL[part]}
-                  </Text>
-                  <View className="h-px flex-1 bg-line/30" />
-                </View>
-                {segmentPrograms.map((program) => {
-                  const isLiveProgram = program.id === onAir?.id;
-                  return (
-                    <ProgramCard
-                      key={program.id}
-                      program={program}
-                      status={statusOf(program)}
-                      onPress={() => openProgram(program)}
-                      onRemind={() => void handleRemind(program)}
-                      isScheduled={Boolean(reminders[program.id])}
-                      isPlaying={isLiveProgram && playerStatus === "playing"}
-                      isBuffering={isLiveProgram && playerStatus === "buffering"}
-                      onTogglePlay={isLiveProgram ? () => void toggle() : undefined}
-                      progress={isLiveProgram ? (onAirProgress?.elapsedPct ?? null) : null}
-                    />
-                  );
-                })}
-              </View>
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text className="text-xs font-bold text-text" style={{ fontFamily: "PlusJakartaSans_700Bold" }}>{list.length} program</Text>
+              <Text className="text-xs text-text-dim" style={{ fontFamily: "PlusJakartaSans_400Regular" }}>Semua waktu dalam WIB</Text>
+            </View>
+            {list.map((program) => (
+              <ProgramCard key={program.id} program={program} status={statusOf(program)}
+                onPress={() => openProgram(program)} onListen={() => void toggle()} playerStatus={playerStatus}
+                onRemind={() => void handleRemind(program)} isScheduled={Boolean(reminders[program.id])}
+                progress={program.id === onAir?.id ? (onAirProgress?.elapsedPct ?? null) : null} />
             ))}
           </View>
         )}
-      </View>
+      </Animated.View>
 
       <View className="h-6" />
 

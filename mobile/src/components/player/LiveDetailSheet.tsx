@@ -4,7 +4,7 @@ import {
   FlatList,
   Modal,
   Platform,
-  Pressable,
+  Keyboard,
   ScrollView,
   StatusBar,
   Text,
@@ -12,6 +12,9 @@ import {
   View,
 } from "react-native";
 import { Image } from "expo-image";
+import { MotionPressable as Pressable } from "../ui/MotionPressable";
+import { ProgramHosts } from "../schedule/ProgramHosts";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { LiveComment, NowPlaying, Program } from "../../types";
@@ -23,7 +26,6 @@ import { stopLive } from "../../services/audio/trackPlayerService";
 import { useIcecastStats } from "../../hooks/useIcecastStats";
 import { useKeyboardInset } from "../../hooks/useKeyboardInset";
 import { useLiveComments } from "../../hooks/useLiveComments";
-import { useAnnouncers } from "../../hooks/useAnnouncers";
 import { LiveBadge } from "./LiveBadge";
 import { MediaMtxVisualPlayer } from "./MediaMtxVisualPlayer";
 import { DAY_FULL_ID, formatDistanceToNow } from "../../utils/datetime";
@@ -139,7 +141,7 @@ function CommentRow({
             className="text-[10px] text-text-dim"
             style={{ fontFamily: "PlusJakartaSans_500Medium" }}
           >
-            {formatDistanceToNow(item.created_at)}
+            {item.id.startsWith("temp-") ? "Mengirim..." : formatDistanceToNow(item.created_at)}
           </Text>
         </View>
         <Text
@@ -177,10 +179,13 @@ export function LiveDetailSheet({
   const profile = useAuthStore((s) => s.profile);
   const { toggle, play, pause } = usePlayerControls();
   const { stats } = useIcecastStats();
-  const announcersQuery = useAnnouncers();
-  const announcersList = announcersQuery.data ?? [];
+  const reducedMotion = useReducedMotion();
+  const chatList = useRef<FlatList<LiveComment>>(null);
+  const nearBottom = useRef(true);
+  const newestId = useRef<string | null>(null);
+  const [newMessages, setNewMessages] = useState(false);
 
-  const { comments, send: sendLiveCommentMessage } =
+  const { comments, isLoading, isSending, error: sendError, offline, send: sendLiveCommentMessage } =
     useLiveComments(visible);
   const [draftMessage, setDraftMessage] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
@@ -203,9 +208,9 @@ export function LiveDetailSheet({
 
     // 1. Modal BARU DIBUKA (false -> true)
     if (!wasVisible && visible) {
-      if (initialChatFullscreen) {
-        setIsChatFullscreen(true);
-      }
+      setIsChatFullscreen(initialChatFullscreen);
+      nearBottom.current = true;
+      setNewMessages(false);
       if (initialVisual !== undefined) {
         setIsVisualActive(initialVisual);
       }
@@ -227,7 +232,7 @@ export function LiveDetailSheet({
 
     // 2. Modal BARU DITUTUP / DIMINIMIZE (true -> false)
     if (wasVisible && !visible) {
-      setDraftMessage("");
+      Keyboard.dismiss();
       setInputFocused(false);
       setProgramInfoOpen(false);
       setIsChatFullscreen(false);
@@ -252,7 +257,7 @@ export function LiveDetailSheet({
   const isServerLive = stats.isLive || Boolean(matchedProgram);
   const streamHealthy = isServerLive && status !== "error";
   const isDark = mode === "dark";
-  const canSend = draftMessage.trim().length > 0;
+  const canSend = draftMessage.trim().length > 0 && !isSending;
   const displayName = profile?.full_name?.trim() || "Kamu";
   const liveHost = getOfficialLiveHost(nowPlaying.current_host);
   const cover =
@@ -287,16 +292,24 @@ export function LiveDetailSheet({
     }
   }, [isVisualActive, setIsVisualActive]);
 
-  const sendComment = useCallback(() => {
+  const sendComment = useCallback(async () => {
     const text = draftMessage.trim();
-    if (!text) return;
-    setDraftMessage("");
-    void sendLiveCommentMessage(
-      text.slice(0, MAX_LEN),
-      displayName,
-      profile?.id ?? "me"
-    );
-  }, [draftMessage, sendLiveCommentMessage, displayName, profile?.id]);
+    if (!text || isSending) return;
+    const sent = await sendLiveCommentMessage(text.slice(0, MAX_LEN), displayName, profile?.id ?? "me");
+    if (sent) {
+      setDraftMessage((current) => current.trim() === text ? "" : current);
+      nearBottom.current = true;
+      setNewMessages(false);
+      chatList.current?.scrollToOffset({ offset: 0, animated: !reducedMotion });
+    }
+  }, [draftMessage, isSending, sendLiveCommentMessage, displayName, profile?.id, reducedMotion]);
+
+  useEffect(() => {
+    const id = comments[0]?.id ?? null;
+    if (id && id !== newestId.current && newestId.current && !nearBottom.current) setNewMessages(true);
+    if (!comments.length) setNewMessages(false);
+    newestId.current = id;
+  }, [comments]);
 
   const listenerLabel = useMemo(() => {
     if (!stats.isLive) return "—";
@@ -316,7 +329,7 @@ export function LiveDetailSheet({
     <Modal
       visible={visible}
       onRequestClose={onClose}
-      animationType="slide"
+      animationType={reducedMotion ? "none" : "slide"}
       presentationStyle="fullScreen"
       statusBarTranslucent
     >
@@ -355,8 +368,9 @@ export function LiveDetailSheet({
         ) : null}
 
         {/* ── MODE 1: FULLSCREEN CHAT (Compact Header dengan Logo Program Kecil) ── */}
-        {isChatFullscreen ? (
+        {isChatFullscreen || keyboardOpen ? (
           <View className="flex-row items-center justify-between border-b border-line/30 bg-surface-2 px-3 py-2">
+            <Pressable onPress={() => { Keyboard.dismiss(); onClose(); }} accessibilityRole="button" accessibilityLabel="Tutup live chat" className="mr-1 h-11 w-11 items-center justify-center"><Ionicons name="chevron-down" size={22} color={colors.text} /></Pressable>
             {/* Kiri: Logo Program Kecil + Judul Program Ringkas (Ketuk untuk lihat detail program & penyiar) */}
             <Pressable
               onPress={() => setProgramInfoOpen(true)}
@@ -433,7 +447,7 @@ export function LiveDetailSheet({
                     ? "Stop siaran"
                     : "Putar siaran"
                 }
-                className={`h-8 w-8 items-center justify-center rounded-full active:opacity-90 ${
+                className={`h-11 w-11 items-center justify-center rounded-full active:opacity-90 ${
                   isVisualActive ? "bg-surface-3" : "bg-orange"
                 }`}
                 style={isVisualActive ? undefined : glow.orange}
@@ -452,18 +466,18 @@ export function LiveDetailSheet({
 
               {/* Satu-satunya tombol Kecilkan di layar */}
               <Pressable
-                onPress={() => setIsChatFullscreen(false)}
+                onPress={() => { Keyboard.dismiss(); setIsChatFullscreen(false); }}
                 accessibilityRole="button"
                 accessibilityLabel="Kecilkan live chat"
                 hitSlop={8}
-                className="flex-row items-center gap-1 rounded-full bg-surface-3 px-2.5 py-1.5 border border-line/40 active:opacity-80"
+                className="min-h-11 flex-row items-center gap-1 rounded-full bg-surface-3 px-2 py-1.5 border border-line/40 active:opacity-80"
               >
                 <Ionicons name="contract-outline" size={14} color={colors.text} />
                 <Text
                   className="text-[11px] font-semibold text-text"
                   style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
                 >
-                  Kecilkan
+                  Siaran
                 </Text>
               </Pressable>
             </View>
@@ -670,7 +684,7 @@ export function LiveDetailSheet({
         )}
 
         {/* ── Chat Header & Fullscreen Toggle ── */}
-        {isChatFullscreen ? (
+        {isChatFullscreen || keyboardOpen ? (
           <View className="mt-2 mb-1 flex-row items-center justify-between px-4">
             <View className="flex-row items-center gap-2">
               <Text
@@ -772,9 +786,13 @@ export function LiveDetailSheet({
 
         {/* ── Chat list ── */}
         <FlatList
+          ref={chatList}
           data={comments}
+          maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: 60 }}
+          onScroll={(event) => { nearBottom.current = event.nativeEvent.contentOffset.y < 60; if (nearBottom.current) setNewMessages(false); }}
+          scrollEventThrottle={32}
           keyExtractor={(item) => item.id}
-          inverted
+          inverted={comments.length > 0}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={
             Platform.OS === "ios" ? "interactive" : "on-drag"
@@ -785,9 +803,10 @@ export function LiveDetailSheet({
             paddingHorizontal: 16,
             paddingVertical: 8,
             flexGrow: 1,
+            justifyContent: comments.length === 0 ? "center" : undefined,
           }}
           ListEmptyComponent={
-            <View className="items-center py-12">
+            <View className="items-center px-4 py-6">
               <Ionicons
                 name="chatbubbles-outline"
                 size={36}
@@ -797,8 +816,9 @@ export function LiveDetailSheet({
                 className="mt-3 text-sm font-semibold text-text-dim"
                 style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
               >
-                Jadilah yang pertama chat
+                {isLoading ? "Memuat obrolan..." : offline ? "Koneksi chat terputus" : "Sapa penyiar atau request lagu"}
               </Text>
+              <Text className="mt-2 text-center text-xs leading-5 text-text-dim" style={{ fontFamily: "PlusJakartaSans_400Regular" }}>{offline ? "Mencoba menyambungkan kembali. Draf kamu tetap tersimpan." : "Tulis pesanmu di bawah untuk ikut ngobrol."}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -806,6 +826,9 @@ export function LiveDetailSheet({
           )}
         />
 
+        {newMessages ? <Pressable onPress={() => { chatList.current?.scrollToOffset({ offset: 0, animated: !reducedMotion }); nearBottom.current = true; setNewMessages(false); }} accessibilityRole="button" className="mb-2 min-h-11 flex-row items-center justify-center gap-2 self-center rounded-full bg-brand px-4"><Ionicons name="arrow-down" size={16} color={colors.onBrand} /><Text style={{ color: colors.onBrand, fontFamily: "PlusJakartaSans_700Bold" }}>Pesan baru</Text></Pressable> : null}
+        {sendError ? <Text accessibilityLiveRegion="polite" className="px-4 py-2 text-xs text-live">{sendError}</Text> : null}
+        {offline && comments.length > 0 ? <Text accessibilityLiveRegion="polite" className="px-4 py-2 text-xs text-text-dim">Offline · Menunggu koneksi chat</Text> : null}
         {/* ── Composer — always above keyboard via parent paddingBottom ── */}
         <View
           className="border-t border-line/30 px-4 pt-2.5"
@@ -824,32 +847,36 @@ export function LiveDetailSheet({
               placeholderTextColor={colors.textDim}
               value={draftMessage}
               onChangeText={setDraftMessage}
-              onSubmitEditing={sendComment}
+              onSubmitEditing={() => void sendComment()}
+              accessibilityLabel="Pesan untuk penyiar"
+              editable={!isSending}
+              multiline
+              submitBehavior="submit"
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
               returnKeyType="send"
-              blurOnSubmit={false}
               maxLength={MAX_LEN}
               style={{
+                maxHeight: 112,
                 paddingVertical: Platform.OS === "ios" ? 8 : 4,
                 fontFamily: "PlusJakartaSans_400Regular",
               }}
             />
             <Pressable
-              onPress={sendComment}
+              onPress={() => void sendComment()}
               disabled={!canSend}
               accessibilityRole="button"
               accessibilityLabel="Kirim komentar"
-              className={`mb-0.5 h-10 w-10 items-center justify-center rounded-md ${
+              className={`mb-0.5 h-11 w-11 items-center justify-center rounded-md ${
                 canSend ? "bg-brand" : "bg-surface-3"
               }`}
               style={canSend ? undefined : { opacity: 0.55 }}
             >
-              <Ionicons
+              {isSending ? <ActivityIndicator size="small" color={colors.brand} /> : <Ionicons
                 name="send"
                 size={15}
                 color={canSend ? colors.onBrand : colors.textDim}
-              />
+              />}
             </Pressable>
           </View>
           {inputFocused || draftMessage.length > 0 ? (
@@ -978,61 +1005,7 @@ export function LiveDetailSheet({
                   </Text>
                 </View>
 
-                {/* Penyiar Gaul FM (Ada di dalam detail program) */}
-                {announcersList.length > 0 ? (
-                  <View className="mt-3 rounded-card bg-surface p-4 border border-line/20">
-                    <View className="flex-row items-center justify-between mb-3">
-                      <Text
-                        className="text-[11px] font-bold uppercase tracking-widest text-text-dim"
-                        style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                      >
-                        Penyiar Gaul FM
-                      </Text>
-                      <View className="flex-row items-center gap-1">
-                        <Ionicons name="people" size={13} color={colors.brand} />
-                        <Text
-                          className="text-[11px] font-bold text-brand"
-                          style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                        >
-                          {announcersList.length} Penyiar
-                        </Text>
-                      </View>
-                    </View>
-
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{ gap: 12, paddingVertical: 2 }}
-                    >
-                      {announcersList.map((item) => (
-                        <View key={item.id} className="items-center w-16">
-                          <View className="h-14 w-14 overflow-hidden rounded-full border-2 border-brand/40 bg-surface-3">
-                            {item.photo_url ? (
-                              <Image
-                                source={{ uri: item.photo_url }}
-                                style={{ width: "100%", height: "100%" }}
-                                contentFit="cover"
-                                contentPosition="center"
-                                transition={150}
-                              />
-                            ) : (
-                              <View className="h-full w-full items-center justify-center">
-                                <Ionicons name="person" size={20} color={colors.brand} />
-                              </View>
-                            )}
-                          </View>
-                          <Text
-                            className="mt-1 text-center text-xs font-semibold text-text"
-                            numberOfLines={1}
-                            style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-                          >
-                            {item.nickname || item.name}
-                          </Text>
-                        </View>
-                      ))}
-                    </ScrollView>
-                  </View>
-                ) : null}
+                <ProgramHosts name={displayTitle} liveHost={nowPlaying.current_host} />
               </ScrollView>
             </View>
           </View>

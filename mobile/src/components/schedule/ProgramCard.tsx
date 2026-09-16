@@ -1,12 +1,13 @@
 import React from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
+import { MotionPressable as Pressable } from "../ui/MotionPressable";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeStore } from "../../stores/themeStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { getOfficialLiveHost } from "../../utils/announcer";
 import { getProgramArtwork } from "../../utils/programAssets";
-import type { Program } from "../../types";
+import type { PlayerStatus, Program } from "../../types";
 
 export type ProgramCardStatus = "live" | "upNext" | "upcoming" | "done";
 
@@ -15,11 +16,9 @@ interface ProgramCardProps {
   status: ProgramCardStatus;
   onPress?: () => void;
   onRemind?: () => void;
+  onListen?: () => void;
+  playerStatus?: PlayerStatus;
   isScheduled?: boolean;
-  /** Live-only: playback state for the inline play/stop button. */
-  isPlaying?: boolean;
-  isBuffering?: boolean;
-  onTogglePlay?: () => void;
   /** Live-only: elapsed fraction (0..1) of the current program, renders a thin progress bar. */
   progress?: number | null;
 }
@@ -27,18 +26,17 @@ interface ProgramCardProps {
 /**
  * Clean schedule row — time + cover + title/host + status.
  * Easy to scan; remind only on upcoming slots.
- * When live: doubles as the "now playing" widget (bigger cover, working
- * play/stop button, elapsed progress bar) — no separate hero card needed.
+ * Live keeps the same geometry as every other row; only color, icon, and
+ * progress communicate its state so the list never jumps in height.
  */
 export function ProgramCard({
   program,
   status,
   onPress,
   onRemind,
+  onListen,
+  playerStatus,
   isScheduled,
-  isPlaying = false,
-  isBuffering = false,
-  onTogglePlay,
   progress = null,
 }: ProgramCardProps) {
   const colors = useThemeStore((s) => s.colors);
@@ -48,191 +46,46 @@ export function ProgramCard({
   const isUpNext = status === "upNext";
 
   const liveHost = isLive ? getOfficialLiveHost(nowPlaying.current_host) : "";
-  const displayHost = liveHost;
+  const displayHost = liveHost || program.host;
   const displayCover = program.cover_url;
 
-  const body = (
-    <View
-      className={`mb-4 overflow-hidden rounded-[24px] border ${
-        isLive
-          ? "bg-orange/5 border-orange/40 shadow-sm shadow-orange/20"
-          : isUpNext
-            ? "bg-surface border-brand/40 shadow-sm shadow-brand/10"
-            : isDone
-              ? "bg-surface-2/60 border-line/20"
-              : "bg-surface border-line/30 shadow-sm"
-      }`}
-      style={isDone ? { opacity: 0.65 } : undefined}
-    >
-      {isLive ? (
-        <View className="absolute bottom-0 left-0 top-0 w-1.5 bg-orange" />
-      ) : null}
-
-      <View className="flex-row items-center gap-3.5 p-4">
-        {/* Time */}
-        <View className="w-[56px] items-center justify-center">
-          <Text
-            className={`text-[16px] font-extrabold tracking-tight ${
-              isLive ? "text-orange" : isDone ? "text-text-dim" : "text-text"
-            }`}
-            style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-          >
-            {program.start_time}
-          </Text>
-          <View className={`h-3 w-px my-1 ${isLive ? "bg-orange/30" : "bg-line/60"}`} />
-          <Text
-            className="text-[12px] font-bold text-text-dim"
-            style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-          >
-            {program.end_time}
-          </Text>
-        </View>
-
-        {/* Cover — slightly bigger when live, doubling as the now-playing artwork */}
-        <View
-          className={`overflow-hidden rounded-[14px] bg-surface-3 border ${
-            isLive ? "h-16 w-16 border-orange/20 shadow-sm" : "h-[54px] w-[54px] border-line/20"
-          }`}
-        >
-          <Image
-            source={getProgramArtwork(program.name, displayCover)}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-            transition={200}
-          />
-        </View>
-
-        {/* Meta */}
-        <View className="min-w-0 flex-1 justify-center">
-          {isLive ? (
-            <View className="mb-1.5 flex-row items-center gap-1.5 self-start rounded-full bg-live px-2 py-0.5 shadow-sm shadow-live/30">
-              <View
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: "#FFFFFF",
-                }}
-              />
-              <Text
-                className="text-[9px] font-extrabold uppercase tracking-widest text-white"
-                style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-              >
-                Sedang Live
-              </Text>
-            </View>
-          ) : isUpNext ? (
-            <Text
-              className="mb-1 text-[10px] font-extrabold uppercase tracking-wider text-brand"
-              style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-            >
-              Selanjutnya
-            </Text>
-          ) : isDone ? (
-            <Text
-              className="mb-1 text-[10px] font-extrabold uppercase tracking-wider text-text-dim"
-              style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-            >
-              Selesai
-            </Text>
-          ) : null}
-
-          <Text
-            className={`text-[16px] font-extrabold leading-5 ${
-              isDone ? "text-text-dim" : "text-text"
-            }`}
-            numberOfLines={1}
-            style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-          >
-            {program.name}
-          </Text>
-          {displayHost ? (
-            <Text
-              className="mt-0.5 text-[13px] font-semibold text-text-dim"
-              numberOfLines={1}
-              style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-            >
-              {displayHost}
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Action */}
-        {!isLive && !isDone && onRemind ? (
-          <Pressable
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onRemind();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={
-              isScheduled
-                ? `Pengingat aktif untuk ${program.name}`
-                : `Ingatkan ${program.name}`
-            }
-            hitSlop={8}
-            className={`h-[42px] w-[42px] items-center justify-center rounded-full border ${
-              isScheduled ? "bg-brand/15 border-brand/30" : "bg-surface-2 border-line/30"
-            }`}
-          >
-            <Ionicons
-              name={isScheduled ? "notifications" : "notifications-outline"}
-              size={20}
-              color={isScheduled ? colors.brand : colors.textDim}
-            />
-          </Pressable>
-        ) : isLive && onTogglePlay ? (
-          <Pressable
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onTogglePlay();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={isPlaying ? "Stop siaran" : "Putar siaran"}
-            hitSlop={8}
-            className="h-12 w-12 items-center justify-center rounded-full bg-orange active:opacity-90 shadow-sm shadow-orange/40"
-          >
-            {isBuffering ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Ionicons
-                name={isPlaying ? "stop" : "play"}
-                size={22}
-                color="#FFFFFF"
-                style={isPlaying ? undefined : { marginLeft: 3 }}
-              />
-            )}
-          </Pressable>
-        ) : isLive ? (
-          <View className="h-12 w-12 items-center justify-center rounded-full bg-orange/15 border border-orange/30">
-            <Ionicons name="play" size={20} color={colors.orange} style={{ marginLeft: 3 }} />
-          </View>
-        ) : (
-          <View className="h-[42px] w-[42px]" />
-        )}
-      </View>
-
-      {isLive && progress != null ? (
-        <View className="h-1 w-full bg-orange/15">
-          <View
-            className="h-full bg-orange"
-            style={{ width: `${Math.max(2, Math.round(progress * 100))}%` }}
-          />
-        </View>
-      ) : null}
-    </View>
-  );
-
-  if (!onPress) return body;
+  const statusLabel = isLive ? "Sedang live" : isDone ? "Selesai" : isUpNext ? "Selanjutnya" : "Akan datang";
+  const openLabel = `Detail ${program.name}, ${program.start_time} sampai ${program.end_time} WIB`;
 
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${program.name}, ${program.start_time} sampai ${program.end_time}, host ${program.host}${isLive ? ", live" : ""}`}
-      className="active:opacity-85"
-    >
-      {body}
-    </Pressable>
+    <View className={`mb-3 overflow-hidden rounded-2xl border bg-surface ${isLive ? "border-orange/50" : "border-line/30"}`}>
+      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={openLabel} className="flex-row flex-wrap items-center justify-between gap-2 px-4 pt-3">
+        <View className="flex-row items-center gap-1.5">
+          <Ionicons name="time-outline" size={14} color={isLive ? colors.orange : colors.textDim} />
+          <Text className="text-xs font-bold text-text-dim" style={{ fontFamily: "PlusJakartaSans_700Bold" }}>{program.start_time} – {program.end_time}</Text>
+        </View>
+        <View className={`rounded-full px-2 py-1 ${isLive ? "bg-orange/10" : isUpNext ? "bg-brand/10" : "bg-surface-2"}`}>
+          <Text className={`text-[10px] font-bold ${isLive ? "text-orange" : isUpNext ? "text-brand" : "text-text-dim"}`} style={{ fontFamily: "PlusJakartaSans_700Bold" }}>{statusLabel}</Text>
+        </View>
+      </Pressable>
+      <View className="flex-row items-center pr-3">
+        <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={openLabel} className="min-w-0 flex-1 flex-row items-center gap-3 px-4 py-3" style={{ minHeight: 88 }}>
+          <View className="h-14 w-14 overflow-hidden rounded-xl bg-surface-3">
+            <Image source={getProgramArtwork(program.name, displayCover)} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={180} />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-[15px] leading-5 font-bold text-text" numberOfLines={2} style={{ fontFamily: "PlusJakartaSans_700Bold" }}>{program.name}</Text>
+            <Text className="mt-1 text-xs text-text-dim" numberOfLines={1} style={{ fontFamily: "PlusJakartaSans_400Regular" }}>{displayHost || "Gaul FM"}</Text>
+          </View>
+        </Pressable>
+        {isLive ? (
+          <Pressable onPress={onListen} disabled={playerStatus === "buffering"} accessibilityRole="button" accessibilityLabel={playerStatus === "playing" ? "Hentikan siaran" : `Dengarkan ${program.name}`} className="h-11 w-11 items-center justify-center rounded-full bg-orange">
+            {playerStatus === "buffering" ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name={playerStatus === "playing" ? "stop" : "play"} size={19} color="#FFFFFF" />}
+          </Pressable>
+        ) : !isDone && onRemind ? (
+          <Pressable onPress={onRemind} accessibilityRole="button" accessibilityLabel={`${isScheduled ? "Batalkan pengingat" : "Ingatkan"} ${program.name}, ${program.start_time} WIB`} accessibilityState={{ selected: Boolean(isScheduled) }} className={`h-11 w-11 items-center justify-center rounded-full ${isScheduled ? "bg-brand/15" : "bg-surface-2"}`}>
+            <Ionicons name={isScheduled ? "notifications" : "notifications-outline"} size={20} color={isScheduled ? colors.brand : colors.textDim} />
+          </Pressable>
+        ) : (
+          <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={openLabel} className="h-11 w-11 items-center justify-center"><Ionicons name="chevron-forward" size={18} color={colors.textDim} /></Pressable>
+        )}
+      </View>
+      {isLive && progress != null ? <View className="h-0.5 bg-orange/10"><View className="h-full bg-orange" style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }} /></View> : <View className="h-0.5" />}
+    </View>
   );
 }

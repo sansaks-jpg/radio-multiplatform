@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePlayerStore } from "../../stores/playerStore";
@@ -9,13 +8,12 @@ import { useNowPlaying } from "../../hooks/useNowPlaying";
 import { usePrograms, useProgramsRealtime } from "../../hooks/usePrograms";
 import { flattenNewsPages, useNews } from "../../hooks/useNews";
 import { useBanners } from "../../hooks/useBanners";
-import { usePlayerControls } from "../../hooks/usePlayerControls";
+
 import { isOnAirNow, todayDow, getWibParts } from "../../utils/datetime";
 import { openExternalUrl } from "../../services/youtube";
 import { Screen } from "../../components/ui/Screen";
 import { TopNavbar } from "../../components/ui/TopNavbar";
 import { OfflineBanner } from "../../components/ui/OfflineBanner";
-import { SectionHeader } from "../../components/ui/SectionHeader";
 import { HomeHeroBanner } from "../../components/home/HomeHeroBanner";
 import { HomeNewsPreview } from "../../components/home/HomeNewsPreview";
 import { HomeHero } from "../../components/home/HomeHero";
@@ -84,19 +82,15 @@ export function HomeScreen() {
 
   const newsItems = flattenNewsPages(news.data?.pages).slice(0, 5);
   const openLiveSheet = usePlayerStore((s) => s.openLiveSheet);
-  const playerStatus = usePlayerStore((s) => s.status);
-  const { play } = usePlayerControls();
+
 
   const openVisualRadio = useCallback(() => {
     openLiveSheet({ visual: true });
   }, [openLiveSheet]);
 
   const openAudioRadio = useCallback(() => {
-    openLiveSheet({ visual: false, autoPlay: true });
-    if (playerStatus !== "playing" && playerStatus !== "buffering") {
-      void play();
-    }
-  }, [openLiveSheet, playerStatus, play]);
+    openLiveSheet({ visual: false });
+  }, [openLiveSheet]);
 
   const name = displayName(profile?.full_name);
 
@@ -147,8 +141,9 @@ export function HomeScreen() {
   return (
     <Screen
       scroll
-      dockInset="tabs"
+      dockInset="dock"
       padded={false}
+      contentStyle={{ paddingBottom: 16 }}
       refreshing={isRefreshing}
       onRefresh={onRefresh}
     >
@@ -158,7 +153,7 @@ export function HomeScreen() {
 
       <View className="px-4">
         {/* Greeting */}
-        <View className="mb-5 mt-2">
+        <View className="mb-3 mt-0">
           <Text
             className="text-[14px] font-medium text-text-dim"
             style={{ fontFamily: "PlusJakartaSans_500Medium" }}
@@ -167,7 +162,7 @@ export function HomeScreen() {
           </Text>
           {name ? (
             <Text
-              className="mt-0.5 text-[24px] font-extrabold tracking-tight text-text"
+              className="mt-0.5 text-[20px] font-extrabold tracking-tight text-text"
               numberOfLines={2}
               style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
             >
@@ -179,7 +174,7 @@ export function HomeScreen() {
         <OfflineBanner />
 
         {/* Live hero — Main audio on-air card */}
-        <View className="mb-6">
+        <View className="mb-4">
           <HomeHero
             matchedProgram={onAirProgram}
             onOpenDetail={openAudioRadio}
@@ -193,7 +188,7 @@ export function HomeScreen() {
         </View>
 
         {/* Quick actions */}
-        <View className="mb-7">
+        <View className="mb-4">
           <HomeQuickActions
             actions={[
               {
@@ -211,13 +206,13 @@ export function HomeScreen() {
                 onPress: () =>
                   openLiveSheet({
                     chatFullscreen: true,
-                    autoPlay: true,
+                    autoPlay: false,
                     visual: false,
                   }),
               },
               {
                 key: "visual",
-                label: "Nonton Radio",
+                label: "Visual Radio",
                 icon: "videocam-outline",
                 colorKey: "live",
                 onPress: openVisualRadio,
@@ -235,7 +230,7 @@ export function HomeScreen() {
       </View>
 
       {/* Promos */}
-      <View className="mb-8">
+      <View className="mb-6">
         <HomeHeroBanner
           banners={banners.data ?? []}
           onPress={onBannerPress}
@@ -244,52 +239,10 @@ export function HomeScreen() {
       </View>
 
       <View className="px-4">
-        {/* Nonton Radio */}
-        <View className="mb-8">
-          <SectionHeader title="Nonton Radio" />
-          <Pressable
-            onPress={openVisualRadio}
-            accessibilityRole="button"
-            accessibilityLabel="Nonton radio siaran langsung"
-            className="mt-4 overflow-hidden rounded-[24px] bg-surface border border-line/40 p-4 active:opacity-90 shadow-sm"
-          >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-3">
-                <View className="h-11 w-11 rounded-full bg-live/15 items-center justify-center">
-                  <Ionicons name="videocam" size={22} color="#FF3B30" />
-                </View>
-                <View>
-                  <Text
-                    className="text-sm font-bold text-text"
-                    style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                  >
-                    Nonton Radio
-                  </Text>
-                  <Text
-                    className="text-xs text-text-dim mt-0.5"
-                    style={{ fontFamily: "PlusJakartaSans_400Regular" }}
-                  >
-                    Hanya di Gaul FM Mobile
-                  </Text>
-                </View>
-              </View>
-              <View className="rounded-full bg-brand px-3.5 py-1.5 flex-row items-center gap-1.5 shadow-sm">
-                <Ionicons name="play" size={13} color="#FFFFFF" />
-                <Text
-                  className="text-xs font-bold text-white"
-                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                >
-                  Tonton
-                </Text>
-              </View>
-            </View>
-          </Pressable>
-        </View>
-
         {/* Berita Terkini */}
         <HomeNewsPreview items={newsItems} />
 
-        <View className="h-8" />
+        <View className="h-2" />
       </View>
 
     </Screen>

@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, BackHandler, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, BackHandler, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { MotionPressable as Pressable } from "../../components/ui/MotionPressable";
+import { Reveal } from "../../components/ui/Reveal";
+import { ProgramHosts } from "../../components/schedule/ProgramHosts";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useFocusEffect,
@@ -17,13 +21,13 @@ import {
   useProgramById,
   useProgramWeekSlots,
 } from "../../hooks/usePrograms";
-import { useAnnouncers } from "../../hooks/useAnnouncers";
-import { isHostOnAir } from "../../utils/announcer";
 import { getProgramArtwork } from "../../utils/programAssets";
 import {
   DAY_FULL_ID,
   DAY_SHORT_ID,
   getMinutesToProgram,
+  getNextProgramSlot,
+  formatDateID,
   isOnAirNow,
   todayDow,
 } from "../../utils/datetime";
@@ -63,13 +67,14 @@ export function ProgramDetailScreen() {
   const weekSlots = useProgramWeekSlots(program?.name);
   const playerStatus = usePlayerStore((s) => s.status);
   const nowPlaying = usePlayerStore((s) => s.nowPlaying);
-  const announcersQuery = useAnnouncers();
+  const openLiveSheet = usePlayerStore((s) => s.openLiveSheet);
   const { toggle } = usePlayerControls();
   const reminders = useReminderStore((s) => s.reminders);
   const addReminder = useReminderStore((s) => s.addReminder);
   const removeReminder = useReminderStore((s) => s.removeReminder);
 
   const [now, setNow] = useState(() => new Date());
+  const [showWeekSchedule, setShowWeekSchedule] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -80,12 +85,16 @@ export function ProgramDetailScreen() {
 
   const loading = !program && remote.isLoading;
   const isError = remote.isError;
-  const onAir = program ? isOnAirNow(program, now) : false;
+  const slots = weekSlots.data ?? [];
+  const liveSlot = slots.find((slot) => isOnAirNow(slot, now));
+  const nextSlot = getNextProgramSlot(slots, now);
+  const onAir = Boolean(liveSlot);
   const isPlaying = playerStatus === "playing";
   const isBuffering = playerStatus === "buffering";
-  const minsTo = program ? getMinutesToProgram(program, now) : 0;
-  const countdown = program && !onAir ? formatCountdown(minsTo) : null;
-  const isScheduled = program ? Boolean(reminders[program.id]) : false;
+  const minsTo = nextSlot ? getMinutesToProgram(nextSlot, now) : 0;
+  const countdown = nextSlot && !onAir ? formatCountdown(minsTo) : null;
+  const nextDate = nextSlot ? formatDateID(new Date(now.getTime() + minsTo * 60_000).toISOString()) : "";
+  const isScheduled = nextSlot ? Boolean(reminders[nextSlot.id]) : false;
   const today = todayDow(now);
 
   const listenLive = () => {
@@ -138,20 +147,20 @@ export function ProgramDetailScreen() {
   );
 
   return (
-    <Screen scroll dockInset="dock" contentStyle={{ paddingHorizontal: 0 }}>
+    <Screen scroll dockInset="dock" contentStyle={{ paddingHorizontal: 0, paddingBottom: 16 }}>
       <View className="absolute left-4 right-4 top-1 z-10 flex-row items-center justify-between">
         <Pressable
           onPress={handleCustomBack}
           accessibilityRole="button"
           accessibilityLabel="Kembali"
-          className="h-11 w-11 items-center justify-center rounded-full bg-surface-lowest/80 backdrop-blur-md active:opacity-80"
+          className="h-11 w-11 items-center justify-center rounded-full bg-surface active:opacity-80"
         >
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
 
-        {program ? (
+        {nextSlot ? (
           <Pressable
-            onPress={() => handleRemind(program)}
+            onPress={() => void handleRemind(nextSlot)}
             accessibilityRole="button"
             accessibilityLabel={
               isScheduled ? "Batalkan pengingat" : "Ingatkan saya"
@@ -203,17 +212,16 @@ export function ProgramDetailScreen() {
       ) : (
         <View>
           {/* Hero */}
-          <View className="relative aspect-[16/10] w-full bg-surface-3">
+          <View className="relative h-[188px] w-full bg-surface-3">
             <Image
               source={getProgramArtwork(program.name, program.cover_url)}
               style={{ width: "100%", height: "100%" }}
               contentFit="cover"
               transition={280}
             />
-            <View className="absolute inset-x-0 bottom-0 h-3/5 bg-black/55" />
-            <View className="absolute inset-x-0 bottom-0 h-1/3 bg-black/30" />
+            <LinearGradient colors={["rgba(0,0,0,0.12)", "transparent", "rgba(0,0,0,0.85)"]} locations={[0, 0.25, 1]} style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }} pointerEvents="none" />
 
-            <View className="absolute inset-x-0 bottom-0 gap-2 p-4">
+            <View className="absolute inset-x-0 bottom-0 gap-1.5 p-4">
               <View className="flex-row items-center gap-2">
                 {onAir ? <LiveBadge active size="sm" label="ON AIR" /> : null}
                 {countdown ? (
@@ -228,7 +236,7 @@ export function ProgramDetailScreen() {
                 ) : null}
               </View>
               <Text
-                className="text-[24px] font-extrabold leading-8 tracking-tight text-white"
+                className="text-[22px] font-extrabold leading-7 tracking-tight text-white"
                 numberOfLines={2}
                 style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
               >
@@ -237,113 +245,81 @@ export function ProgramDetailScreen() {
             </View>
           </View>
 
-          {/* Hosts — Gaul Squad (7 Penyiar Gaul FM 87.8 Semarang) */}
+          <View className="mx-5 mt-4 rounded-2xl border border-line/30 bg-surface p-4">
+            <Text className="text-xs font-bold text-brand" style={{ fontFamily: "PlusJakartaSans_700Bold" }}>{onAir ? "Sedang mengudara" : "Tayang berikutnya"}</Text>
+            <Text className="mt-1 text-base font-bold text-text" style={{ fontFamily: "PlusJakartaSans_700Bold" }}>
+              {onAir && liveSlot ? `${DAY_FULL_ID[liveSlot.day_of_week]} · ${liveSlot.start_time}–${liveSlot.end_time} WIB` : nextSlot ? `${DAY_FULL_ID[nextSlot.day_of_week]}, ${nextDate} · ${nextSlot.start_time} WIB` : "Jadwal belum tersedia"}
+            </Text>
+            <Text className="mt-2 text-xs leading-5 text-text-dim" style={{ fontFamily: "PlusJakartaSans_400Regular" }}>
+              Slot dipilih: {DAY_FULL_ID[program.day_of_week]} · {program.start_time}–{program.end_time} WIB{program.day_of_week === today && !isOnAirNow(program, now) && getMinutesToProgram(program, now) > 6 * 1440 ? " · Sudah selesai" : ""}
+            </Text>
+          </View>
+          {/* Primary action stays above the fold instead of being buried after the schedule. */}
           <View className="px-5 pt-4">
-            <View className="flex-row items-center justify-between">
-              <Text
-                className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
-                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+            {onAir ? (
+              <Pressable
+                onPress={listenLive}
+                disabled={isBuffering}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isPlaying || isBuffering
+                    ? "Hentikan siaran"
+                    : "Dengarkan siaran langsung"
+                }
+                className="min-h-12 flex-row items-center justify-center gap-2 rounded-md bg-orange active:opacity-90"
+                style={glow.orange}
               >
-                Penyiar Program Ini
-              </Text>
-            </View>
-
-            <View className="mt-3 flex-row flex-wrap gap-3">
-              {(() => {
-                const allAnnouncers = announcersQuery.data && announcersQuery.data.length > 0
-                  ? announcersQuery.data
-                  : [];
-                const matched = allAnnouncers.filter((ann) => {
-                  if (!ann.programs || ann.programs.length === 0) return false;
-                  const progNorm = program.name.toLowerCase();
-                  return ann.programs.some((pName) => {
-                    const pNorm = pName.toLowerCase();
-                    return progNorm.includes(pNorm) || pNorm.includes(progNorm);
-                  });
-                });
-                const list = matched.length > 0 ? matched : allAnnouncers;
-
-                return list.map((item) => {
-                  const isOnAirNow =
-                    onAir && Boolean(isHostOnAir(item.name, nowPlaying.current_host));
-
-                  return (
-                    <View key={item.id} className="w-16 items-center">
-                      <View
-                        className={`relative h-14 w-14 items-center justify-center rounded-full p-0.5 ${
-                          isOnAirNow ? "bg-live" : "border-2 border-brand/40"
-                        }`}
-                        style={isOnAirNow ? { elevation: 3 } : undefined}
-                      >
-                        <View className="h-full w-full overflow-hidden rounded-full bg-surface-3">
-                          {item.photo_url ? (
-                            <Image
-                              source={{ uri: item.photo_url }}
-                              style={{ width: "100%", height: "100%" }}
-                              contentFit="cover"
-                              contentPosition="center"
-                              transition={200}
-                            />
-                          ) : (
-                            <View className="h-full w-full items-center justify-center">
-                              <Ionicons name="mic" size={18} color={colors.brand} />
-                            </View>
-                          )}
-                        </View>
-
-                        {isOnAirNow ? (
-                          <View className="absolute -bottom-1 rounded-full bg-live px-1 py-0.5">
-                            <Text
-                              className="text-[7px] font-extrabold uppercase text-white"
-                              style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-                            >
-                              LIVE
-                            </Text>
-                          </View>
-                        ) : null}
-                      </View>
-
-                      <Text
-                        className="mt-1.5 text-center text-[11px] font-semibold text-text"
-                        numberOfLines={1}
-                        style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-                      >
-                        {item.name}
-                      </Text>
-                    </View>
-                  );
-              });
-            })()}
-            </View>
-
-            <View className="mt-4 flex-row gap-2">
-              <View className="min-w-0 flex-1 flex-row items-center gap-2.5 rounded-card bg-surface p-3.5">
-                <View className="h-10 w-10 items-center justify-center rounded-md bg-orange/12">
+                {isBuffering ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
                   <Ionicons
-                    name="time-outline"
+                    name={isPlaying ? "stop" : "play"}
                     size={18}
-                    color={colors.orange}
+                    color="#FFFFFF"
                   />
-                </View>
-                <View className="min-w-0 flex-1">
-                  <Text
-                    className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
-                    style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-                  >
-                    Slot ini
-                  </Text>
-                  <Text
-                    className="mt-0.5 text-sm font-semibold text-text"
-                    numberOfLines={1}
-                    style={{ fontFamily: "PlusJakartaSans_600SemiBold" }}
-                  >
-                    {DAY_SHORT_ID[program.day_of_week]} · {program.start_time}–
-                    {program.end_time} WIB
-                  </Text>
-                </View>
-              </View>
-            </View>
+                )}
+                <Text
+                  className="text-base font-extrabold text-white"
+                  style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                >
+                  {isPlaying || isBuffering ? "Hentikan siaran" : "Dengarkan Live"}
+                </Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => nextSlot && void handleRemind(nextSlot)}
+                disabled={!nextSlot}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isScheduled ? "Batalkan pengingat" : "Ingatkan saya"
+                }
+                className={`min-h-12 flex-row items-center justify-center gap-2 rounded-md border active:opacity-90 ${
+                  isScheduled
+                    ? "border-brand/35 bg-brand/15"
+                    : "border-brand/45 bg-brand/10"
+                }`}
+              >
+                <Ionicons
+                  name={isScheduled ? "checkmark-circle" : "notifications"}
+                  size={18}
+                  color={colors.brand}
+                />
+                <Text
+                  className="text-base font-extrabold text-brand"
+                  style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
+                >
+                  {isScheduled ? "Batalkan pengingat" : "Ingatkan tayangan berikutnya"}
+                </Text>
+              </Pressable>
+            )}
+          </View>
 
+          <View className="px-5">
+            {onAir ? <Pressable onPress={() => openLiveSheet({ chatFullscreen: true, visual: false })} accessibilityRole="button" className="mt-3 min-h-12 flex-row items-center justify-center gap-2 rounded-xl bg-brand/10">
+              <Ionicons name="chatbubbles-outline" size={18} color={colors.brand} />
+              <Text className="text-sm font-bold text-brand" style={{ fontFamily: "PlusJakartaSans_700Bold" }}>Buka live chat</Text>
+            </Pressable> : <Text className="mt-2 text-center text-xs leading-5 text-text-dim" style={{ fontFamily: "PlusJakartaSans_400Regular" }}>Pengingat untuk {nextSlot ? `${DAY_FULL_ID[nextSlot.day_of_week]}, ${nextDate} pukul ${nextSlot.start_time} WIB` : "jadwal berikutnya"}</Text>}
+            <ProgramHosts name={program.name} liveHost={onAir ? nowPlaying.current_host : null} />
             {program.description ? (
               <View className="mt-3 rounded-card bg-surface p-4">
                 <Text
@@ -361,20 +337,39 @@ export function ProgramDetailScreen() {
               </View>
             ) : null}
 
-            {/* Weekly slots */}
-            <View className="mt-6 flex-row items-center gap-2">
-              <View className="h-4 w-1 rounded-full bg-brand" />
-              <Text
-                className="text-[13px] font-bold uppercase tracking-widest text-text-dim"
-                style={{ fontFamily: "PlusJakartaSans_700Bold" }}
-              >
-                Jadwal minggu ini
-              </Text>
-            </View>
+            {/* Weekly slots — disclosed on demand to keep the primary action visible. */}
+            <Pressable
+              onPress={() => setShowWeekSchedule((visible) => !visible)}
+              accessibilityRole="button"
+              accessibilityLabel="Tampilkan jadwal minggu ini"
+              accessibilityState={{ expanded: showWeekSchedule }}
+              className="mt-5 flex-row items-center rounded-xl bg-surface px-3.5 py-3 active:opacity-85"
+            >
+              <View className="mr-2 h-4 w-1 rounded-full bg-brand" />
+              <View className="min-w-0 flex-1">
+                <Text
+                  className="text-[12px] font-bold uppercase tracking-widest text-text"
+                  style={{ fontFamily: "PlusJakartaSans_700Bold" }}
+                >
+                  Jadwal mingguan
+                </Text>
+                <Text
+                  className="mt-0.5 text-[11px] text-text-dim"
+                  style={{ fontFamily: "PlusJakartaSans_400Regular" }}
+                >
+                  {(weekSlots.data ?? []).length} slot siaran
+                </Text>
+              </View>
+              <Ionicons
+                name={showWeekSchedule ? "chevron-up" : "chevron-down"}
+                size={18}
+                color={colors.textDim}
+              />
+            </Pressable>
 
-            <View className="mt-3 gap-2">
+            {showWeekSchedule ? <Reveal><View className="mt-2 gap-2">
               {(weekSlots.data ?? []).map((slot) => {
-                const slotOnAir = isOnAirNow(slot);
+                const slotOnAir = isOnAirNow(slot, now);
                 const isToday = slot.day_of_week === today;
                 const slotScheduled = Boolean(reminders[slot.id]);
                 return (
@@ -423,14 +418,14 @@ export function ProgramDetailScreen() {
                           className="mt-0.5 text-[11px] text-text-dim"
                           style={{ fontFamily: "PlusJakartaSans_400Regular" }}
                         >
-                          {DAY_FULL_ID[slot.day_of_week]}
+                          {formatDateID(new Date(now.getTime() + getMinutesToProgram(slot, now) * 60_000).toISOString())}
                         </Text>
                       )}
                     </View>
                     {!slotOnAir ? (
                       <Pressable
                         onPress={() => void handleRemind(slot)}
-                        disabled={slotScheduled}
+
                         accessibilityRole="button"
                         accessibilityLabel={
                           slotScheduled
@@ -460,64 +455,7 @@ export function ProgramDetailScreen() {
                   </View>
                 );
               })}
-            </View>
-          </View>
-
-          {/* Sticky-feel CTA at end of scroll */}
-          <View className="mt-6 border-t border-line/30 px-5 pb-2 pt-4">
-            {onAir ? (
-              <Pressable
-                onPress={listenLive}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isPlaying || isBuffering
-                    ? "Jeda siaran"
-                    : "Dengarkan siaran langsung"
-                }
-                className="min-h-12 flex-row items-center justify-center gap-2 rounded-md bg-orange active:opacity-90"
-                style={glow.orange}
-              >
-                <Ionicons
-                  name={isPlaying || isBuffering ? "pause" : "play"}
-                  size={18}
-                  color="#FFFFFF"
-                />
-                <Text
-                  className="text-base font-extrabold text-white"
-                  style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-                >
-                  {isPlaying || isBuffering ? "Jeda siaran" : "Dengarkan Live"}
-                </Text>
-              </Pressable>
-            ) : (
-              <Pressable
-                onPress={() => void handleRemind(program)}
-                disabled={isScheduled}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isScheduled ? "Pengingat sudah aktif" : "Ingatkan saya"
-                }
-                className={`min-h-12 flex-row items-center justify-center gap-2 rounded-md border active:opacity-90 ${
-                  isScheduled
-                    ? "border-line/50 bg-surface-2"
-                    : "border-brand/45 bg-brand/10"
-                }`}
-              >
-                <Ionicons
-                  name={isScheduled ? "checkmark-circle" : "notifications"}
-                  size={18}
-                  color={isScheduled ? colors.textDim : colors.brand}
-                />
-                <Text
-                  className={`text-base font-extrabold ${
-                    isScheduled ? "text-text-dim" : "text-brand"
-                  }`}
-                  style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
-                >
-                  {isScheduled ? "Pengingat aktif" : "Ingatkan saya"}
-                </Text>
-              </Pressable>
-            )}
+            </View></Reveal> : null}
           </View>
 
           <View className="h-4" />

@@ -34,11 +34,11 @@ export function HomeUpNext({ program }: HomeUpNextProps) {
     <Pressable
       onPress={openDetail}
       accessibilityRole="button"
-      accessibilityLabel={`Berikutnya: ${program.name} pukul ${program.start_time}. Buka detail program.`}
-      className="mt-3 flex-row items-center gap-3 rounded-2xl bg-surface-2 p-2.5 active:opacity-85 border border-line/20 shadow-sm"
+      accessibilityLabel={`Sesi berikutnya: ${program.name} pukul ${program.start_time}. Buka detail program.`}
+      className="flex-row items-center gap-2.5 rounded-2xl border border-line/20 bg-surface-2 p-2 active:opacity-85 shadow-sm"
     >
       {/* Logo program resmi */}
-      <View className="h-12 w-12 overflow-hidden rounded-xl border border-brand/30 bg-surface-3">
+      <View className="h-11 w-11 overflow-hidden rounded-xl border border-brand/30 bg-surface-3">
         <Image
           source={artwork}
           style={{ width: "100%", height: "100%" }}
@@ -54,7 +54,7 @@ export function HomeUpNext({ program }: HomeUpNextProps) {
             className="text-[10px] font-bold uppercase tracking-widest text-text-dim"
             style={{ fontFamily: "PlusJakartaSans_700Bold" }}
           >
-            Berikutnya
+            Sesi berikutnya
           </Text>
           <Text className="text-[10px] text-text-dim">·</Text>
           <View className="flex-row items-center gap-1 rounded-full bg-orange/15 px-2 py-0.5">
@@ -69,8 +69,8 @@ export function HomeUpNext({ program }: HomeUpNextProps) {
         </View>
 
         <Text
-          className="mt-0.5 text-[14px] font-extrabold text-text"
-          numberOfLines={1}
+          className="mt-0.5 text-[13px] font-extrabold text-text"
+          numberOfLines={2}
           style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
         >
           {program.name}

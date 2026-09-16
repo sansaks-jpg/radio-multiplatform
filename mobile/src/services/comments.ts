@@ -40,6 +40,7 @@ function getTargetUrls(): string[] {
 export interface CommentsResult {
   comments: LiveComment[];
   sessionStartIso: string | null;
+  offline?: boolean;
 }
 
 /**
@@ -68,7 +69,7 @@ export async function fetchRecentCommentsWithSession(
     }
   }
 
-  return { comments: mockComments.slice(0, safeLimit), sessionStartIso: null };
+  return { comments: mockComments.slice(0, safeLimit), sessionStartIso: null, offline: true };
 }
 
 export async function fetchRecentComments(
@@ -112,16 +113,7 @@ export async function sendLiveComment(payload: {
     }
   }
 
-  return {
-    id: `local-${Date.now()}`,
-    user_name: payload.userName,
-    avatar_seed: payload.avatarSeed ?? "me",
-    message: payload.message,
-    created_at: new Date().toISOString(),
-    is_highlighted: false,
-    is_hidden: false,
-    is_broadcaster: false,
-  };
+  throw new Error("Comment delivery was not confirmed");
 }
 
 // Re-export getAdminApiUrl sebagai alias getServerApiUrl demi kompatibilitas
