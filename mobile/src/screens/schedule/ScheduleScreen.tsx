@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Pressable, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -64,10 +64,6 @@ export function ScheduleScreen() {
   const queryClient = useQueryClient();
 
   const [selectedDay, setSelectedDay] = useState(() => todayDow());
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const dayContentOpacity = useRef(new Animated.Value(1)).current;
-  const dayContentX = useRef(new Animated.Value(0)).current;
-
   const reminders = useReminderStore((s) => s.reminders);
   const addReminder = useReminderStore((s) => s.addReminder);
   const removeReminder = useReminderStore((s) => s.removeReminder);
@@ -78,24 +74,13 @@ export function ScheduleScreen() {
     const current = new Date();
     setNow(current);
     setSelectedDay(todayDow(current));
-    dayContentOpacity.setValue(1);
-    dayContentX.setValue(0);
-  }, [dayContentOpacity, dayContentX]));
+  }, []));
 
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(new Date());
     }, 15000);
     return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
-    const subscription = AccessibilityInfo.addEventListener(
-      "reduceMotionChanged",
-      setReduceMotion,
-    );
-    return () => subscription.remove();
   }, []);
 
   const programs = usePrograms(selectedDay);
@@ -151,33 +136,9 @@ export function ScheduleScreen() {
   const selectDay = useCallback(
     (day: number) => {
       if (day === selectedDay) return;
-      if (reduceMotion) {
-        setSelectedDay(day);
-        return;
-      }
-
-      const direction = (day + 6) % 7 > (selectedDay + 6) % 7 ? 1 : -1;
-      dayContentOpacity.stopAnimation();
-      dayContentX.stopAnimation();
       setSelectedDay(day);
-      dayContentOpacity.setValue(0);
-      dayContentX.setValue(8 * direction);
-      Animated.parallel([
-        Animated.timing(dayContentOpacity, {
-          toValue: 1,
-          duration: 180,
-          useNativeDriver: true,
-          isInteraction: false,
-        }),
-        Animated.timing(dayContentX, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-          isInteraction: false,
-        }),
-      ]).start();
     },
-    [dayContentOpacity, dayContentX, reduceMotion, selectedDay],
+    [selectedDay],
   );
 
   const goToday = () => selectDay(todayDow());
@@ -247,18 +208,11 @@ export function ScheduleScreen() {
         <DaySelector
           selected={selectedDay}
           onSelect={selectDay}
-          reduceMotion={reduceMotion}
         />
       </View>
 
       {/* List — grouped by Pagi/Siang/Sore/Malam; on-air row doubles as now-playing */}
-      <Animated.View
-        className="mt-3 px-4"
-        style={{
-          opacity: dayContentOpacity,
-          transform: [{ translateX: dayContentX }],
-        }}
-      >
+      <View className="mt-3 px-4">
         {programs.isLoading ? (
           <View className="gap-3">
             <Skeleton className="h-[76px] w-full rounded-2xl" />
@@ -298,7 +252,7 @@ export function ScheduleScreen() {
             ))}
           </View>
         )}
-      </Animated.View>
+      </View>
 
       <View className="h-6" />
 

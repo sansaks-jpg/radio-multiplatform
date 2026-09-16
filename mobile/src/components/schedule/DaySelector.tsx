@@ -41,23 +41,12 @@ export function DaySelector({
           >
             <Text
               className={`text-[11px] font-extrabold uppercase tracking-wide ${
-                isSelected
-                  ? "text-onbrand"
-                  : isToday
-                    ? "text-orange"
-                    : "text-text-dim"
+                isSelected ? "text-onbrand" : "text-text-dim"
               }`}
               style={{ fontFamily: "PlusJakartaSans_800ExtraBold" }}
             >
               {DAY_SHORT_ID[day]}
             </Text>
-            {isToday ? (
-              <View
-                className={`absolute bottom-1 h-1.5 w-1.5 rounded-full ${
-                  isSelected ? "bg-onbrand" : "bg-orange"
-                }`}
-              />
-            ) : null}
           </Pressable>
         );
       })}
