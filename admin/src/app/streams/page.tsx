@@ -162,6 +162,10 @@ export default function StreamsPage() {
       toast.push("Hubungkan akun YouTube terlebih dahulu.", "error");
       return;
     }
+    if (nextState && !vmixOnline) {
+      toast.push("Sinyal video studio (vMix) belum aktif. Nyalakan output Stream di software vMix terlebih dahulu.", "error");
+      return;
+    }
     if (saving.current) return;
     saving.current = true;
     requestVersion.current++;
@@ -653,7 +657,7 @@ export default function StreamsPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="pt-2 border-t border-border/40">
+                    <div className="pt-2 border-t border-border/40 space-y-2">
                       {savedEnabled ? (
                         <Button
                           variant="danger"
@@ -665,15 +669,26 @@ export default function StreamsPage() {
                           {isSyncing ? "Menyimpan ke Server..." : "Hentikan Siaran ke YouTube"}
                         </Button>
                       ) : (
-                        <Button
-                          variant="live"
-                          className="w-full h-11 font-semibold text-sm shadow-md"
-                          disabled={isSyncing}
-                          onClick={() => handleToggleYoutube(true)}
-                        >
-                          <Radio className="mr-2 h-4 w-4" />
-                          {isSyncing ? "Menghubungkan..." : "Mulai Siaran ke YouTube"}
-                        </Button>
+                        <>
+                          <Button
+                            variant="live"
+                            className="w-full h-11 font-semibold text-sm shadow-md"
+                            disabled={isSyncing || !vmixOnline}
+                            onClick={() => handleToggleYoutube(true)}
+                          >
+                            <Radio className="mr-2 h-4 w-4" />
+                            {isSyncing
+                              ? "Menghubungkan..."
+                              : !vmixOnline
+                              ? "Menunggu Sinyal vMix..."
+                              : "Mulai Siaran ke YouTube"}
+                          </Button>
+                          {!vmixOnline && (
+                            <p className="text-[11px] text-muted-foreground text-center">
+                              ⚠️ Nyalakan tombol <b>Stream</b> di software vMix studio terlebih dahulu agar video masuk ke server.
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
                   )}

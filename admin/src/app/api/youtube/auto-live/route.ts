@@ -40,6 +40,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, action: "stop" });
   }
 
+  // Validasi: Cegah pembuatan broadcast YouTube jika vMix belum mengirim video
+  try {
+    const statusRes = await fetch(process.env.STREAM_ENGINE_API_URL || "http://127.0.0.1:8092/config", {
+      cache: "no-store",
+      signal: AbortSignal.timeout(4000),
+    });
+    if (statusRes.ok) {
+      const statusData = await statusRes.json();
+      if (statusData.vmix_online !== true) {
+        return NextResponse.json(
+          { error: "Sinyal video studio (vMix) belum aktif di server. Mulai stream di software vMix terlebih dahulu." },
+          { status: 400 }
+        );
+      }
+    }
+  } catch {
+    // Lanjutkan jika engine tidak dapat dihubungi
+  }
+
   const result = await ensureActiveYouTubeBroadcast(streamId);
   if ("error" in result && result.error) {
     return NextResponse.json({ error: result.error }, { status: 502 });

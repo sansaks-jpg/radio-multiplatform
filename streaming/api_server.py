@@ -246,6 +246,13 @@ def update_config():
                 cfg['youtube_key'] = data['youtube_key'].strip()
             if cfg.get('youtube_enabled') and not cfg.get('youtube_key'):
                 return jsonify(error='Masukkan stream key sebelum mengaktifkan YouTube.'), 400
+            if data.get('youtube_enabled') is True:
+                try:
+                    path = check_vmix_ready()
+                    if not path:
+                        return jsonify(error='Sinyal video vMix belum masuk ke server. Nyalakan stream di vMix terlebih dahulu.'), 400
+                except Exception:
+                    pass
             save_config(cfg)
         manager.wake.set()
         return jsonify(status='success', **response_config(cfg))

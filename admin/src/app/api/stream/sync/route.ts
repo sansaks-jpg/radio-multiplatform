@@ -34,6 +34,25 @@ export async function POST(req: Request) {
       (body.youtube_key !== undefined && (typeof body.youtube_key !== "string" || !/^[A-Za-z0-9_-]{1,256}$/.test(body.youtube_key.trim())))) {
     return NextResponse.json({ error: "Konfigurasi streaming tidak valid." }, { status: 400 });
   }
+
+  // Validasi: Tolak pengaktifan YouTube jika sinyal studio vMix belum online di server
+  if (body.youtube_enabled) {
+    try {
+      const statusRes = await fetch(STREAM_ENGINE_API_URL, { cache: "no-store", signal: AbortSignal.timeout(4000) });
+      if (statusRes.ok) {
+        const currentData = await statusRes.json();
+        if (currentData.vmix_online !== true) {
+          return NextResponse.json(
+            { error: "Sinyal video studio (vMix) belum aktif di server. Mulai stream di software vMix terlebih dahulu." },
+            { status: 400 }
+          );
+        }
+      }
+    } catch {
+      // Jika status engine tidak dapat dicek, biarkan POST downstream yang menangani
+    }
+  }
+
   try {
     const res = await fetch(STREAM_ENGINE_API_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
