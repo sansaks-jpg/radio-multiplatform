@@ -22,7 +22,6 @@ import { useThemeStore } from "../../stores/themeStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useAuthStore } from "../../stores/authStore";
 import { usePlayerControls } from "../../hooks/usePlayerControls";
-import { stopLive } from "../../services/audio/trackPlayerService";
 import { useIcecastStats } from "../../hooks/useIcecastStats";
 import { useKeyboardInset } from "../../hooks/useKeyboardInset";
 import { useLiveComments } from "../../hooks/useLiveComments";
@@ -177,7 +176,7 @@ export function LiveDetailSheet({
   const keyboardHeight = useKeyboardInset();
   const status = usePlayerStore((s) => s.status);
   const profile = useAuthStore((s) => s.profile);
-  const { toggle, play, pause } = usePlayerControls();
+  const { toggle, play } = usePlayerControls();
   const { stats } = useIcecastStats();
   const reducedMotion = useReducedMotion();
   const chatList = useRef<FlatList<LiveComment>>(null);
@@ -193,13 +192,11 @@ export function LiveDetailSheet({
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
   const isVisualActive = usePlayerStore((s) => s.isVisualActive);
   const setIsVisualActive = usePlayerStore((s) => s.setIsVisualActive);
-  const prevVisibleRef = useRef(visible);
+  const prevVisibleRef = useRef(false);
 
   // Simpan play dan pause ke ref stabil agar pergantian callback tidak memicu re-eksekusi efek
   const playRef = useRef(play);
   playRef.current = play;
-  const pauseRef = useRef(pause);
-  pauseRef.current = pause;
 
   // Efek transisi saat modal DIBUKA (false -> true) atau DITUTUP / DIMINIMIZE (true -> false)
   useEffect(() => {
@@ -219,10 +216,7 @@ export function LiveDetailSheet({
           ? initialVisual
           : usePlayerStore.getState().isVisualActive;
 
-      if (currentVisual) {
-        void pauseRef.current();
-        void stopLive();
-      } else if (autoPlayOnOpen) {
+      if (!currentVisual && autoPlayOnOpen) {
         const current = usePlayerStore.getState().status;
         if (current !== "playing" && current !== "buffering") {
           void playRef.current();
@@ -283,8 +277,6 @@ export function LiveDetailSheet({
 
   const handleToggleVisual = useCallback(() => {
     if (!isVisualActive) {
-      void pauseRef.current();
-      void stopLive();
       setIsVisualActive(true);
     } else {
       setIsVisualActive(false);
@@ -347,7 +339,7 @@ export function LiveDetailSheet({
         }}
       >
         {/* ── Visual Radio Player (persistent WebRTC/WHEP agar audio & video tidak terputus saat fullscreen chat) ── */}
-        {isVisualActive ? (
+        {visible && isVisualActive ? (
           <View
             style={
               isChatFullscreen
@@ -379,11 +371,11 @@ export function LiveDetailSheet({
               className="min-w-0 flex-1 flex-row items-center gap-2.5 active:opacity-75"
             >
               {/* Logo Program Kecil Resmi */}
-              <View className="h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-brand/35 bg-surface-3 p-0.5">
+              <View className="h-10 w-10 overflow-hidden rounded-xl border border-line/30 bg-surface-3">
                 <Image
                   source={programArtwork}
                   style={{ width: "100%", height: "100%" }}
-                  contentFit="contain"
+                  contentFit="cover"
                   contentPosition="center"
                   transition={150}
                 />
@@ -935,11 +927,11 @@ export function LiveDetailSheet({
                 keyboardShouldPersistTaps="handled"
               >
                 <View className="flex-row gap-3">
-                  <View className="h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-brand/30 bg-surface-2 p-1.5">
+                  <View className="h-20 w-20 overflow-hidden rounded-2xl border border-line/30 bg-surface-3">
                     <Image
                       source={programArtwork}
                       style={{ width: "100%", height: "100%" }}
-                      contentFit="contain"
+                      contentFit="cover"
                       contentPosition="center"
                       transition={150}
                     />

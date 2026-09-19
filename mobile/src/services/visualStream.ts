@@ -5,7 +5,7 @@ const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, unknown>;
 export const VISUAL_RTMP_URL: string =
   (extra.visualStreamRtmpUrl as string) ??
   process.env.EXPO_PUBLIC_VISUAL_STREAM_RTMP_URL ??
-  "rtmp://40.81.231.250:1935/gaulfm_webrtc";
+  "rtmp://40.81.231.250:1935/gaulfm";
 
 export const VISUAL_WHEP_URL: string =
   (extra.visualStreamWhepUrl as string) ??
@@ -15,4 +15,4 @@ export const VISUAL_WHEP_URL: string =
 export const VISUAL_HLS_URL: string =
   (extra.visualStreamHlsUrl as string) ??
   process.env.EXPO_PUBLIC_VISUAL_STREAM_HLS_URL ??
-  "http://40.81.231.250:8888/gaulfm_webrtc/index.m3u8";
+  "http://40.81.231.250:8888/gaulfm/index.m3u8";

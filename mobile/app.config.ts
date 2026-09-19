@@ -100,12 +100,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // MediaMTX Visual Radio Endpoints (WebRTC / WHEP Mode + HLS Fallback)
     visualStreamRtmpUrl:
       process.env.EXPO_PUBLIC_VISUAL_STREAM_RTMP_URL ??
-      "rtmp://40.81.231.250:1935/gaulfm_webrtc",
+      "rtmp://40.81.231.250:1935/gaulfm",
     visualStreamWhepUrl:
       process.env.EXPO_PUBLIC_VISUAL_STREAM_WHEP_URL ??
       "http://40.81.231.250:8889/gaulfm_webrtc/whep",
     visualStreamHlsUrl:
       process.env.EXPO_PUBLIC_VISUAL_STREAM_HLS_URL ??
-      "http://40.81.231.250:8888/gaulfm_webrtc/index.m3u8",
+      "http://40.81.231.250:8888/gaulfm/index.m3u8",
   },
 });

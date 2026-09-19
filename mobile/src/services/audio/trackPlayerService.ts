@@ -19,6 +19,16 @@ import type { NowPlaying } from "../../types";
 let setupPromise: Promise<void> | null = null;
 let resolvedUrl: string | null = null;
 let currentOperationGeneration = 0;
+let engineOperation: Promise<void> = Promise.resolve();
+
+// Serialize hardware calls as well as invalidating stale asynchronous preparation.
+function runEngineOperation(generation: number, operation: () => Promise<void>): Promise<void> {
+  const next = engineOperation.catch(() => {}).then(async () => {
+    if (generation === currentOperationGeneration) await operation();
+  });
+  engineOperation = next;
+  return next;
+}
 
 async function ensureSetup(): Promise<void> {
   if (!setupPromise) {
@@ -74,12 +84,14 @@ export async function playLive(nowPlaying?: NowPlaying): Promise<void> {
     }
   }
 
-  await engine.loadAndPlay({
-    url: resolvedUrl,
+  const streamUrl = resolvedUrl;
+  await runEngineOperation(generation, () => engine.loadAndPlay({
+    url: streamUrl,
     title: np.current_program,
     artist: np.current_host,
     artwork: resolvedArtwork,
-  });
+  }));
+  if (generation !== currentOperationGeneration) return;
   console.log(`[GaulFM] live stream requested in ${Date.now() - startedAt}ms`);
 
   // Tampilkan notifikasi ongoing di drawer notifikasi Android
@@ -92,18 +104,20 @@ export async function playLive(nowPlaying?: NowPlaying): Promise<void> {
 
 /** Pause live stream. */
 export async function pauseLive(): Promise<void> {
-  currentOperationGeneration++;
+  const generation = ++currentOperationGeneration;
   await ensureSetup();
-  await engine.pause();
+  await runEngineOperation(generation, () => engine.pause());
+  if (generation !== currentOperationGeneration) return;
   resolvedUrl = null;
   usePlayerStore.getState().setStatus("paused");
   void dismissLivePlaybackNotification();
 }
 
 export async function stopLive(): Promise<void> {
-  currentOperationGeneration++;
+  const generation = ++currentOperationGeneration;
   await ensureSetup();
-  await engine.stop();
+  await runEngineOperation(generation, () => engine.stop());
+  if (generation !== currentOperationGeneration) return;
   resolvedUrl = null;
   usePlayerStore.getState().setStatus("paused");
   void dismissLivePlaybackNotification();
@@ -111,10 +125,11 @@ export async function stopLive(): Promise<void> {
 
 /** Retry after an error: re-resolve the playlist and start over. */
 export async function retryLive(): Promise<void> {
-  currentOperationGeneration++;
+  const generation = ++currentOperationGeneration;
   resolvedUrl = null;
-  await engine.stop();
-  await playLive();
+  await ensureSetup();
+  await runEngineOperation(generation, () => engine.stop());
+  if (generation === currentOperationGeneration) await playLive();
 }
 
 /** Push Now Playing changes to the lock screen / media notification. */

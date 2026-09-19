@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Copy, Radio, Save, Tv, Video, Cast, Check, Volume2, VolumeX, ExternalLink, Play, RefreshCw } from "lucide-react";
+import { Copy, Radio, Save, Tv, Video, Cast, Check, Volume2, VolumeX, ExternalLink, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+
+import { StreamPreview } from "./StreamPreview";
+import { YouTubeAccountManager } from "@/components/YouTubeAccountManager";
 
 type TabType = "visual" | "audio" | "youtube";
 
@@ -20,6 +23,14 @@ export default function StreamsPage() {
   // YouTube Restream States
   const [ytEnabled, setYtEnabled] = useState(false);
   const [ytKey, setYtKey] = useState("");
+  const [keyConfigured, setKeyConfigured] = useState(false);
+  const [engineOnline, setEngineOnline] = useState<boolean | null>(null);
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const [savedEnabled, setSavedEnabled] = useState(false);
+  const [youtubeConnecting, setYoutubeConnecting] = useState(false);
+  const dirty = useRef(false);
+  const saving = useRef(false);
+  const requestVersion = useRef(0);
   const [vmixOnline, setVmixOnline] = useState<boolean | null>(null);
   const [youtubeStreaming, setYoutubeStreaming] = useState<boolean | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -29,65 +40,56 @@ export default function StreamsPage() {
 
   // Monitor State
   const audioRef = useRef<HTMLAudioElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [isVideoLoading, setIsVideoLoading] = useState(false);
 
   // Helper sync state
   const applyStreamData = useCallback((data: {
     youtube_enabled?: boolean;
-    youtube_key?: string;
+    youtube_key_configured?: boolean;
+    youtube_connecting?: boolean;
     vmix_online?: boolean;
     youtube_streaming?: boolean;
     last_error?: string | null;
   }) => {
     if (data.youtube_enabled !== undefined) {
-      setYtEnabled(Boolean(data.youtube_enabled));
-      setYtKey(data.youtube_key || "");
+      setSavedEnabled(data.youtube_enabled);
+      if (!dirty.current) setYtEnabled(data.youtube_enabled);
+      setConfigLoaded(true);
     }
-    setVmixOnline(data.vmix_online ?? false);
+    setEngineOnline(true);
+    setKeyConfigured(data.youtube_key_configured ?? false);
+    setYoutubeConnecting(data.youtube_connecting ?? false);
+    setVmixOnline(data.vmix_online ?? null);
     setYoutubeStreaming(data.youtube_streaming ?? false);
     setLastError(data.last_error || null);
   }, []);
 
-  const handleManualRefresh = async () => {
-    setIsRefreshingStatus(true);
+  const markUnavailable = useCallback(() => {
+    setEngineOnline(false); setVmixOnline(null); setYoutubeStreaming(null);
+  }, []);
+  const refresh = useCallback(async () => {
+    if (saving.current) return;
+    const version = ++requestVersion.current;
     try {
-      const res = await fetch("/api/stream/sync");
+      const res = await fetch("/api/stream/sync", { cache: "no-store", signal: AbortSignal.timeout(10000) });
       if (!res.ok) throw new Error("Status API error");
       const data = await res.json();
-      applyStreamData(data);
-      toast.push("Status stream berhasil diperbarui");
+      if (version === requestVersion.current && !saving.current) applyStreamData(data);
     } catch {
-      toast.push("Gagal memuat status cloud engine", "error");
-    } finally {
-      setIsRefreshingStatus(false);
+      if (version === requestVersion.current) markUnavailable();
     }
+  }, [applyStreamData, markUnavailable]);
+  const handleManualRefresh = async () => {
+    setIsRefreshingStatus(true);
+    await refresh();
+    setIsRefreshingStatus(false);
   };
-
   useEffect(() => {
-    let isMounted = true;
-    const poll = async () => {
-      try {
-        const res = await fetch("/api/stream/sync");
-        if (!res.ok || !isMounted) return;
-        const data = await res.json();
-        if (isMounted) {
-          applyStreamData(data);
-        }
-      } catch {
-        // Abaikan error pada polling otomatis di background
-      }
-    };
-
-    void poll();
-    const timer = setInterval(poll, 10000);
-    return () => {
-      isMounted = false;
-      clearInterval(timer);
-    };
-  }, [applyStreamData]);
+    const initial = setTimeout(() => void refresh(), 0);
+    const invalidateRequests = () => { requestVersion.current++; };
+    const timer = setInterval(() => void refresh(), 10000);
+    return () => { clearTimeout(initial); clearInterval(timer); invalidateRequests(); };
+  }, [refresh]);
 
   const copyText = async (text: string, id: string, label: string) => {
     let success = false;
@@ -131,28 +133,28 @@ export default function StreamsPage() {
   };
 
   const handleSyncYoutube = async () => {
+    if (saving.current) return;
+    saving.current = true;
+    requestVersion.current++;
     setIsSyncing(true);
     try {
       const res = await fetch("/api/stream/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          youtube_enabled: ytEnabled,
-          youtube_key: ytKey,
-        }),
+        body: JSON.stringify({ youtube_enabled: ytEnabled,
+          ...(ytKey.trim() ? { youtube_key: ytKey.trim() } : {}) }),
+        signal: AbortSignal.timeout(10000),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setVmixOnline(data.vmix_online ?? false);
-        setYoutubeStreaming(data.youtube_streaming ?? false);
-        setLastError(data.last_error || null);
-        toast.push(ytEnabled ? "Restream YouTube berhasil disimpan & diaktifkan!" : "Restream YouTube dinonaktifkan");
-      } else {
-        toast.push("Gagal menyimpan ke server", "error");
-      }
-    } catch {
-      toast.push("Terjadi gangguan jaringan", "error");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan ke server");
+      dirty.current = false;
+      setYtKey("");
+      applyStreamData(data);
+      toast.push("Pengaturan tersimpan. Status pengiriman akan diperbarui otomatis.");
+    } catch (error) {
+      toast.push(error instanceof Error ? error.message : "Terjadi gangguan jaringan", "error");
     } finally {
+      saving.current = false;
       setIsSyncing(false);
     }
   };
@@ -171,90 +173,12 @@ export default function StreamsPage() {
     }
   };
 
-  const testVisualStream = () => {
-    if (!videoRef.current) return;
-
-    // Jika vMix belum online, tampilkan pesan yang jelas tanpa request HLS
-    if (vmixOnline === false) {
-      toast.push("Sinyal vMix belum tersambung ke server. Tekan Stream di vMix terlebih dahulu.", "error");
-      return;
-    }
-
-    setIsVideoLoading(true);
-    const hlsUrl = "http://40.81.231.250:8888/gaulfm_webrtc/index.m3u8";
-
-    // Safari / iOS: native HLS support
-    if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
-      videoRef.current.src = hlsUrl;
-      videoRef.current.play()
-        .then(() => { setIsVideoPlaying(true); setIsVideoLoading(false); })
-        .catch(() => { setIsVideoLoading(false); toast.push("Sinyal vMix belum tersambung", "error"); });
-      return;
-    }
-
-    // Chrome/Firefox: gunakan HLS.js
-    const startHlsJs = () => {
-      // @ts-expect-error missing hls types
-      if (!window.Hls?.isSupported()) {
-        setIsVideoLoading(false);
-        toast.push("Browser ini tidak mendukung HLS playback", "error");
-        return;
-      }
-      // @ts-expect-error missing hls types
-      const hls = new window.Hls({ lowLatencyMode: true, enableWorker: true });
-      hls.loadSource(hlsUrl);
-      hls.attachMedia(videoRef.current);
-      // @ts-expect-error missing hls types
-      hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
-        videoRef.current?.play()
-          .then(() => { setIsVideoPlaying(true); setIsVideoLoading(false); })
-          .catch(() => { setIsVideoLoading(false); });
-      });
-      // @ts-expect-error missing hls types
-      hls.on(window.Hls.Events.ERROR, (_: unknown, data: { fatal: boolean }) => {
-        if (data.fatal) {
-          setIsVideoLoading(false);
-          setIsVideoPlaying(false);
-          toast.push(
-            vmixOnline
-              ? "Gagal memuat stream video dari server. Coba ulangi."
-              : "Sinyal visual studio belum online",
-            "error"
-          );
-        }
-      });
-    };
-
-    // Jika HLS.js sudah dimuat sebelumnya (window.Hls tersedia)
-    // @ts-expect-error missing hls types
-    if (window.Hls) {
-      startHlsJs();
-      return;
-    }
-
-    // Load HLS.js sekali saja dari CDN
-    const existingScript = document.getElementById("hlsjs-cdn");
-    if (existingScript) {
-      existingScript.addEventListener("load", startHlsJs, { once: true });
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = "hlsjs-cdn";
-    script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js";
-    script.onload = startHlsJs;
-    script.onerror = () => {
-      setIsVideoLoading(false);
-      toast.push("Gagal memuat HLS.js dari CDN. Periksa koneksi internet.", "error");
-    };
-    document.body.appendChild(script);
-  };
-
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-12">
       {/* ── HEADER RINGKAS & RAMAH ── */}
       <PageHeader
         title="Studio Siaran Multiplatform"
-        badge={<Badge tone="live" pulse>Server Aktif</Badge>}
+        badge={<Badge tone={engineOnline ? "success" : "muted"}>{engineOnline === null ? "Memeriksa Server" : engineOnline ? "Server Terhubung" : "Server Tidak Terjangkau"}</Badge>}
         description="Pusat konfigurasi dan panduan integrasi audio/video software studio (vMix, RadioBOSS) serta YouTube Live."
         actions={
           <span className="text-xs text-muted-foreground font-mono bg-muted/60 px-2.5 py-1.5 rounded-md border border-border">
@@ -316,7 +240,7 @@ export default function StreamsPage() {
                   Pengaturan di Software vMix
                 </CardTitle>
                 <CardDescription>
-                  Buka vMix $\to$ klik ikon gear pada menu <b>Stream</b> $\to$ pilih <b>Custom RTMP Server</b>, lalu isi data berikut:
+                  Buka vMix, klik ikon gear pada menu <b>Stream</b>, lalu pilih <b>Custom RTMP Server</b>, lalu isi data berikut:
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
@@ -371,6 +295,7 @@ export default function StreamsPage() {
                   <p>
                     Server akan langsung menyalin video H.264 kamera Anda dan otomatis mengonversi audio studio ke WebRTC (Opus) agar bersuara jernih di HP pendengar tanpa jeda.
                   </p>
+                  <p>Gunakan H.264 Baseline, B-frame 0, 25/30 fps, keyframe 2 detik dan audio AAC 48 kHz stereo. Resolusi dan bitrate mengikuti kapasitas upload studio.</p>
                 </div>
 
               </CardContent>
@@ -387,35 +312,9 @@ export default function StreamsPage() {
                     Tampilan langsung yang ditonton oleh pendengar di aplikasi HP.
                   </CardDescription>
                 </div>
-                {isVideoPlaying && <Badge tone="live" pulse>ON AIR</Badge>}
               </CardHeader>
               <div className="p-4 pt-0">
-                <div className="aspect-video w-full rounded-xl bg-black overflow-hidden relative border border-border shadow-inner flex items-center justify-center">
-                  <video ref={videoRef} className="w-full h-full object-contain" controls playsInline />
-                  
-                  {!isVideoPlaying && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-6 text-center">
-                      <Tv className="h-10 w-10 text-muted-foreground/60 mb-3" />
-                      <p className="text-sm font-medium text-white mb-1">Preview Studio</p>
-                      <p className="text-xs text-muted-foreground max-w-xs mb-4">
-                        Pastikan vMix sudah menekan tombol &quot;Stream&quot; sebelum memuat preview ini.
-                      </p>
-                      <Button
-                        variant="primary"
-                        onClick={testVisualStream}
-                        disabled={isVideoLoading}
-                        className="shadow-md"
-                      >
-                        {isVideoLoading ? (
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Play className="mr-2 h-4 w-4 fill-current" />
-                        )}
-                        {isVideoLoading ? "Menghubungkan..." : "Cek Tampilan Siaran"}
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <StreamPreview />
               </div>
             </Card>
           </div>
@@ -515,6 +414,7 @@ export default function StreamsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 pt-4">
+              <YouTubeAccountManager />
               
               {/* Panel Status Realtime Server & YouTube */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-xl bg-card border border-border/80 shadow-xs">
@@ -541,11 +441,17 @@ export default function StreamsPage() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground">Restream YouTube Live:</span>
-                    {youtubeStreaming ? (
+                    {youtubeStreaming === null ? (
+                      <Badge tone="muted" className="text-[10px]">Status belum tersedia</Badge>
+                    ) : youtubeStreaming ? (
                       <Badge tone="danger" pulse className="text-[10px]">
-                        Live Broadcast
+                        Data Terkirim
                       </Badge>
-                    ) : ytEnabled && !vmixOnline ? (
+                    ) : youtubeConnecting ? (
+                      <Badge tone="warning" className="text-[10px]">Menghubungkan</Badge>
+                    ) : lastError && savedEnabled ? (
+                      <Badge tone="danger" className="text-[10px]">Mencoba ulang</Badge>
+                    ) : savedEnabled && !vmixOnline ? (
                       <Badge tone="warning" className="text-[10px]">
                         Standby (Tunggu vMix)
                       </Badge>
@@ -556,7 +462,7 @@ export default function StreamsPage() {
                     )}
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    {youtubeStreaming ? "Server cloud sedang meneruskan siaran ke YouTube." : ytEnabled ? "Otomatis mengudara saat sinyal vMix studio online." : "Restream YouTube dimatikan."}
+                    {youtubeStreaming ? "Data terkirim ke YouTube. Konfirmasi tayangan publik di YouTube Studio." : savedEnabled ? "Otomatis mengudara saat sinyal vMix studio online." : "Restream YouTube dimatikan."}
                   </p>
                 </div>
 
@@ -594,7 +500,8 @@ export default function StreamsPage() {
                 <Button
                   variant={ytEnabled ? "danger" : "secondary"}
                   size="sm"
-                  onClick={() => setYtEnabled(!ytEnabled)}
+                  disabled={!configLoaded || isSyncing}
+                  onClick={() => { dirty.current = true; setYtEnabled(!ytEnabled); }}
                   className="font-bold text-xs px-4 h-9"
                 >
                   {ytEnabled ? "Matikan" : "Aktifkan"}
@@ -618,9 +525,11 @@ export default function StreamsPage() {
                 </div>
                 <Input
                   type="password"
-                  placeholder="Tempel Stream Key YouTube di sini (contoh: abcd-1234-efgh-5678)"
+                  placeholder={keyConfigured ? "Key tersimpan. Kosongkan untuk tetap memakai key tersebut." : "Tempel Stream Key YouTube di sini"}
+                  disabled={!configLoaded || isSyncing}
+                  autoComplete="off"
                   value={ytKey}
-                  onChange={(e) => setYtKey(e.target.value)}
+                  onChange={(e) => { dirty.current = true; setYtKey(e.target.value); }}
                   className="font-mono text-sm h-11"
                 />
               </div>
@@ -629,7 +538,7 @@ export default function StreamsPage() {
               <Button
                 variant="primary"
                 onClick={handleSyncYoutube}
-                disabled={isSyncing}
+                disabled={isSyncing || !configLoaded || (ytEnabled && !keyConfigured && !ytKey.trim())}
                 className="w-full h-11 text-sm font-semibold shadow-md"
               >
                 <Save className="mr-2 h-4 w-4" />

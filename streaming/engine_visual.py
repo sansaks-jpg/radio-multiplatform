@@ -1,72 +1,60 @@
 #!/usr/bin/env python3
+"""Copy the original H.264; only convert AAC to Opus for WebRTC."""
 import os
-import sys
-import json
 import signal
 import subprocess
+import sys
+import time
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'restream_config.json')
 
-def get_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'r') as f:
-            try:
-                return json.load(f)
-            except:
-                pass
-    return {"youtube_enabled": False, "youtube_key": ""}
-
-def main():
-    mtx_path = os.environ.get("MTX_PATH", "gaulfm")
-    
-    config = get_config()
-    youtube_enabled = config.get("youtube_enabled", False)
-    youtube_key = config.get("youtube_key", "")
-
-    target_webrtc_path = "gaulfm_webrtc" if mtx_path in ["gaulfm", "live_visual", "gaulfm_in"] else f"{mtx_path}_webrtc"
-
-    # Base FFmpeg command: Input from MediaMTX via local RTSP with DTS/PTS normalization
-    cmd = [
-        "ffmpeg",
-        "-hide_banner",
-        "-loglevel", "warning",
-        "-fflags", "+genpts+discardcorrupt",
-        "-avoid_negative_ts", "make_zero",
-        "-rtsp_transport", "tcp",
-        "-i", f"rtsp://localhost:8554/{mtx_path}",
-        
-        # Video: Direct copy with normalized timestamps (0% CPU, ultra smooth)
-        "-c:v", "copy",
-        
-        # Audio: Resampling filter to fix backward timestamps, sync audio, and prevent stutter
-        "-af", "aresample=async=1000:min_hard_comp=0.100000:first_pts=0",
-        "-c:a", "libopus",
-        "-b:a", "128k",
-        "-vbr", "on",
-        "-application", "audio",
-        "-cutoff", "20000",
-        
-        # Output RTSP via TCP without interleave latency
-        "-max_interleave_delta", "0",
-        "-rtsp_transport", "tcp",
-        "-f", "rtsp",
-        f"rtsp://localhost:8554/{target_webrtc_path}"
+def build_command(path):
+    target = 'gaulfm_webrtc' if path in ('gaulfm', 'live_visual', 'gaulfm_in') else f'{path}_webrtc'
+    return [
+        'ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'warning',
+        '-fflags', '+genpts+discardcorrupt', '-rw_timeout', '10000000',
+        # Read the original RTMP timestamps instead of converting through RTP/RTCP.
+        '-i', f'rtmp://localhost:1935/{path}',
+        '-map', '0:v:0', '-map', '0:a:0?', '-c:v', 'copy',
+        '-af', 'aresample=async=1000:min_hard_comp=0.100000:first_pts=0',
+        '-c:a', 'libopus', '-b:a', '128k', '-ar', '48000', '-ac', '2',
+        '-vbr', 'on', '-application', 'audio', '-frame_duration', '20',
+        '-cutoff', '20000', '-avoid_negative_ts', 'make_zero',
+        # Zero means UNBOUNDED interleave wait in FFmpeg, not zero latency.
+        '-max_interleave_delta', '100000', '-flush_packets', '1',
+        '-rtsp_transport', 'tcp', '-f', 'rtsp', f'rtsp://localhost:8554/{target}',
     ]
 
-    print("Starting WebRTC visual engine with command:", " ".join(cmd), flush=True)
-    
-    process = subprocess.Popen(cmd)
 
-    def signal_handler(sig, frame):
-        print("Received signal, terminating engine...", flush=True)
-        process.terminate()
-        process.wait()
-        sys.exit(0)
+def main():
+    process = None
+    stopped_at = None
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    def stop(_sig, _frame):
+        nonlocal stopped_at
+        if stopped_at is None:
+            stopped_at = time.monotonic()
+        # Never wait() in a signal handler: it can interrupt Popen.wait while
+        # its non-reentrant waitpid lock is held, deadlocking the hook forever.
+        if process is not None and process.poll() is None:
+            process.terminate()
 
-    process.wait()
 
-if __name__ == "__main__":
-    main()
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGTERM, stop)
+    command = build_command(os.environ.get('MTX_PATH', 'gaulfm'))
+    if stopped_at is not None:
+        return 0
+    process = subprocess.Popen(command)
+    if stopped_at is not None:
+        stop(None, None)
+    while True:
+        try:
+            code = process.wait(timeout=0.5)
+            return 0 if stopped_at is not None else code
+        except subprocess.TimeoutExpired:
+            if stopped_at is not None and time.monotonic() - stopped_at > 3:
+                process.kill()
+
+
+if __name__ == '__main__':
+    sys.exit(main())

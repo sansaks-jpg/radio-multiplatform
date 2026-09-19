@@ -51,3 +51,8 @@ supabase/.temp/
 
 # Streaming config (berisi stream key sensitif — jangan di-commit)
 streaming/restream_config.json
+
+# Local streaming audit artifacts and Python cache
+.tmp/
+streaming/__pycache__/
+admin/.data/
