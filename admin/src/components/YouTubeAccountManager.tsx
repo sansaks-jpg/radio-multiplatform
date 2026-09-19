@@ -159,7 +159,7 @@ function FormFields({ form, setForm, streams, lockedSchedule = false }: {
       <Field label="Mulai (waktu perangkat)"><Input type="datetime-local" disabled={lockedSchedule} value={form.startTime} onChange={event => update("startTime", event.target.value)} /></Field>
       <Field label="Selesai (opsional)"><Input type="datetime-local" disabled={lockedSchedule} value={form.endTime} onChange={event => update("endTime", event.target.value)} /></Field>
       <Field label="Visibilitas"><Select value={form.privacy} onChange={event => update("privacy", event.target.value)}><option value="unlisted">Tidak Publik</option><option value="private">Pribadi</option><option value="public">Publik</option></Select></Field>
-      <Field label="Sumber stream YouTube"><Select disabled={lockedSchedule} value={form.streamId} onChange={event => update("streamId", event.target.value)}><option value="">Pilih stream</option>{streams.map(stream => <option key={stream.id} value={stream.id}>{stream.title}{stream.streamStatus === "active" ? " · menerima video" : ""}</option>)}</Select></Field>
+      <Field label="Sumber stream YouTube"><Select disabled={lockedSchedule} value={form.streamId} onChange={event => update("streamId", event.target.value)}><option value="">Pilih jalur siaran</option>{streams.map(stream => <option key={stream.id} value={stream.id}>{stream.title.replace(/stream\s*key/gi, "Siaran").trim()} {stream.title.toLowerCase().includes("default") ? "(Utama)" : ""}{stream.streamStatus === "active" ? " · menerima video" : ""}</option>)}</Select></Field>
     </div>
     {!lockedSchedule && <div className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-2">
       {([

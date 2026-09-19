@@ -606,14 +606,14 @@ export default function StreamsPage() {
                           >
                             {ytOAuth.streams.map((s) => (
                               <option key={s.id} value={s.id}>
-                                {s.title} {s.title.toLowerCase().includes("default") ? "(Utama)" : ""} {s.streamStatus === "active" ? "🟢 Live" : ""}
+                                {s.title.replace(/stream\s*key/gi, "Siaran").trim()} {s.title.toLowerCase().includes("default") ? "(Utama)" : ""} {s.streamStatus === "active" ? "🟢 Live" : ""}
                               </option>
                             ))}
                           </select>
                         </div>
                       ) : (
                         <p className="text-[11px] text-muted-foreground">
-                          Jalur siaran terhubung otomatis ke: <b>{ytOAuth.streams[0]?.title || "Default Stream"}</b>
+                          Jalur transmisi video siap mengudara ke channel YouTube Anda.
                         </p>
                       )}
                     </div>
@@ -672,64 +672,54 @@ export default function StreamsPage() {
                   </div>
                 )}
 
-                {/* Monitor Feed Studio (StreamPreview) */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <Tv className="h-3.5 w-3.5 text-accent" />
-                      Monitor Feed Studio
-                    </label>
-                    <span className="text-[10px] text-muted-foreground">Tampilan video studio vMix</span>
-                  </div>
-                  <StreamPreview />
-                </div>
-
-                {/* Pengaturan Stream Key YouTube (Opsi Manual / Fallback) */}
-                <details className="pt-2 border-t border-border group text-xs">
-                  <summary className="text-muted-foreground cursor-pointer hover:text-foreground font-medium flex items-center justify-between py-1 select-none">
-                    <span className="flex items-center gap-1.5">
-                      <Key className="h-3.5 w-3.5 text-brand" />
-                      Opsi Lanjutan: Stream Key Manual (Akun Luar)
-                    </span>
-                    <span className="text-[10px] text-brand">Ubah / Tempel ▼</span>
-                  </summary>
-
-                  <div className="space-y-2 pt-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-muted-foreground">
-                        Hanya diisi jika ingin siaran ke channel lain di luar akun terhubung.
+                {/* Pengaturan Stream Key Manual (Hanya tampil jika akun belum terhubung OAuth) */}
+                {!ytOAuth?.connected && (
+                  <details className="pt-2 border-t border-border group text-xs">
+                    <summary className="text-muted-foreground cursor-pointer hover:text-foreground font-medium flex items-center justify-between py-1 select-none">
+                      <span className="flex items-center gap-1.5">
+                        <Key className="h-3.5 w-3.5 text-brand" />
+                        Opsi Manual: Stream Key (Tanpa Login)
                       </span>
-                      <a
-                        href="https://studio.youtube.com/channel/live"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-brand hover:underline inline-flex items-center gap-1"
-                      >
-                        YouTube Studio <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
+                      <span className="text-[10px] text-brand">Buka ▼</span>
+                    </summary>
 
-                    <div className="flex gap-2">
-                      <Input
-                        type="password"
-                        placeholder={keyConfigured ? "•••••••••••• (Key aktif tersimpan)" : "Tempel Stream Key di sini"}
-                        value={ytKey}
-                        onChange={(e) => { dirty.current = true; setYtKey(e.target.value); }}
-                        className="font-mono text-sm h-10 flex-1"
-                      />
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        disabled={isSyncing || !ytKey.trim()}
-                        onClick={handleSaveStreamKey}
-                        className="h-10 px-3.5 shrink-0"
-                      >
-                        <Save className="h-4 w-4 mr-1" />
-                        Simpan
-                      </Button>
+                    <div className="space-y-2 pt-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground">
+                          Masukkan Stream Key manual jika tidak ingin menghubungkan akun Google.
+                        </span>
+                        <a
+                          href="https://studio.youtube.com/channel/live"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-brand hover:underline inline-flex items-center gap-1"
+                        >
+                          YouTube Studio <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Input
+                          type="password"
+                          placeholder={keyConfigured ? "•••••••••••• (Key tersimpan)" : "Tempel Stream Key di sini"}
+                          value={ytKey}
+                          onChange={(e) => { dirty.current = true; setYtKey(e.target.value); }}
+                          className="font-mono text-sm h-10 flex-1"
+                        />
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={isSyncing || !ytKey.trim()}
+                          onClick={handleSaveStreamKey}
+                          className="h-10 px-3.5 shrink-0"
+                        >
+                          <Save className="h-4 w-4 mr-1" />
+                          Simpan
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </details>
+                  </details>
+                )}
 
               </CardContent>
             </Card>
