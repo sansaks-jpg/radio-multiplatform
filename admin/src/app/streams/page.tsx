@@ -1,7 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Copy, Radio, Save, Tv, Video, Cast, Check, Volume2, VolumeX, ExternalLink, RefreshCw } from "lucide-react";
+import {
+  Copy,
+  Radio,
+  Save,
+  Tv,
+  Video,
+  Cast,
+  Check,
+  Volume2,
+  VolumeX,
+  ExternalLink,
+  RefreshCw,
+  CircleStop,
+  Key,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
@@ -67,6 +81,7 @@ export default function StreamsPage() {
   const markUnavailable = useCallback(() => {
     setEngineOnline(false); setVmixOnline(null); setYoutubeStreaming(null);
   }, []);
+
   const refresh = useCallback(async () => {
     if (saving.current) return;
     const version = ++requestVersion.current;
@@ -79,11 +94,13 @@ export default function StreamsPage() {
       if (version === requestVersion.current) markUnavailable();
     }
   }, [applyStreamData, markUnavailable]);
+
   const handleManualRefresh = async () => {
     setIsRefreshingStatus(true);
     await refresh();
     setIsRefreshingStatus(false);
   };
+
   useEffect(() => {
     const initial = setTimeout(() => void refresh(), 0);
     const invalidateRequests = () => { requestVersion.current++; };
@@ -132,7 +149,13 @@ export default function StreamsPage() {
     }
   };
 
-  const handleSyncYoutube = async () => {
+  // 1. Kontrol langsung switch siaran YouTube ke server tanpa tombol simpan ganda
+  const handleToggleYoutube = async (targetEnabled?: boolean) => {
+    const nextState = targetEnabled !== undefined ? targetEnabled : !savedEnabled;
+    if (nextState && !keyConfigured && !ytKey.trim()) {
+      toast.push("Masukkan atau pilih Stream Key YouTube terlebih dahulu.", "error");
+      return;
+    }
     if (saving.current) return;
     saving.current = true;
     requestVersion.current++;
@@ -141,18 +164,86 @@ export default function StreamsPage() {
       const res = await fetch("/api/stream/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ youtube_enabled: ytEnabled,
-          ...(ytKey.trim() ? { youtube_key: ytKey.trim() } : {}) }),
+        body: JSON.stringify({
+          youtube_enabled: nextState,
+          ...(ytKey.trim() ? { youtube_key: ytKey.trim() } : {}),
+        }),
         signal: AbortSignal.timeout(10000),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal menyimpan ke server");
+      if (!res.ok) throw new Error(data.error || "Gagal memperbarui status ke server");
       dirty.current = false;
       setYtKey("");
       applyStreamData(data);
-      toast.push("Pengaturan tersimpan. Status pengiriman akan diperbarui otomatis.");
+      toast.push(
+        nextState
+          ? "Siaran YouTube diaktifkan! Server mulai meneruskan video vMix ke YouTube."
+          : "Siaran YouTube dinonaktifkan."
+      );
     } catch (error) {
       toast.push(error instanceof Error ? error.message : "Terjadi gangguan jaringan", "error");
+    } finally {
+      saving.current = false;
+      setIsSyncing(false);
+    }
+  };
+
+  // 2. Simpan manual Stream Key
+  const handleSaveStreamKey = async () => {
+    if (!ytKey.trim()) return;
+    if (saving.current) return;
+    saving.current = true;
+    requestVersion.current++;
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/stream/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          youtube_enabled: savedEnabled,
+          youtube_key: ytKey.trim(),
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan Stream Key");
+      dirty.current = false;
+      setYtKey("");
+      applyStreamData(data);
+      toast.push("Stream Key YouTube berhasil disimpan di server!");
+    } catch (error) {
+      toast.push(error instanceof Error ? error.message : "Gagal menyimpan Stream Key", "error");
+    } finally {
+      saving.current = false;
+      setIsSyncing(false);
+    }
+  };
+
+  // 3. Pasang Stream Key otomatis dari YouTube OAuth Channel
+  const handleApplyStreamKeyFromOAuth = async (key: string, title: string) => {
+    if (!key.trim()) return;
+    if (saving.current) return;
+    saving.current = true;
+    requestVersion.current++;
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/stream/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          youtube_enabled: savedEnabled,
+          youtube_key: key.trim(),
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal memasang Stream Key");
+      dirty.current = false;
+      setYtKey("");
+      applyStreamData(data);
+      toast.push(`Stream Key dari "${title}" berhasil dipasang ke server cloud!`);
+    } catch (error) {
+      toast.push(error instanceof Error ? error.message : "Gagal memasang Stream Key", "error");
     } finally {
       saving.current = false;
       setIsSyncing(false);
@@ -223,7 +314,7 @@ export default function StreamsPage() {
         >
           <Cast className={`h-4 w-4 ${activeTab === "youtube" ? "text-live" : ""}`} />
           <span>3. YouTube Live</span>
-          {ytEnabled && <span className="h-2 w-2 rounded-full bg-live animate-pulse" />}
+          {savedEnabled && <span className="h-2 w-2 rounded-full bg-live animate-pulse" />}
         </button>
       </div>
 
@@ -400,153 +491,185 @@ export default function StreamsPage() {
         </div>
       )}
 
-      {/* ── TAB 3: YOUTUBE LIVE RESTREAM ── */}
+      {/* ── TAB 3: YOUTUBE LIVE RESTREAM (2-COLUMN GRID) ── */}
       {activeTab === "youtube" && (
-        <div className="max-w-2xl mx-auto space-y-4 animate-in fade-in duration-200">
-          <Card className="border border-border">
-            <CardHeader className="border-b border-border/60 pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Cast className="h-5 w-5 text-live" />
-                Siaran Ulang Otomatis ke YouTube Live
-              </CardTitle>
-              <CardDescription>
-                Server cloud akan meneruskan siaran vMix studio Anda ke YouTube tanpa membebani laptop atau kuota internet studio Anda.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5 pt-4">
-              <YouTubeAccountManager />
-              
-              {/* Panel Status Realtime Server & YouTube */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-xl bg-card border border-border/80 shadow-xs">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">Sinyal Ingest vMix Studio:</span>
+        <div className="grid lg:grid-cols-12 gap-6 animate-in fade-in duration-200">
+          
+          {/* KOLOM KIRI (5 KOLOM): TRANSMISI CLOUD & MONITOR STUDIO */}
+          <div className="lg:col-span-5 space-y-4">
+            <Card className="border border-border shadow-sm">
+              <CardHeader className="border-b border-border/60 pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Cast className="h-5 w-5 text-live" />
+                    Transmisi ke YouTube
+                  </CardTitle>
+                  {youtubeStreaming ? (
+                    <Badge tone="live" pulse>LIVE DI YOUTUBE</Badge>
+                  ) : savedEnabled && !vmixOnline ? (
+                    <Badge tone="warning">STANDBY</Badge>
+                  ) : (
+                    <Badge tone="muted">OFFLINE</Badge>
+                  )}
+                </div>
+                <CardDescription className="text-xs">
+                  Meneruskan video vMix studio langsung ke YouTube Live dari server cloud Azure tanpa membebani kuota laptop.
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-4 pt-4">
+                {/* Panel Status Sinyal Real-time */}
+                <div className="p-3.5 rounded-xl bg-card border border-border/80 space-y-3 shadow-xs">
+                  {/* Sinyal Ingest vMix */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                      <span className={`h-2 w-2 rounded-full ${vmixOnline ? "bg-success animate-pulse" : "bg-muted-foreground/40"}`} />
+                      Sinyal Studio (vMix):
+                    </span>
                     {vmixOnline === null ? (
                       <Badge tone="muted" className="text-[10px]">Memeriksa...</Badge>
                     ) : vmixOnline ? (
-                      <Badge tone="success" pulse className="text-[10px]">
-                        Online (Mengudara)
-                      </Badge>
+                      <Badge tone="success" pulse className="text-[10px]">Online (Mengudara)</Badge>
                     ) : (
-                      <Badge tone="muted" className="text-[10px]">
-                        Offline (Siaga)
-                      </Badge>
+                      <Badge tone="muted" className="text-[10px]">Offline (Siaga)</Badge>
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    {vmixOnline ? "Stream vMix studio terdeteksi aktif di server cloud." : "Kirim RTMP dari vMix laptop ke server untuk mengaktifkan."}
-                  </p>
-                </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">Restream YouTube Live:</span>
-                    {youtubeStreaming === null ? (
-                      <Badge tone="muted" className="text-[10px]">Status belum tersedia</Badge>
-                    ) : youtubeStreaming ? (
-                      <Badge tone="danger" pulse className="text-[10px]">
-                        Data Terkirim
-                      </Badge>
+                  {/* Restream YouTube */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                      <span className={`h-2 w-2 rounded-full ${youtubeStreaming ? "bg-live animate-pulse" : savedEnabled ? "bg-warning" : "bg-muted-foreground/40"}`} />
+                      Push YouTube Live:
+                    </span>
+                    {youtubeStreaming ? (
+                      <Badge tone="danger" pulse className="text-[10px]">Data Terkirim</Badge>
                     ) : youtubeConnecting ? (
-                      <Badge tone="warning" className="text-[10px]">Menghubungkan</Badge>
-                    ) : lastError && savedEnabled ? (
-                      <Badge tone="danger" className="text-[10px]">Mencoba ulang</Badge>
+                      <Badge tone="warning" className="text-[10px]">Menghubungkan...</Badge>
                     ) : savedEnabled && !vmixOnline ? (
-                      <Badge tone="warning" className="text-[10px]">
-                        Standby (Tunggu vMix)
-                      </Badge>
+                      <Badge tone="warning" className="text-[10px]">Standby (Tunggu vMix)</Badge>
                     ) : (
-                      <Badge tone="muted" className="text-[10px]">
-                        Nonaktif
-                      </Badge>
+                      <Badge tone="muted" className="text-[10px]">Nonaktif</Badge>
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    {youtubeStreaming ? "Data terkirim ke YouTube. Konfirmasi tayangan publik di YouTube Studio." : savedEnabled ? "Otomatis mengudara saat sinyal vMix studio online." : "Restream YouTube dimatikan."}
+
+                  {/* Tombol Utama: Mulai / Hentikan Siaran ke YouTube */}
+                  <div className="pt-2 border-t border-border/40">
+                    {savedEnabled ? (
+                      <Button
+                        variant="danger"
+                        className="w-full h-11 font-semibold text-sm shadow-sm"
+                        disabled={isSyncing}
+                        onClick={() => handleToggleYoutube(false)}
+                      >
+                        <CircleStop className="mr-2 h-4 w-4" />
+                        {isSyncing ? "Menyimpan ke Server..." : "Hentikan Siaran ke YouTube"}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="live"
+                        className="w-full h-11 font-semibold text-sm shadow-md"
+                        disabled={isSyncing || (!keyConfigured && !ytKey.trim())}
+                        onClick={() => handleToggleYoutube(true)}
+                      >
+                        <Radio className="mr-2 h-4 w-4" />
+                        {isSyncing ? "Menghubungkan..." : "Mulai Siaran ke YouTube"}
+                      </Button>
+                    )}
+
+                    {!keyConfigured && !ytKey.trim() && (
+                      <p className="text-[11px] text-warning mt-2 text-center">
+                        ⚠️ Stream Key belum diset. Pilih stream dari channel di sebelah kanan atau tempel manual di bawah.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Auto refresh status bar */}
+                  <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Auto-refresh setiap 10 detik</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleManualRefresh}
+                      disabled={isRefreshingStatus}
+                      className="h-6 text-xs px-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshingStatus ? "animate-spin" : ""}`} />
+                      Segarkan
+                    </Button>
+                  </div>
+                </div>
+
+                {lastError && (
+                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-500">
+                    <span className="font-semibold">Peringatan:</span> {lastError}
+                  </div>
+                )}
+
+                {/* Monitor Feed Studio (StreamPreview) */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Tv className="h-3.5 w-3.5 text-accent" />
+                      Monitor Feed Studio
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">Tampilan video studio vMix</span>
+                  </div>
+                  <StreamPreview />
+                </div>
+
+                {/* Pengaturan Stream Key YouTube */}
+                <div className="space-y-2.5 pt-3 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Key className="h-3.5 w-3.5 text-brand" />
+                      Stream Key YouTube
+                    </label>
+                    <a
+                      href="https://studio.youtube.com/channel/live"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-brand hover:underline inline-flex items-center gap-1"
+                    >
+                      YouTube Studio <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      placeholder={keyConfigured ? "•••••••••••• (Key tersimpan)" : "Tempel Stream Key di sini"}
+                      value={ytKey}
+                      onChange={(e) => { dirty.current = true; setYtKey(e.target.value); }}
+                      className="font-mono text-sm h-10 flex-1"
+                    />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={isSyncing || !ytKey.trim()}
+                      onClick={handleSaveStreamKey}
+                      className="h-10 px-3.5 shrink-0"
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      Simpan
+                    </Button>
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {keyConfigured
+                      ? "✓ Stream Key terpasang di server. Anda bisa langsung memulai siaran atau memilih stream lain di sebelah kanan."
+                      : "Pilih stream dari channel di sebelah kanan (1-Klik Sync) atau tempel manual jika memakai channel/event lain."}
                   </p>
                 </div>
 
-                <div className="md:col-span-2 pt-2 border-t border-border/40 flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">
-                    Auto-refresh status setiap 10 detik
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleManualRefresh}
-                    disabled={isRefreshingStatus}
-                    className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <RefreshCw className={`h-3 w-3 mr-1 ${isRefreshingStatus ? "animate-spin" : ""}`} />
-                    Perbarui Status
-                  </Button>
-                </div>
-              </div>
+              </CardContent>
+            </Card>
+          </div>
 
-              {lastError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-500">
-                  <span className="font-semibold">Peringatan:</span> {lastError}
-                </div>
-              )}
+          {/* KOLOM KANAN (7 KOLOM): MANAJEMEN YOUTUBE STUDIO */}
+          <div className="lg:col-span-7 space-y-4">
+            <YouTubeAccountManager onSelectStreamKey={handleApplyStreamKeyFromOAuth} />
+          </div>
 
-              {/* Sakelar ON/OFF */}
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border">
-                <div>
-                  <p className="font-semibold text-sm text-foreground">Status Push YouTube</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {ytEnabled ? "Siaran vMix akan otomatis terkirim ke YouTube" : "Siaran hanya berjalan di Aplikasi Mobile"}
-                  </p>
-                </div>
-                <Button
-                  variant={ytEnabled ? "danger" : "secondary"}
-                  size="sm"
-                  disabled={!configLoaded || isSyncing}
-                  onClick={() => { dirty.current = true; setYtEnabled(!ytEnabled); }}
-                  className="font-bold text-xs px-4 h-9"
-                >
-                  {ytEnabled ? "Matikan" : "Aktifkan"}
-                </Button>
-              </div>
-
-              {/* Input Key */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Stream Key YouTube Anda
-                  </label>
-                  <a
-                    href="https://studio.youtube.com/channel/live"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-brand hover:underline inline-flex items-center gap-1"
-                  >
-                    Buka YouTube Studio <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-                <Input
-                  type="password"
-                  placeholder={keyConfigured ? "Key tersimpan. Kosongkan untuk tetap memakai key tersebut." : "Tempel Stream Key YouTube di sini"}
-                  disabled={!configLoaded || isSyncing}
-                  autoComplete="off"
-                  value={ytKey}
-                  onChange={(e) => { dirty.current = true; setYtKey(e.target.value); }}
-                  className="font-mono text-sm h-11"
-                />
-              </div>
-
-              {/* Tombol Simpan */}
-              <Button
-                variant="primary"
-                onClick={handleSyncYoutube}
-                disabled={isSyncing || !configLoaded || (ytEnabled && !keyConfigured && !ytKey.trim())}
-                className="w-full h-11 text-sm font-semibold shadow-md"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                {isSyncing ? "Menyimpan ke Server..." : "Simpan & Terapkan Pengaturan"}
-              </Button>
-
-            </CardContent>
-          </Card>
         </div>
       )}
 

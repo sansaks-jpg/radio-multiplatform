@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarClock,
+  Check,
   CircleStop,
   ExternalLink,
+  Key,
   Link2,
   Pencil,
   Play,
@@ -13,6 +15,7 @@ import {
   RefreshCw,
   Save,
   Unplug,
+  Video,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +40,7 @@ type Broadcast = {
 };
 
 type StreamIssue = { type?: string; severity?: string; reason?: string; description?: string };
-type Stream = { id: string; title: string; streamStatus?: string; healthStatus?: string; issues?: StreamIssue[] };
+type Stream = { id: string; title: string; streamKey?: string | null; streamStatus?: string; healthStatus?: string; issues?: StreamIssue[] };
 type Status = {
   configured: boolean;
   connected: boolean;
@@ -169,7 +172,11 @@ function FormFields({ form, setForm, streams, lockedSchedule = false }: {
   </div>;
 }
 
-export function YouTubeAccountManager() {
+export function YouTubeAccountManager({
+  onSelectStreamKey,
+}: {
+  onSelectStreamKey?: (streamKey: string, streamTitle: string) => void;
+} = {}) {
   const toast = useToast();
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(false);
@@ -248,36 +255,248 @@ export function YouTubeAccountManager() {
     toast.push(data.revoked ? "Akun YouTube diputus dan akses Google dicabut." : "Token lokal dihapus. Periksa akses aplikasi di akun Google bila perlu.");
   };
 
-  if (!status) return <div className="text-xs text-muted-foreground">Memeriksa koneksi akun YouTube...</div>;
-  if (!status.configured) return <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm"><p className="font-semibold">OAuth YouTube belum dikonfigurasi di server</p><p className="mt-1 text-xs text-muted-foreground">Siapkan HTTPS, OAuth Client Google, redirect URI, dan encryption key.</p></div>;
-  if (!status.connected) return <div className="rounded-lg border border-border p-4"><p className="font-semibold text-sm">Hubungkan channel YouTube Gaul FM</p><p className="text-xs text-muted-foreground mt-1 mb-3">Google akan meminta izin mengelola siaran. Token disimpan terenkripsi di server.</p><Button variant="primary" onClick={() => { window.location.href = "/api/youtube/oauth/start"; }}><Link2 className="h-4 w-4 mr-2" />Hubungkan Akun YouTube</Button></div>;
+  if (!status) return <div className="text-xs text-muted-foreground p-4">Memeriksa koneksi akun YouTube...</div>;
+  if (!status.configured) return <div className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm"><p className="font-semibold">OAuth YouTube belum dikonfigurasi di server</p><p className="mt-1 text-xs text-muted-foreground">Siapkan HTTPS, OAuth Client Google, redirect URI, dan encryption key.</p></div>;
+  if (!status.connected) return <div className="rounded-xl border border-border bg-card p-4 shadow-sm"><p className="font-semibold text-sm">Hubungkan channel YouTube Gaul FM</p><p className="text-xs text-muted-foreground mt-1 mb-3">Google akan meminta izin mengelola siaran. Token disimpan terenkripsi di server.</p><Button variant="primary" onClick={() => { window.location.href = "/api/youtube/oauth/start"; }}><Link2 className="h-4 w-4 mr-2" />Hubungkan Akun YouTube</Button></div>;
 
-  return <div className="space-y-4 rounded-xl border border-border p-4">
-    <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-      <div className="flex items-center gap-3">{status.channel?.thumbnail ? <div aria-hidden className="h-10 w-10 rounded-full bg-cover bg-center" style={{ backgroundImage: `url(${status.channel.thumbnail})` }} /> : <div className="flex h-10 w-10 items-center justify-center rounded-full bg-live/10"><Radio className="h-5 w-5 text-live" /></div>}<div><p className="text-sm font-semibold">{status.channel?.title || "Channel YouTube terhubung"}</p><p className="text-xs text-muted-foreground">OAuth aktif · {activeStreamCount ? `${activeStreamCount} stream menerima video` : "belum ada video masuk"}</p></div></div>
-      <div className="flex flex-wrap items-center gap-2"><Badge tone="success">Terhubung</Badge><Button variant="ghost" size="sm" disabled={loading} onClick={() => void refresh()}><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />Segarkan</Button><Button variant="danger" size="sm" onClick={() => void disconnect()}><Unplug className="h-3.5 w-3.5" />Putuskan</Button></div>
-    </div>
-
-    {streams.some(stream => stream.streamStatus === "active") && <div className="rounded-lg border border-success/30 bg-success/10 p-3"><p className="text-xs font-semibold text-success">Video dari server diterima YouTube</p>{streams.filter(stream => stream.streamStatus === "active").map(stream => <p key={stream.id} className="mt-1 text-[11px] text-muted-foreground">{stream.title} · kesehatan {stream.healthStatus || "belum tersedia"}{stream.issues?.length ? ` · ${stream.issues.length} peringatan` : ""}</p>)}</div>}
-
-    <div className="flex items-center justify-between border-t border-border pt-4"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Siaran aktif dan mendatang</p><p className="mt-1 text-[11px] text-muted-foreground">Judul, jadwal, privasi, sumber video, dan status live dikelola dari sini.</p></div><Button variant="primary" size="sm" onClick={openCreate}><Plus className="h-4 w-4" />Buat Siaran</Button></div>
-
-    {!status.broadcasts?.length && <div className="rounded-lg border border-dashed border-border p-6 text-center"><CalendarClock className="mx-auto h-6 w-6 text-muted-foreground" /><p className="mt-2 text-sm font-medium">Belum ada siaran aktif atau mendatang</p><p className="mt-1 text-xs text-muted-foreground">Buat jadwal baru untuk menyiapkan halaman live YouTube.</p></div>}
-    <div className="space-y-2">{status.broadcasts?.map(broadcast => {
-      const stream = streams.find(item => item.id === broadcast.boundStreamId);
-      const isLive = broadcast.lifeCycleStatus === "live";
-      const isTesting = broadcast.lifeCycleStatus === "testing" || broadcast.lifeCycleStatus === "testStarting";
-      const canStart = !isLive && broadcast.lifeCycleStatus !== "complete";
-      return <div key={broadcast.id} className="rounded-lg bg-muted/30 p-3">
-        <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
-          <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="truncate text-sm font-semibold">{broadcast.title}</p><Badge tone={statusTone(broadcast.lifeCycleStatus)}>{STATUS_LABEL[broadcast.lifeCycleStatus || ""] || broadcast.lifeCycleStatus || "Status tidak diketahui"}</Badge><Badge>{broadcast.privacyStatus === "public" ? "Publik" : broadcast.privacyStatus === "private" ? "Pribadi" : "Tidak Publik"}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{formatSchedule(broadcast.scheduledStartTime)}</p><p className="mt-1 text-[11px] text-muted-foreground">{stream ? `${stream.title} · ${stream.streamStatus === "active" ? "video masuk" : "menunggu video"}` : "Belum terhubung ke stream"} · {broadcast.enableAutoStart ? "Auto-start" : "Start manual"} · {broadcast.enableAutoStop ? "Auto-stop" : "Stop manual"}</p></div>
-          <div className="flex flex-wrap gap-1.5"><Button variant="ghost" size="sm" onClick={() => { setEditing(broadcast); setForm(formFromBroadcast(broadcast)); }}><Pencil className="h-3.5 w-3.5" />Edit</Button>{canStart && broadcast.monitorStreamEnabled && !isTesting && <Button variant="outline" size="sm" disabled={!!transitioning} onClick={() => void transition(broadcast, "testing")}><Play className="h-3.5 w-3.5" />Pratinjau</Button>}{canStart && <Button variant="live" size="sm" disabled={!!transitioning} onClick={() => void transition(broadcast, "live")}><Radio className="h-3.5 w-3.5" />Go Live</Button>}{(isLive || isTesting) && <Button variant="danger" size="sm" disabled={!!transitioning} onClick={() => void transition(broadcast, "complete")}><CircleStop className="h-3.5 w-3.5" />Akhiri</Button>}<a className="inline-flex h-8 items-center px-2 text-xs font-medium text-brand" target="_blank" rel="noreferrer" href={`https://www.youtube.com/watch?v=${broadcast.id}`}>Buka<ExternalLink className="ml-1 h-3.5 w-3.5" /></a></div>
+  return (
+    <div className="space-y-4">
+      {/* Header Channel Card */}
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-3">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            {status.channel?.thumbnail ? (
+              <div
+                aria-hidden
+                className="h-10 w-10 rounded-full bg-cover bg-center border border-border shrink-0"
+                style={{ backgroundImage: `url(${status.channel.thumbnail})` }}
+              />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-live/10 shrink-0">
+                <Radio className="h-5 w-5 text-live" />
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {status.channel?.title || "Channel YouTube"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                OAuth aktif · {activeStreamCount ? `${activeStreamCount} stream menerima video` : "belum ada video masuk"}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="success">Terhubung</Badge>
+            <Button variant="ghost" size="sm" disabled={loading} onClick={() => void refresh()}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
+              Segarkan
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => void disconnect()}>
+              <Unplug className="h-3.5 w-3.5 mr-1" />
+              Putuskan
+            </Button>
+          </div>
         </div>
-      </div>;
-    })}</div>
 
-    <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Buat siaran YouTube" description="Siapkan halaman tayangan dan hubungkan ke sumber video server." wide><FormFields form={form} setForm={setForm} streams={streams} /><div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setCreateOpen(false)}>Batal</Button><Button variant="primary" disabled={saving || !form.title.trim() || !form.startTime || !form.streamId} onClick={() => void saveBroadcast()}><Plus className="h-4 w-4" />{saving ? "Membuat..." : "Buat Siaran"}</Button></div></Modal>
+        {/* Info Sinyal YouTube Active */}
+        {streams.some((stream) => stream.streamStatus === "active") && (
+          <div className="rounded-lg border border-success/30 bg-success/10 p-3">
+            <p className="text-xs font-semibold text-success flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5" /> Video dari server diterima YouTube
+            </p>
+            {streams
+              .filter((stream) => stream.streamStatus === "active")
+              .map((stream) => (
+                <p key={stream.id} className="mt-1 text-[11px] text-muted-foreground">
+                  {stream.title} · kesehatan {stream.healthStatus || "belum tersedia"}
+                  {stream.issues?.length ? ` · ${stream.issues.length} peringatan` : ""}
+                </p>
+              ))}
+          </div>
+        )}
 
-    <Modal open={!!editing} onClose={() => setEditing(null)} title="Kelola detail siaran" description={editing?.lifeCycleStatus === "live" ? "Saat live, jadwal dan sumber stream dikunci oleh YouTube." : "Perubahan disimpan langsung ke YouTube."} wide>{editing && <><FormFields form={form} setForm={setForm} streams={streams} lockedSchedule={editing.lifeCycleStatus === "live"} /><div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setEditing(null)}>Batal</Button><Button variant="primary" disabled={saving || !form.title.trim() || !form.startTime} onClick={() => void saveBroadcast(editing)}><Save className="h-4 w-4" />{saving ? "Menyimpan..." : "Simpan ke YouTube"}</Button></div></>}</Modal>
-  </div>;
+        {/* Daftar Jalur Stream Channel YouTube */}
+        {streams.length > 0 && (
+          <div className="rounded-lg border border-border/70 bg-muted/20 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Key className="h-3.5 w-3.5 text-brand" />
+                Stream Ingest Key Channel
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {streams.length} stream terdeteksi
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {streams.map((stream) => (
+                <div
+                  key={stream.id}
+                  className="flex items-center justify-between p-2 rounded-md bg-card border border-border/60 text-xs"
+                >
+                  <div className="min-w-0 flex-1 mr-2">
+                    <p className="font-semibold text-foreground truncate">{stream.title}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Status: {stream.streamStatus === "active" ? "🟢 Menerima Video" : "⚪ Siaga / Menunggu"}
+                    </p>
+                  </div>
+                  {stream.streamKey && onSelectStreamKey && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSelectStreamKey(stream.streamKey!, stream.title)}
+                      className="h-7 text-xs px-2.5 shrink-0 hover:bg-brand/10 hover:text-brand hover:border-brand/40"
+                    >
+                      <Key className="h-3 w-3 mr-1 text-brand" />
+                      Gunakan Key Ini
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Siaran Aktif & Mendatang Card */}
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Siaran Aktif dan Mendatang
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Judul, jadwal, privasi, sumber video, dan status live dikelola dari sini.
+            </p>
+          </div>
+          <Button variant="primary" size="sm" onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-1" />
+            Buat Siaran
+          </Button>
+        </div>
+
+        {!status.broadcasts?.length && (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center">
+            <CalendarClock className="mx-auto h-6 w-6 text-muted-foreground" />
+            <p className="mt-2 text-sm font-medium">Belum ada siaran aktif atau mendatang</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Buat jadwal baru untuk menyiapkan halaman live YouTube.
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {status.broadcasts?.map((broadcast) => {
+            const stream = streams.find((item) => item.id === broadcast.boundStreamId);
+            const isLive = broadcast.lifeCycleStatus === "live";
+            const isTesting = broadcast.lifeCycleStatus === "testing" || broadcast.lifeCycleStatus === "testStarting";
+            const canStart = !isLive && broadcast.lifeCycleStatus !== "complete";
+            return (
+              <div key={broadcast.id} className="rounded-lg bg-muted/30 border border-border/60 p-3">
+                <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-semibold">{broadcast.title}</p>
+                      <Badge tone={statusTone(broadcast.lifeCycleStatus)}>
+                        {STATUS_LABEL[broadcast.lifeCycleStatus || ""] || broadcast.lifeCycleStatus || "Status tidak diketahui"}
+                      </Badge>
+                      <Badge>
+                        {broadcast.privacyStatus === "public" ? "Publik" : broadcast.privacyStatus === "private" ? "Pribadi" : "Tidak Publik"}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatSchedule(broadcast.scheduledStartTime)}
+                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {stream ? `${stream.title} · ${stream.streamStatus === "active" ? "video masuk" : "menunggu video"}` : "Belum terhubung ke stream"} · {broadcast.enableAutoStart ? "Auto-start" : "Start manual"} · {broadcast.enableAutoStop ? "Auto-stop" : "Stop manual"}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditing(broadcast);
+                        setForm(formFromBroadcast(broadcast));
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1" />
+                      Edit
+                    </Button>
+                    {canStart && broadcast.monitorStreamEnabled && !isTesting && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!!transitioning}
+                        onClick={() => void transition(broadcast, "testing")}
+                      >
+                        <Play className="h-3.5 w-3.5 mr-1" />
+                        Pratinjau
+                      </Button>
+                    )}
+                    {canStart && (
+                      <Button
+                        variant="live"
+                        size="sm"
+                        disabled={!!transitioning}
+                        onClick={() => void transition(broadcast, "live")}
+                      >
+                        <Radio className="h-3.5 w-3.5 mr-1" />
+                        Go Live
+                      </Button>
+                    )}
+                    {(isLive || isTesting) && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={!!transitioning}
+                        onClick={() => void transition(broadcast, "complete")}
+                      >
+                        <CircleStop className="h-3.5 w-3.5 mr-1" />
+                        Akhiri
+                      </Button>
+                    )}
+                    <a
+                      className="inline-flex h-8 items-center px-2.5 text-xs font-medium text-brand hover:underline rounded-md hover:bg-brand/10 transition-colors"
+                      target="_blank"
+                      rel="noreferrer"
+                      href={`https://www.youtube.com/watch?v=${broadcast.id}`}
+                    >
+                      Buka
+                      <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Buat siaran YouTube" description="Siapkan halaman tayangan dan hubungkan ke sumber video server." wide>
+        <FormFields form={form} setForm={setForm} streams={streams} />
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setCreateOpen(false)}>Batal</Button>
+          <Button variant="primary" disabled={saving || !form.title.trim() || !form.startTime || !form.streamId} onClick={() => void saveBroadcast()}>
+            <Plus className="h-4 w-4 mr-1" />
+            {saving ? "Membuat..." : "Buat Siaran"}
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal open={!!editing} onClose={() => setEditing(null)} title="Kelola detail siaran" description={editing?.lifeCycleStatus === "live" ? "Saat live, jadwal dan sumber stream dikunci oleh YouTube." : "Perubahan disimpan langsung ke YouTube."} wide>
+        {editing && (
+          <>
+            <FormFields form={form} setForm={setForm} streams={streams} lockedSchedule={editing.lifeCycleStatus === "live"} />
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setEditing(null)}>Batal</Button>
+              <Button variant="primary" disabled={saving || !form.title.trim() || !form.startTime} onClick={() => void saveBroadcast(editing)}>
+                <Save className="h-4 w-4 mr-1" />
+                {saving ? "Menyimpan..." : "Simpan ke YouTube"}
+              </Button>
+            </div>
+          </>
+        )}
+      </Modal>
+    </div>
+  );
 }
