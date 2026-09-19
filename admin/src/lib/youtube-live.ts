@@ -60,14 +60,49 @@ export async function ensureActiveYouTubeBroadcast(preferredStreamId?: string) {
       return { error: "Tidak ada stream key / stream ingestion yang ditemukan di akun YouTube." };
     }
 
+    // Dapatkan judul dan deskripsi default sesuai format baku
+    let liveTitle = "Gaul FM – The Best Visual Radio Station";
+    try {
+      const radioState = await getServerLiveState();
+      const progName = radioState?.nowPlaying?.current_program;
+      if (progName && progName.trim()) {
+        liveTitle = `${progName.trim()} | Gaul FM – The Best Visual Radio Station`;
+      }
+    } catch {
+      // Fallback ke judul default
+    }
+    const liveDescription = `${liveTitle}\nWebsite: https://radiogaulfmsmg.com`;
+
     // 2. Jika sudah ada broadcast yang sedang live
     const currentLive = activeList.find(
       (b) => b.status?.lifeCycleStatus === "live" || b.status?.lifeCycleStatus === "testing"
     );
     if (currentLive) {
+      // Sinkronkan judul & deskripsi jika belum sesuai format baru
+      if (!currentLive.snippet?.title?.includes("The Best Visual Radio Station")) {
+        try {
+          await youtubeRequest("/liveBroadcasts?part=id,snippet,status", {
+            method: "PUT",
+            body: JSON.stringify({
+              id: currentLive.id,
+              snippet: {
+                title: liveTitle,
+                description: liveDescription,
+                scheduledStartTime: currentLive.snippet?.scheduledStartTime || new Date().toISOString(),
+              },
+              status: {
+                privacyStatus: currentLive.status?.privacyStatus || "public",
+                selfDeclaredMadeForKids: false,
+              },
+            }),
+          });
+        } catch {
+          // Non-fatal
+        }
+      }
       return {
         broadcastId: currentLive.id,
-        title: currentLive.snippet?.title || "Live Siaran",
+        title: liveTitle,
         status: currentLive.status?.lifeCycleStatus || "live",
         watchUrl: `https://www.youtube.com/watch?v=${currentLive.id}`,
         created: false,
@@ -77,6 +112,28 @@ export async function ensureActiveYouTubeBroadcast(preferredStreamId?: string) {
     // 3. Jika ada broadcast upcoming yang sudah terikat ke stream target
     const boundUpcoming = upcomingList.find((b) => b.contentDetails?.boundStreamId === targetStream.id);
     if (boundUpcoming) {
+      // Sinkronkan judul & deskripsi jika belum sesuai format baru
+      if (!boundUpcoming.snippet?.title?.includes("The Best Visual Radio Station")) {
+        try {
+          await youtubeRequest("/liveBroadcasts?part=id,snippet,status", {
+            method: "PUT",
+            body: JSON.stringify({
+              id: boundUpcoming.id,
+              snippet: {
+                title: liveTitle,
+                description: liveDescription,
+                scheduledStartTime: boundUpcoming.snippet?.scheduledStartTime || new Date().toISOString(),
+              },
+              status: {
+                privacyStatus: boundUpcoming.status?.privacyStatus || "public",
+                selfDeclaredMadeForKids: false,
+              },
+            }),
+          });
+        } catch {
+          // Non-fatal
+        }
+      }
       // Jika stream sudah aktif menerima video dan auto-start belum memicu, coba transisi
       if (targetStream.status?.streamStatus === "active") {
         try {
@@ -90,7 +147,7 @@ export async function ensureActiveYouTubeBroadcast(preferredStreamId?: string) {
       }
       return {
         broadcastId: boundUpcoming.id,
-        title: boundUpcoming.snippet?.title || "Live Siaran",
+        title: liveTitle,
         status: boundUpcoming.status?.lifeCycleStatus || "ready",
         watchUrl: `https://www.youtube.com/watch?v=${boundUpcoming.id}`,
         created: false,
@@ -98,17 +155,6 @@ export async function ensureActiveYouTubeBroadcast(preferredStreamId?: string) {
     }
 
     // 4. JIKA BELUM ADA BROADCAST: Buat otomatis broadcast baru secara instan!
-    let liveTitle = "Gaul FM Semarang · Live Studio";
-    try {
-      const radioState = await getServerLiveState();
-      const progName = radioState?.nowPlaying?.current_program;
-      if (progName && progName.trim()) {
-        liveTitle = `${progName.trim()} · Gaul FM Live Studio`;
-      }
-    } catch {
-      // Fallback ke judul default
-    }
-
     const newBroadcast = await youtubeRequest<Broadcast>(
       "/liveBroadcasts?part=id,snippet,status,contentDetails",
       {
@@ -116,8 +162,7 @@ export async function ensureActiveYouTubeBroadcast(preferredStreamId?: string) {
         body: JSON.stringify({
           snippet: {
             title: liveTitle,
-            description:
-              "Siaran Langsung Gaul FM Semarang. Streaming visual studio vMix & audio multiplatform.\nWebsite: https://radiogaulfmsmg.com",
+            description: liveDescription,
             scheduledStartTime: new Date().toISOString(),
           },
           status: {

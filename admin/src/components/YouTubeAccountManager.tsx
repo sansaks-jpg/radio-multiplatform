@@ -153,8 +153,8 @@ function FormFields({ form, setForm, streams, lockedSchedule = false }: {
 }) {
   const update = <K extends keyof BroadcastForm>(key: K, value: BroadcastForm[K]) => setForm({ ...form, [key]: value });
   return <div className="space-y-4">
-    <Field label="Judul tayangan"><Input value={form.title} maxLength={100} onChange={event => update("title", event.target.value)} placeholder="Contoh: Gaul Morning Show · Live Studio" /></Field>
-    <Field label="Deskripsi"><Textarea value={form.description} maxLength={5000} onChange={event => update("description", event.target.value)} placeholder="Deskripsi yang tampil di halaman YouTube" /></Field>
+    <Field label="Judul tayangan"><Input value={form.title} maxLength={100} onChange={event => update("title", event.target.value)} placeholder="Contoh: Gaul Waktu Setempat | Gaul FM – The Best Visual Radio Station" /></Field>
+    <Field label="Deskripsi"><Textarea value={form.description} maxLength={5000} onChange={event => update("description", event.target.value)} placeholder="Contoh: Gaul Waktu Setempat | Gaul FM – The Best Visual Radio Station&#10;Website: https://radiogaulfmsmg.com" /></Field>
     <div className="grid gap-3 sm:grid-cols-2">
       <Field label="Mulai (waktu perangkat)"><Input type="datetime-local" disabled={lockedSchedule} value={form.startTime} onChange={event => update("startTime", event.target.value)} /></Field>
       <Field label="Selesai (opsional)"><Input type="datetime-local" disabled={lockedSchedule} value={form.endTime} onChange={event => update("endTime", event.target.value)} /></Field>
@@ -223,7 +223,15 @@ export function YouTubeAccountManager({
 
   const openCreate = () => {
     const firstStream = streams.find(stream => stream.streamStatus === "active") || streams[0];
-    setForm({ ...EMPTY_FORM, streamId: firstStream?.id || "" });
+    const defaultTitle = "Gaul Waktu Setempat | Gaul FM – The Best Visual Radio Station";
+    const defaultDesc = "Gaul Waktu Setempat | Gaul FM – The Best Visual Radio Station\nWebsite: https://radiogaulfmsmg.com";
+    setForm({
+      ...EMPTY_FORM,
+      title: defaultTitle,
+      description: defaultDesc,
+      privacy: "public",
+      streamId: firstStream?.id || "",
+    });
     setCreateOpen(true);
   };
 
