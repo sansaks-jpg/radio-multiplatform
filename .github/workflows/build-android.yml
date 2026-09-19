@@ -54,6 +54,10 @@ jobs:
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Paket legacy `tools` sudah dihapus dari repository Android SDK.
+          # Command-line tools disiapkan oleh action; hanya platform-tools yang perlu diminta.
+          packages: platform-tools
 
       - name: ⚡ Cache Gradle Dependencies
         uses: actions/cache@v4
