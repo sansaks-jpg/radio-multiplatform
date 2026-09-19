@@ -173,8 +173,14 @@ function FormFields({ form, setForm, streams, lockedSchedule = false }: {
 }
 
 export function YouTubeAccountManager({
+  onStatusLoaded,
   onSelectStreamKey,
 }: {
+  onStatusLoaded?: (data: {
+    connected: boolean;
+    channelTitle?: string;
+    streams: Stream[];
+  }) => void;
   onSelectStreamKey?: (streamKey: string, streamTitle: string) => void;
 } = {}) {
   const toast = useToast();
@@ -192,11 +198,18 @@ export function YouTubeAccountManager({
       const response = await fetch("/api/youtube/status", { cache: "no-store", signal: AbortSignal.timeout(15_000) });
       const data = await response.json() as Status;
       setStatus(data);
+      if (onStatusLoaded) {
+        onStatusLoaded({
+          connected: data.connected,
+          channelTitle: data.channel?.title,
+          streams: data.streams || [],
+        });
+      }
       if (!response.ok) throw new Error(data.error || "Status YouTube gagal dimuat.");
     } catch (error) {
       toast.push(error instanceof Error ? error.message : "YouTube API gagal.", "error");
     } finally { setLoading(false); }
-  }, [toast]);
+  }, [toast, onStatusLoaded]);
 
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
@@ -315,46 +328,21 @@ export function YouTubeAccountManager({
           </div>
         )}
 
-        {/* Daftar Jalur Stream Channel YouTube */}
-        {streams.length > 0 && (
-          <div className="rounded-lg border border-border/70 bg-muted/20 p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Key className="h-3.5 w-3.5 text-brand" />
-                Stream Ingest Key Channel
-              </span>
-              <span className="text-[10px] text-muted-foreground">
-                {streams.length} stream terdeteksi
-              </span>
-            </div>
-            <div className="space-y-1.5">
-              {streams.map((stream) => (
-                <div
-                  key={stream.id}
-                  className="flex items-center justify-between p-2 rounded-md bg-card border border-border/60 text-xs"
-                >
-                  <div className="min-w-0 flex-1 mr-2">
-                    <p className="font-semibold text-foreground truncate">{stream.title}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Status: {stream.streamStatus === "active" ? "🟢 Menerima Video" : "⚪ Siaga / Menunggu"}
-                    </p>
-                  </div>
-                  {stream.streamKey && onSelectStreamKey && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onSelectStreamKey(stream.streamKey!, stream.title)}
-                      className="h-7 text-xs px-2.5 shrink-0 hover:bg-brand/10 hover:text-brand hover:border-brand/40"
-                    >
-                      <Key className="h-3 w-3 mr-1 text-brand" />
-                      Gunakan Key Ini
-                    </Button>
-                  )}
-                </div>
-              ))}
+        {/* Ringkasan Jalur Stream Channel YouTube */}
+        <div className="rounded-lg border border-border/70 bg-muted/20 p-3 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2.5">
+            <Radio className="h-4 w-4 text-live" />
+            <div>
+              <p className="font-semibold text-foreground">Integrasi Siaran YouTube</p>
+              <p className="text-[11px] text-muted-foreground">
+                {streams.length} jalur siaran terhubung otomatis ke transmisi studio.
+              </p>
             </div>
           </div>
-        )}
+          <Badge tone="success" className="text-[10px]">
+            Siap Mengudara
+          </Badge>
+        </div>
       </div>
 
       {/* Siaran Aktif & Mendatang Card */}

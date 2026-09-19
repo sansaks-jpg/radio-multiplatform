@@ -26,15 +26,51 @@ export async function GET() {
       enableDvr: item.contentDetails?.enableDvr !== false,
       recordFromStart: item.contentDetails?.recordFromStart !== false,
       monitorStreamEnabled: item.contentDetails?.monitorStream?.enableMonitorStream === true });
+
+    const mappedStreams = (streams.items || []).map(item => ({
+      id: item.id,
+      title: item.snippet?.title || "Tanpa nama",
+      streamKey: item.cdn?.ingestionInfo?.streamName || null,
+      streamStatus: item.status?.streamStatus,
+      healthStatus: item.status?.healthStatus?.status,
+      issues: (item.status?.healthStatus?.configurationIssues || []).map(issue => ({
+        type: issue.type,
+        severity: issue.severity,
+        reason: issue.reason,
+        description: issue.description,
+      })),
+    }));
+
+    // Otomatis sinkronisasi default stream key ke Cloud Stream Engine jika engine belum memiliki key
+    const defaultStream = mappedStreams.find(s => s.title.toLowerCase().includes("default")) || mappedStreams[0];
+    if (defaultStream?.streamKey) {
+      const STREAM_ENGINE_API_URL = process.env.STREAM_ENGINE_API_URL || "http://127.0.0.1:8092/config";
+      try {
+        const engineRes = await fetch(STREAM_ENGINE_API_URL, { cache: "no-store", signal: AbortSignal.timeout(2000) });
+        if (engineRes.ok) {
+          const engineData = await engineRes.json();
+          if (!engineData.youtube_key && !engineData.youtube_key_configured) {
+            await fetch(STREAM_ENGINE_API_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                youtube_enabled: engineData.youtube_enabled === true,
+                youtube_key: defaultStream.streamKey,
+              }),
+              signal: AbortSignal.timeout(2000),
+            });
+          }
+        }
+      } catch {
+        // Abaikan jika engine sedang tidak terjangkau (non-fatal)
+      }
+    }
+
     return Response.json({ configured: true, connected: true,
       channel: channels.items?.[0] ? { id: channels.items[0].id, title: channels.items[0].snippet?.title,
         thumbnail: channels.items[0].snippet?.thumbnails?.default?.url } : null,
       broadcasts: [...(active.items || []), ...(upcoming.items || [])].map(publicBroadcast),
-      streams: (streams.items || []).map(item => ({ id: item.id, title: item.snippet?.title || "Tanpa nama",
-        streamKey: item.cdn?.ingestionInfo?.streamName || null,
-        streamStatus: item.status?.streamStatus, healthStatus: item.status?.healthStatus?.status,
-        issues: (item.status?.healthStatus?.configurationIssues || []).map(issue => ({ type: issue.type, severity: issue.severity,
-          reason: issue.reason, description: issue.description })) })),
+      streams: mappedStreams,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return Response.json({ configured: true, connected: true, error: error instanceof Error ? error.message : "YouTube API gagal." }, { status: 502 });

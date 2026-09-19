@@ -2,8 +2,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-// HLS remains AAC: the Opus WebRTC path is not a portable Safari HLS source.
-const HLS_URL = process.env.NEXT_PUBLIC_VISUAL_HLS_URL || "http://40.81.231.250:8888/gaulfm/index.m3u8";
+function getHlsUrl(): string {
+  if (process.env.NEXT_PUBLIC_VISUAL_HLS_URL) {
+    return process.env.NEXT_PUBLIC_VISUAL_HLS_URL;
+  }
+  if (typeof window !== "undefined") {
+    // Pada halaman HTTPS, selalu gunakan endpoint proxy relatif /hls/ agar tidak terjadi Mixed Content error
+    if (window.location.protocol === "https:") {
+      return "/hls/gaulfm/index.m3u8";
+    }
+  }
+  return "http://40.81.231.250:8888/gaulfm/index.m3u8";
+}
+
 interface HlsInstance {
   loadSource(url: string): void;
   attachMedia(video: HTMLVideoElement): void;
@@ -60,7 +71,7 @@ export function StreamPreview() {
         previousTime = video.currentTime; lastProgress = Date.now(); setState("playing");
       }
     };
-    const onError = () => fail("Video belum tersedia atau koneksi terputus. Coba lagi.");
+    const onError = () => fail("Video belum online. Pastikan vMix sedang streaming ke server lalu coba lagi.");
     video.addEventListener("timeupdate", onProgress);
     video.addEventListener("error", onError);
     const watchdog = setInterval(() => {
@@ -69,17 +80,15 @@ export function StreamPreview() {
     }, 3000);
     void (async () => {
       try {
-        if (window.location.protocol === "https:" && HLS_URL.startsWith("http:")) {
-          throw new Error("Alamat video harus HTTPS untuk panel HTTPS. Atur NEXT_PUBLIC_VISUAL_HLS_URL.");
-        }
+        const hlsSource = getHlsUrl();
         const nativeHls = Boolean(video.canPlayType("application/vnd.apple.mpegurl"));
         if (!("MediaSource" in window) && nativeHls) {
-          video.src = HLS_URL; await play(); return;
+          video.src = hlsSource; await play(); return;
         }
         const Hls = await loadHls();
         if (cancelled) return;
         if (!Hls.isSupported()) {
-          if (nativeHls) { video.src = HLS_URL; await play(); return; }
+          if (nativeHls) { video.src = hlsSource; await play(); return; }
           throw new Error("Browser tidak mendukung video HLS.");
         }
         hls = new Hls({ lowLatencyMode: true, enableWorker: true, backBufferLength: 10,
@@ -87,7 +96,7 @@ export function StreamPreview() {
           liveMaxLatencyDurationCount: 5, maxLiveSyncPlaybackRate: 1.1 });
         hls.on(Hls.Events.MANIFEST_PARSED, () => { if (!cancelled) void play(); });
         hls.on(Hls.Events.ERROR, (_event, data) => { if (data.fatal) onError(); });
-        hls.loadSource(HLS_URL); hls.attachMedia(video);
+        hls.loadSource(hlsSource); hls.attachMedia(video);
       } catch (error) { fail(error instanceof Error ? error.message : "Video gagal dimuat."); }
     })();
     return () => {

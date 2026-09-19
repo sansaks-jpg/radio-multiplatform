@@ -52,6 +52,14 @@ export default function StreamsPage() {
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // YouTube OAuth integration states
+  const [ytOAuth, setYtOAuth] = useState<{
+    connected: boolean;
+    channelTitle?: string;
+    streams: Array<{ id: string; title: string; streamKey?: string | null; streamStatus?: string }>;
+  } | null>(null);
+  const [selectedStreamId, setSelectedStreamId] = useState<string>("");
+
   // Monitor State
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -152,8 +160,8 @@ export default function StreamsPage() {
   // 1. Kontrol langsung switch siaran YouTube ke server tanpa tombol simpan ganda
   const handleToggleYoutube = async (targetEnabled?: boolean) => {
     const nextState = targetEnabled !== undefined ? targetEnabled : !savedEnabled;
-    if (nextState && !keyConfigured && !ytKey.trim()) {
-      toast.push("Masukkan atau pilih Stream Key YouTube terlebih dahulu.", "error");
+    if (nextState && !keyConfigured && !ytKey.trim() && !ytOAuth?.connected) {
+      toast.push("Hubungkan akun YouTube atau masukkan Stream Key terlebih dahulu.", "error");
       return;
     }
     if (saving.current) return;
@@ -241,7 +249,7 @@ export default function StreamsPage() {
       dirty.current = false;
       setYtKey("");
       applyStreamData(data);
-      toast.push(`Stream Key dari "${title}" berhasil dipasang ke server cloud!`);
+      toast.push(`Jalur siaran "${title}" terpasang otomatis ke server!`);
     } catch (error) {
       toast.push(error instanceof Error ? error.message : "Gagal memasang Stream Key", "error");
     } finally {
@@ -249,6 +257,25 @@ export default function StreamsPage() {
       setIsSyncing(false);
     }
   };
+
+  // 4. Callback saat data OAuth YouTube berhasil dimuat
+  const handleOAuthStatusLoaded = useCallback((data: {
+    connected: boolean;
+    channelTitle?: string;
+    streams: Array<{ id: string; title: string; streamKey?: string | null; streamStatus?: string }>;
+  }) => {
+    setYtOAuth(data);
+    if (data.connected && data.streams.length > 0) {
+      const defaultStream = data.streams.find(s => s.title.toLowerCase().includes("default")) || data.streams[0];
+      if (defaultStream) {
+        setSelectedStreamId(prev => prev || defaultStream.id);
+        // Jika server belum disetel key, pasang otomatis default stream key tanpa perlu user klik apa pun
+        if (!keyConfigured && defaultStream.streamKey && !saving.current) {
+          void handleApplyStreamKeyFromOAuth(defaultStream.streamKey, defaultStream.title);
+        }
+      }
+    }
+  }, [keyConfigured]);
 
   const toggleAudio = () => {
     if (audioRef.current) {
@@ -552,6 +579,46 @@ export default function StreamsPage() {
                     )}
                   </div>
 
+                  {/* Integrasi Channel YouTube Otomatis */}
+                  {ytOAuth?.connected ? (
+                    <div className="p-3 rounded-lg bg-success/10 border border-success/30 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                          Channel: {ytOAuth.channelTitle || "Sandi Ardiansyah"}
+                        </span>
+                        <Badge tone="success" className="text-[10px]">Otomatis Siap</Badge>
+                      </div>
+                      {ytOAuth.streams.length > 1 ? (
+                        <div className="space-y-1 pt-1">
+                          <label className="text-[11px] font-medium text-muted-foreground">Pilih Jalur Siaran YouTube:</label>
+                          <select
+                            value={selectedStreamId}
+                            onChange={(e) => {
+                              const newId = e.target.value;
+                              setSelectedStreamId(newId);
+                              const s = ytOAuth.streams.find(item => item.id === newId);
+                              if (s?.streamKey) {
+                                void handleApplyStreamKeyFromOAuth(s.streamKey, s.title);
+                              }
+                            }}
+                            className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs font-semibold text-foreground"
+                          >
+                            {ytOAuth.streams.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.title} {s.title.toLowerCase().includes("default") ? "(Utama)" : ""} {s.streamStatus === "active" ? "🟢 Live" : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">
+                          Jalur siaran terhubung otomatis ke: <b>{ytOAuth.streams[0]?.title || "Default Stream"}</b>
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+
                   {/* Tombol Utama: Mulai / Hentikan Siaran ke YouTube */}
                   <div className="pt-2 border-t border-border/40">
                     {savedEnabled ? (
@@ -568,7 +635,7 @@ export default function StreamsPage() {
                       <Button
                         variant="live"
                         className="w-full h-11 font-semibold text-sm shadow-md"
-                        disabled={isSyncing || (!keyConfigured && !ytKey.trim())}
+                        disabled={isSyncing || (!ytOAuth?.connected && !keyConfigured && !ytKey.trim())}
                         onClick={() => handleToggleYoutube(true)}
                       >
                         <Radio className="mr-2 h-4 w-4" />
@@ -576,9 +643,9 @@ export default function StreamsPage() {
                       </Button>
                     )}
 
-                    {!keyConfigured && !ytKey.trim() && (
+                    {!ytOAuth?.connected && !keyConfigured && !ytKey.trim() && (
                       <p className="text-[11px] text-warning mt-2 text-center">
-                        ⚠️ Stream Key belum diset. Pilih stream dari channel di sebelah kanan atau tempel manual di bawah.
+                        ⚠️ Hubungkan Akun YouTube di sebelah kanan untuk memulai siaran otomatis.
                       </p>
                     )}
                   </div>
@@ -617,49 +684,52 @@ export default function StreamsPage() {
                   <StreamPreview />
                 </div>
 
-                {/* Pengaturan Stream Key YouTube */}
-                <div className="space-y-2.5 pt-3 border-t border-border">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                {/* Pengaturan Stream Key YouTube (Opsi Manual / Fallback) */}
+                <details className="pt-2 border-t border-border group text-xs">
+                  <summary className="text-muted-foreground cursor-pointer hover:text-foreground font-medium flex items-center justify-between py-1 select-none">
+                    <span className="flex items-center gap-1.5">
                       <Key className="h-3.5 w-3.5 text-brand" />
-                      Stream Key YouTube
-                    </label>
-                    <a
-                      href="https://studio.youtube.com/channel/live"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs text-brand hover:underline inline-flex items-center gap-1"
-                    >
-                      YouTube Studio <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
+                      Opsi Lanjutan: Stream Key Manual (Akun Luar)
+                    </span>
+                    <span className="text-[10px] text-brand">Ubah / Tempel ▼</span>
+                  </summary>
 
-                  <div className="flex gap-2">
-                    <Input
-                      type="password"
-                      placeholder={keyConfigured ? "•••••••••••• (Key tersimpan)" : "Tempel Stream Key di sini"}
-                      value={ytKey}
-                      onChange={(e) => { dirty.current = true; setYtKey(e.target.value); }}
-                      className="font-mono text-sm h-10 flex-1"
-                    />
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      disabled={isSyncing || !ytKey.trim()}
-                      onClick={handleSaveStreamKey}
-                      className="h-10 px-3.5 shrink-0"
-                    >
-                      <Save className="h-4 w-4 mr-1" />
-                      Simpan
-                    </Button>
-                  </div>
+                  <div className="space-y-2 pt-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground">
+                        Hanya diisi jika ingin siaran ke channel lain di luar akun terhubung.
+                      </span>
+                      <a
+                        href="https://studio.youtube.com/channel/live"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-brand hover:underline inline-flex items-center gap-1"
+                      >
+                        YouTube Studio <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
 
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    {keyConfigured
-                      ? "✓ Stream Key terpasang di server. Anda bisa langsung memulai siaran atau memilih stream lain di sebelah kanan."
-                      : "Pilih stream dari channel di sebelah kanan (1-Klik Sync) atau tempel manual jika memakai channel/event lain."}
-                  </p>
-                </div>
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        placeholder={keyConfigured ? "•••••••••••• (Key aktif tersimpan)" : "Tempel Stream Key di sini"}
+                        value={ytKey}
+                        onChange={(e) => { dirty.current = true; setYtKey(e.target.value); }}
+                        className="font-mono text-sm h-10 flex-1"
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        disabled={isSyncing || !ytKey.trim()}
+                        onClick={handleSaveStreamKey}
+                        className="h-10 px-3.5 shrink-0"
+                      >
+                        <Save className="h-4 w-4 mr-1" />
+                        Simpan
+                      </Button>
+                    </div>
+                  </div>
+                </details>
 
               </CardContent>
             </Card>
@@ -667,7 +737,10 @@ export default function StreamsPage() {
 
           {/* KOLOM KANAN (7 KOLOM): MANAJEMEN YOUTUBE STUDIO */}
           <div className="lg:col-span-7 space-y-4">
-            <YouTubeAccountManager onSelectStreamKey={handleApplyStreamKeyFromOAuth} />
+            <YouTubeAccountManager
+              onStatusLoaded={handleOAuthStatusLoaded}
+              onSelectStreamKey={handleApplyStreamKeyFromOAuth}
+            />
           </div>
 
         </div>
