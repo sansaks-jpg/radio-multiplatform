@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import type { LiveComment } from "@/lib/comments-bus";
 import { supabase } from "@/lib/supabase";
+import { ADMIN_CLIENT_SECRET } from "@/lib/api-auth";
 
 function formatTime(iso: string) {
   try {
@@ -127,6 +128,9 @@ export default function LiveChatPage() {
     try {
       if (isManual) setLoadingInitial(true);
       const res = await fetch("/api/comments?forAdmin=true&limit=50", {
+        headers: {
+          "x-admin-secret": ADMIN_CLIENT_SECRET,
+        },
         cache: "no-store",
       });
       const data = await res.json();
@@ -155,6 +159,9 @@ export default function LiveChatPage() {
     // 1. Initial Fetch
     fetch("/api/comments?forAdmin=true&limit=50", {
       signal: controller.signal,
+      headers: {
+        "x-admin-secret": ADMIN_CLIENT_SECRET,
+      },
       cache: "no-store",
     })
       .then((res) => res.json())
@@ -306,6 +313,9 @@ export default function LiveChatPage() {
     const pollInterval = setInterval(async () => {
       try {
         const res = await fetch("/api/comments?forAdmin=true&limit=50", {
+          headers: {
+            "x-admin-secret": ADMIN_CLIENT_SECRET,
+          },
           cache: "no-store",
         });
         if (!res.ok) return;
@@ -376,7 +386,10 @@ export default function LiveChatPage() {
     try {
       const res = await fetch("/api/comments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": ADMIN_CLIENT_SECRET,
+        },
         body: JSON.stringify({
           user_name: "Studio Gaul FM",
           avatar_seed: "studio",
@@ -416,7 +429,10 @@ export default function LiveChatPage() {
     try {
       const res = await fetch(`/api/comments/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": ADMIN_CLIENT_SECRET,
+        },
         body: JSON.stringify({ action: "toggle_highlight" }),
       });
       if (res.ok) {
@@ -440,7 +456,10 @@ export default function LiveChatPage() {
     try {
       const res = await fetch(`/api/comments/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": ADMIN_CLIENT_SECRET,
+        },
         body: JSON.stringify({ action: "toggle_hidden" }),
       });
       if (res.ok) {

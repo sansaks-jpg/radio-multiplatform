@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { isAuthorizedStudio } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-admin-secret, x-studio-token",
 };
 
 export async function OPTIONS() {
@@ -16,6 +17,14 @@ export async function OPTIONS() {
 
 export async function POST(req: Request) {
   try {
+    // 0. Validasi otorisasi admin/studio
+    if (!isAuthorizedStudio(req)) {
+      return NextResponse.json(
+        { success: false, error: "Akses ditolak: Token otorisasi admin tidak valid atau tidak disediakan." },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const folder = (formData.get("folder") as string) || "uploads";

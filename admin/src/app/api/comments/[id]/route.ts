@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { toggleHighlight, toggleHidden } from "@/lib/comments-bus";
+import { isAuthorizedStudio } from "@/lib/api-auth";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "PATCH, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-admin-secret, x-studio-token",
 };
 
 export async function OPTIONS() {
@@ -16,6 +17,13 @@ export async function PATCH(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!isAuthorizedStudio(req)) {
+      return NextResponse.json(
+        { success: false, error: "Akses ditolak: Hanya admin atau penyiar yang berhak memoderasi komentar." },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
     const params = await props.params;
     const { id } = params;
     const body = await req.json();

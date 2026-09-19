@@ -186,13 +186,20 @@ async function updateLastLoginAndTracking(userId: string): Promise<void> {
 
 function parseUrlParams(url: string): Record<string, string> {
   const params: Record<string, string> = {};
+  if (!url) return params;
   const segments = url.split(/[#?]/);
   for (let i = 1; i < segments.length; i++) {
     const pairs = segments[i].split("&");
     for (const pair of pairs) {
-      const [k, v] = pair.split("=");
-      if (k && v) {
-        params[decodeURIComponent(k)] = decodeURIComponent(v);
+      const idx = pair.indexOf("=");
+      if (idx !== -1) {
+        const k = pair.substring(0, idx);
+        const v = pair.substring(idx + 1);
+        try {
+          params[decodeURIComponent(k)] = decodeURIComponent(v.replace(/\+/g, " "));
+        } catch {
+          params[k] = v;
+        }
       }
     }
   }
@@ -220,18 +227,74 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       return;
     }
     try {
-      const { data } = await supabase.auth.getSession();
-      const session = data.session ?? null;
-      set({ session, initializing: false });
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        set({ profile });
+      let activeSession: Session | null = null;
+      let activeProfile: Profile | null = null;
+
+      // 1. Cek deep link jika aplikasi dibuka dari redirect OAuth callback (?code=... atau #access_token=...)
+      const initialUrl = await Linking.getInitialURL().catch(() => null);
+      if (initialUrl) {
+        const params = parseUrlParams(initialUrl);
+        if (params.code) {
+          const { data: exchanged } = await supabase.auth.exchangeCodeForSession(params.code);
+          if (exchanged?.session?.user) {
+            activeSession = exchanged.session;
+            activeProfile = await fetchProfile(activeSession.user.id);
+            void updateLastLoginAndTracking(activeSession.user.id);
+          }
+        } else if (params.access_token && params.refresh_token) {
+          const { data: setSessionData } = await supabase.auth.setSession({
+            access_token: params.access_token,
+            refresh_token: params.refresh_token,
+          });
+          if (setSessionData?.session?.user) {
+            activeSession = setSessionData.session;
+            activeProfile = await fetchProfile(activeSession.user.id);
+            void updateLastLoginAndTracking(activeSession.user.id);
+          }
+        }
       }
+
+      // 2. Jika belum ada sesi dari URL cold-start, ambil sesi tersimpan di client
+      if (!activeSession) {
+        const { data } = await supabase.auth.getSession();
+        activeSession = data.session ?? null;
+        if (activeSession?.user) {
+          activeProfile = await fetchProfile(activeSession.user.id);
+        }
+      }
+
+      set({ session: activeSession, profile: activeProfile, initializing: false });
+
+      // 3. Listener deep linking untuk alur runtime / warm-start OAuth
+      Linking.addEventListener("url", async ({ url }) => {
+        if (!url) return;
+        const params = parseUrlParams(url);
+        if (params.code) {
+          const { data: exchanged } = await supabase.auth.exchangeCodeForSession(params.code);
+          if (exchanged?.session?.user) {
+            const profile = await fetchProfile(exchanged.session.user.id);
+            set({ session: exchanged.session, profile });
+            void updateLastLoginAndTracking(exchanged.session.user.id);
+          }
+        } else if (params.access_token && params.refresh_token) {
+          const { data: setSessionData } = await supabase.auth.setSession({
+            access_token: params.access_token,
+            refresh_token: params.refresh_token,
+          });
+          if (setSessionData?.session?.user) {
+            const profile = await fetchProfile(setSessionData.session.user.id);
+            set({ session: setSessionData.session, profile });
+            void updateLastLoginAndTracking(setSessionData.session.user.id);
+          }
+        }
+      });
+
+      // 4. SELALU daftarkan listener onAuthStateChange untuk auth lifecycle app-wide
       supabase.auth.onAuthStateChange(async (_event, nextSession) => {
         set({ session: nextSession });
         if (nextSession?.user) {
-          const profile = await fetchProfile(nextSession.user.id);
-          set({ profile });
+          const updatedProfile = await fetchProfile(nextSession.user.id);
+          set({ profile: updatedProfile });
         } else {
           set({ profile: null });
         }
@@ -311,7 +374,25 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       if (authResult.type === "success" && authResult.url) {
         const params = parseUrlParams(authResult.url);
 
-        if (params.access_token && params.refresh_token) {
+        // Alur OAuth PKCE: exchange authorization code dengan session
+        if (params.code) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(params.code);
+
+          if (sessionError) {
+            return { error: sessionError.message };
+          }
+
+          if (sessionData?.session?.user) {
+            const user = sessionData.session.user;
+            set({ session: sessionData.session });
+            const userProfile = await fetchProfile(user.id);
+            set({ profile: userProfile });
+            void updateLastLoginAndTracking(user.id);
+            const isNewUser = await isFirstTimeRegistration(user, userProfile);
+            return { error: null, isNewUser };
+          }
+        } else if (params.access_token && params.refresh_token) {
+          // Alur Implicit Grant fallback (access_token + refresh_token)
           const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
             access_token: params.access_token,
             refresh_token: params.refresh_token,
@@ -330,14 +411,12 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
             const isNewUser = await isFirstTimeRegistration(user, userProfile);
             return { error: null, isNewUser };
           }
+        } else if (params.error_description || params.error) {
+          return { error: params.error_description || params.error };
         }
       }
 
-      if (authResult.type === "cancel" || authResult.type === "dismiss") {
-        return { error: "Login Google dibatalkan" };
-      }
-
-      // Verifikasi sesi setelah browser tertutup
+      // Verifikasi sesi terlebih dahulu (beberapa perangkat Android memicu dismiss saat redirect intent sukses)
       const { data: latestSession } = await supabase.auth.getSession();
       if (latestSession?.session?.user) {
         const user = latestSession.session.user;
@@ -347,6 +426,10 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         void updateLastLoginAndTracking(user.id);
         const isNewUser = await isFirstTimeRegistration(user, userProfile);
         return { error: null, isNewUser };
+      }
+
+      if (authResult.type === "cancel" || authResult.type === "dismiss") {
+        return { error: "Login Google dibatalkan" };
       }
 
       return { error: "Gagal menyelesaikan autentikasi Google" };
@@ -400,9 +483,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       last_login: new Date().toISOString(),
     };
 
-    set({ profile: updatedProfile });
-
     if (!supabase || !isSupabaseConfigured) {
+      set({ profile: updatedProfile });
       await AsyncStorage.setItem("demo_auth", JSON.stringify({ session, profile: updatedProfile })).catch(() => {});
       return null;
     }
@@ -442,9 +524,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       }
 
       const refreshed = await fetchProfile(session.user.id);
-      if (refreshed) {
-        set({ profile: { ...refreshed, gender: gender.trim() } });
-      }
+      set({ profile: refreshed ? { ...refreshed, gender: gender.trim() } : updatedProfile });
       await AsyncStorage.setItem(`@gaulfm/registered_${session.user.id}`, "true").catch(() => {});
       return null;
     } catch {

@@ -13,6 +13,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { ADMIN_CLIENT_SECRET } from "@/lib/api-auth";
 
 type FormState = {
   id?: string;
@@ -67,6 +68,9 @@ export default function BannersPage() {
 
       const res = await fetch("/api/upload", {
         method: "POST",
+        headers: {
+          "x-admin-secret": ADMIN_CLIENT_SECRET,
+        },
         body: formData,
       });
 

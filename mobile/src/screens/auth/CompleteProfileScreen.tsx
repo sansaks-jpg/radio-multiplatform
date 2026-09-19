@@ -27,6 +27,7 @@ export function CompleteProfileScreen() {
   const profile = useAuthStore((s) => s.profile);
   const session = useAuthStore((s) => s.session);
   const completeBiodata = useAuthStore((s) => s.completeBiodata);
+  const signOut = useAuthStore((s) => s.signOut);
 
   const defaultName =
     profile?.full_name ||
@@ -78,11 +79,10 @@ export function CompleteProfileScreen() {
         setErrors({ form: errorMsg });
       } else {
         showToast("Biodata berhasil disimpan! Selamat datang di Gaul FM 🎉", "success");
-        // Navigasi ke halaman utama
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Main" }],
-        });
+        // RootNavigator otomatis beralih ke MainTabs secara deklaratif saat biodata lengkap
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        }
       }
     } catch {
       setErrors({ form: "Gagal menyimpan biodata. Periksa koneksi internet kamu." });
@@ -279,6 +279,20 @@ export function CompleteProfileScreen() {
               onPress={() => void submit()}
               loading={loading}
             />
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => void signOut()}
+              className="mt-3 py-2 items-center"
+              accessibilityRole="button"
+              accessibilityLabel="Keluar atau ganti akun"
+            >
+              <Text
+                className="text-xs text-text-dim"
+                style={{ fontFamily: "PlusJakartaSans_500Medium" }}
+              >
+                Ingin masuk dengan akun lain? <Text className="underline font-bold" style={{ color: colors.orange }}>Keluar</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </AuthFormLayout>

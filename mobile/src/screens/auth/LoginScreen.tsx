@@ -1,10 +1,7 @@
 import React, { useState } from "react";
 import { ActivityIndicator, Image, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useThemeStore } from "../../stores/themeStore";
-import type { AuthStackParamList } from "../../types";
 import { useAuthStore } from "../../stores/authStore";
 import { AuthFormLayout } from "../../components/ui/AuthFormLayout";
 import { BrandLogo } from "../../components/ui/BrandLogo";
@@ -24,8 +21,6 @@ function AmbientGlow() {
 
 export function LoginScreen() {
   const colors = useThemeStore((s) => s.colors);
-  const navigation =
-    useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
   const signInDemo = useAuthStore((s) => s.signInDemo);
 
@@ -41,9 +36,9 @@ export function LoginScreen() {
         if (!result.error.toLowerCase().includes("batal")) {
           setErrorMessage(result.error);
         }
-      } else if (result.isNewUser) {
-        navigation.navigate("CompleteProfile");
       }
+      // Keberhasilan login ditangani secara deklaratif oleh RootNavigator
+      // yang akan otomatis mengarahkan ke CompleteProfile bila profil belum lengkap.
     } catch {
       setErrorMessage("Gagal masuk dengan Google. Periksa koneksi kamu.");
     } finally {

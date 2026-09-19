@@ -67,7 +67,7 @@ export async function GET() {
     }
 
     // Otomatis buatkan Live Broadcast jika server sudah mengirim video (stream active) tapi belum ada tayangan
-    let broadcastItems = [...(active.items || []), ...(upcoming.items || [])];
+    const broadcastItems = [...(active.items || []), ...(upcoming.items || [])];
     const activeStream = mappedStreams.find(s => s.streamStatus === "active");
     if (activeStream && broadcastItems.length === 0) {
       try {
