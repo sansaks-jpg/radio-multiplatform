@@ -280,7 +280,7 @@ export function YouTubeAccountManager({
 
   if (!status) return <div className="text-xs text-muted-foreground p-4">Memeriksa koneksi akun YouTube...</div>;
   if (!status.configured) return <div className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm"><p className="font-semibold">OAuth YouTube belum dikonfigurasi di server</p><p className="mt-1 text-xs text-muted-foreground">Siapkan HTTPS, OAuth Client Google, redirect URI, dan encryption key.</p></div>;
-  if (!status.connected) return <div className="rounded-xl border border-border bg-card p-4 shadow-sm"><p className="font-semibold text-sm">Hubungkan channel YouTube Gaul FM</p><p className="text-xs text-muted-foreground mt-1 mb-3">Google akan meminta izin mengelola siaran. Token disimpan terenkripsi di server.</p><Button variant="primary" onClick={() => { window.location.href = "/api/youtube/oauth/start"; }}><Link2 className="h-4 w-4 mr-2" />Hubungkan Akun YouTube</Button></div>;
+  if (!status.connected) return <div className="rounded-xl border border-border bg-card p-4 shadow-sm"><p className="font-semibold text-sm">Hubungkan channel YouTube</p><p className="text-xs text-muted-foreground mt-1 mb-3">Google akan meminta izin mengelola siaran. Token disimpan terenkripsi di server.</p><Button variant="primary" onClick={() => { window.location.href = "/api/youtube/oauth/start"; }}><Link2 className="h-4 w-4 mr-2" />Hubungkan Akun YouTube</Button></div>;
 
   return (
     <div className="space-y-4">

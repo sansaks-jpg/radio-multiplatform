@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Copy,
   Radio,
-  Save,
   Tv,
   Video,
   Cast,
@@ -14,11 +13,9 @@ import {
   ExternalLink,
   RefreshCw,
   CircleStop,
-  Key,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
@@ -36,7 +33,6 @@ export default function StreamsPage() {
 
   // YouTube Restream States
   const [ytEnabled, setYtEnabled] = useState(false);
-  const [ytKey, setYtKey] = useState("");
   const [keyConfigured, setKeyConfigured] = useState(false);
   const [engineOnline, setEngineOnline] = useState<boolean | null>(null);
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -162,8 +158,8 @@ export default function StreamsPage() {
   // 1. Kontrol langsung switch siaran YouTube ke server tanpa tombol simpan ganda
   const handleToggleYoutube = async (targetEnabled?: boolean) => {
     const nextState = targetEnabled !== undefined ? targetEnabled : !savedEnabled;
-    if (nextState && !keyConfigured && !ytKey.trim() && !ytOAuth?.connected) {
-      toast.push("Hubungkan akun YouTube atau masukkan Stream Key terlebih dahulu.", "error");
+    if (nextState && !ytOAuth?.connected) {
+      toast.push("Hubungkan akun YouTube terlebih dahulu.", "error");
       return;
     }
     if (saving.current) return;
@@ -176,14 +172,12 @@ export default function StreamsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           youtube_enabled: nextState,
-          ...(ytKey.trim() ? { youtube_key: ytKey.trim() } : {}),
         }),
         signal: AbortSignal.timeout(10000),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memperbarui status ke server");
       dirty.current = false;
-      setYtKey("");
       applyStreamData(data);
 
       // Otomatis buat / hidupkan Live Broadcast di channel YouTube jika OAuth terhubung
@@ -230,37 +224,6 @@ export default function StreamsPage() {
     }
   };
 
-  // 2. Simpan manual Stream Key
-  const handleSaveStreamKey = async () => {
-    if (!ytKey.trim()) return;
-    if (saving.current) return;
-    saving.current = true;
-    requestVersion.current++;
-    setIsSyncing(true);
-    try {
-      const res = await fetch("/api/stream/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          youtube_enabled: savedEnabled,
-          youtube_key: ytKey.trim(),
-        }),
-        signal: AbortSignal.timeout(10000),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal menyimpan Stream Key");
-      dirty.current = false;
-      setYtKey("");
-      applyStreamData(data);
-      toast.push("Stream Key YouTube berhasil disimpan di server!");
-    } catch (error) {
-      toast.push(error instanceof Error ? error.message : "Gagal menyimpan Stream Key", "error");
-    } finally {
-      saving.current = false;
-      setIsSyncing(false);
-    }
-  };
-
   // 3. Pasang Stream Key otomatis dari YouTube OAuth Channel
   const handleApplyStreamKeyFromOAuth = async (key: string, title: string) => {
     if (!key.trim()) return;
@@ -281,7 +244,6 @@ export default function StreamsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal memasang Stream Key");
       dirty.current = false;
-      setYtKey("");
       applyStreamData(data);
       toast.push(`Jalur siaran "${title}" terpasang otomatis ke server!`);
     } catch (error) {
@@ -678,36 +640,43 @@ export default function StreamsPage() {
                     </a>
                   )}
 
-                  {/* Tombol Utama: Mulai / Hentikan Siaran ke YouTube */}
-                  <div className="pt-2 border-t border-border/40">
-                    {savedEnabled ? (
-                      <Button
-                        variant="danger"
-                        className="w-full h-11 font-semibold text-sm shadow-sm"
-                        disabled={isSyncing}
-                        onClick={() => handleToggleYoutube(false)}
-                      >
-                        <CircleStop className="mr-2 h-4 w-4" />
-                        {isSyncing ? "Menyimpan ke Server..." : "Hentikan Siaran ke YouTube"}
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="live"
-                        className="w-full h-11 font-semibold text-sm shadow-md"
-                        disabled={isSyncing || (!ytOAuth?.connected && !keyConfigured && !ytKey.trim())}
-                        onClick={() => handleToggleYoutube(true)}
-                      >
-                        <Radio className="mr-2 h-4 w-4" />
-                        {isSyncing ? "Menghubungkan..." : "Mulai Siaran ke YouTube"}
-                      </Button>
-                    )}
-
-                    {!ytOAuth?.connected && !keyConfigured && !ytKey.trim() && (
-                      <p className="text-[11px] text-warning mt-2 text-center">
-                        ⚠️ Hubungkan Akun YouTube di sebelah kanan untuk memulai siaran otomatis.
-                      </p>
-                    )}
-                  </div>
+                  {/* Kontrol Siaran: Hanya muncul setelah akun YouTube terhubung (OAuth) */}
+                  {!ytOAuth?.connected ? (
+                    <div className="pt-2 border-t border-border/40">
+                      <div className="p-3 rounded-lg bg-muted/40 border border-border/70 text-center space-y-1">
+                        <p className="text-xs font-semibold text-foreground">
+                          Siaran YouTube Memerlukan Akun
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Hubungkan akun YouTube pada kartu di sebelah kanan untuk mengaktifkan siaran studio.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-border/40">
+                      {savedEnabled ? (
+                        <Button
+                          variant="danger"
+                          className="w-full h-11 font-semibold text-sm shadow-sm"
+                          disabled={isSyncing}
+                          onClick={() => handleToggleYoutube(false)}
+                        >
+                          <CircleStop className="mr-2 h-4 w-4" />
+                          {isSyncing ? "Menyimpan ke Server..." : "Hentikan Siaran ke YouTube"}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="live"
+                          className="w-full h-11 font-semibold text-sm shadow-md"
+                          disabled={isSyncing}
+                          onClick={() => handleToggleYoutube(true)}
+                        >
+                          <Radio className="mr-2 h-4 w-4" />
+                          {isSyncing ? "Menghubungkan..." : "Mulai Siaran ke YouTube"}
+                        </Button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Auto refresh status bar */}
                   <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
@@ -729,55 +698,6 @@ export default function StreamsPage() {
                   <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-500">
                     <span className="font-semibold">Peringatan:</span> {lastError}
                   </div>
-                )}
-
-                {/* Pengaturan Stream Key Manual (Hanya tampil jika akun belum terhubung OAuth) */}
-                {!ytOAuth?.connected && (
-                  <details className="pt-2 border-t border-border group text-xs">
-                    <summary className="text-muted-foreground cursor-pointer hover:text-foreground font-medium flex items-center justify-between py-1 select-none">
-                      <span className="flex items-center gap-1.5">
-                        <Key className="h-3.5 w-3.5 text-brand" />
-                        Opsi Manual: Stream Key (Tanpa Login)
-                      </span>
-                      <span className="text-[10px] text-brand">Buka ▼</span>
-                    </summary>
-
-                    <div className="space-y-2 pt-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-muted-foreground">
-                          Masukkan Stream Key manual jika tidak ingin menghubungkan akun Google.
-                        </span>
-                        <a
-                          href="https://studio.youtube.com/channel/live"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-brand hover:underline inline-flex items-center gap-1"
-                        >
-                          YouTube Studio <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Input
-                          type="password"
-                          placeholder={keyConfigured ? "•••••••••••• (Key tersimpan)" : "Tempel Stream Key di sini"}
-                          value={ytKey}
-                          onChange={(e) => { dirty.current = true; setYtKey(e.target.value); }}
-                          className="font-mono text-sm h-10 flex-1"
-                        />
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          disabled={isSyncing || !ytKey.trim()}
-                          onClick={handleSaveStreamKey}
-                          className="h-10 px-3.5 shrink-0"
-                        >
-                          <Save className="h-4 w-4 mr-1" />
-                          Simpan
-                        </Button>
-                      </div>
-                    </div>
-                  </details>
                 )}
 
               </CardContent>
