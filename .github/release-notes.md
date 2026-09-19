@@ -1,23 +1,22 @@
-### 📻 Gaul FM Semarang - Android Release v0.0.4
+### 📻 Gaul FM Semarang - Android Release v0.0.5 (Development Build)
 
-- **Versi**: 0.0.4
+- **Versi**: 0.0.5 (versionCode 5)
 - **Platform**: Android Standalone APK (Split ABI Per Arsitektur)
 - **Arsitektur**: React Native New Architecture + Expo SDK 54
 - **Optimasi Ukuran**: APK dipisah berdasarkan arsitektur CPU sehingga ukuran unduhan menjadi jauh lebih ringan (~15–25 MB vs ~70 MB).
 
 #### 📦 Pilihan File APK:
-1. **`GaulFM-v0.0.4-arm64-v8a.apk` (Sangat Direkomendasikan)**: Untuk 90%+ smartphone Android modern (64-bit ARM). Ukuran paling ringan dan performa paling optimal.
-2. **`GaulFM-v0.0.4-armeabi-v7a.apk`**: Untuk smartphone Android 32-bit (perangkat tipe lama atau entry level).
-3. **`GaulFM-v0.0.4-universal.apk`**: Varian universal (mencakup semua arsitektur, bisa diinstal di perangkat apa saja jika ragu).
-4. **`GaulFM-v0.0.4-x86.apk` / `GaulFM-v0.0.4-x86_64.apk`**: Khusus untuk emulator PC/Laptop Android, Chromebook, atau perangkat berprosesor Intel/AMD.
+1. **`GaulFM-v0.0.5-arm64-v8a.apk` (Sangat Direkomendasikan)**: Untuk 90%+ smartphone Android modern (64-bit ARM). Ukuran paling ringan dan performa paling optimal.
+2. **`GaulFM-v0.0.5-armeabi-v7a.apk`**: Untuk smartphone Android 32-bit (perangkat tipe lama atau entry level).
+3. **`GaulFM-v0.0.5-universal.apk`**: Varian universal (mencakup semua arsitektur, bisa diinstal di perangkat apa saja jika ragu).
+4. **`GaulFM-v0.0.5-x86.apk` / `GaulFM-v0.0.5-x86_64.apk`**: Khusus untuk emulator PC/Laptop Android, Chromebook, atau perangkat berprosesor Intel/AMD.
 
-#### 🚀 Fitur & Pembaruan v0.0.4:
-- **Master Data Jadwal & Deskripsi Resmi**: Sinkronisasi info program baku (*Gaul Morning Show*, *Gaul Waktu Setempat*, *Asupan Gaul*) lengkap dengan jam siaran (WIB), hari tayang, dan deskripsi acara resmi.
-- **Karusel Gaul Squad di Player**: Integrasi daftar profil penyiar Gaul FM interaktif di dalam lembar pemutar (*LiveDetailSheet*).
-- **Home Up Next yang Disempurnakan**: Visual poster program resmi, badge waktu WIB dinamis, dan akses cepat ke detail siaran.
-- **Aksi Cepat Nonton Radio**: Tombol studio visual interaktif di Beranda dengan dukungan langsung mode fullscreen chat.
-- **Perbaikan Alur Navigasi**: Transisi kembali dari detail program langsung menuju daftar jadwal secara konsisten.
-- **Pemisahan Binary APK (Split ABI)**: Mengurangi ukuran file aplikasi secara drastis untuk efisiensi kuota pendengar.
+#### 🚀 Fitur & Pembaruan v0.0.5:
+- **Visual Radio Lebih Stabil**: Negosiasi WebRTC, pembersihan sesi WHEP, dan fallback HLS diperkuat agar pemutar pulih saat jaringan atau ingest berubah.
+- **Audio Tanpa Race Condition**: Perintah play/stop yang bertumpuk kini memakai urutan operasi sehingga audio lama tidak hidup kembali setelah pengguna berhenti.
+- **Endpoint Streaming Terbaru**: Development build memakai API HTTPS `admingaul.duckdns.org` serta jalur RTMP dan HLS server yang sudah diperbaiki.
+- **Player Lebih Ringan**: HTML player dipisahkan dari komponen React Native agar lebih mudah diuji dan dipelihara.
+- **Pemisahan Binary APK (Split ABI)**: Tetap menghasilkan APK arm64, armeabi-v7a, x86, x86_64, dan universal.
 
 #### 📲 Petunjuk Penginstalan:
 1. Unduh salah satu varian APK di bawah (pilih **`arm64-v8a`** untuk smartphone modern Anda).

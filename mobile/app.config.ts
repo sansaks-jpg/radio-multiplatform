@@ -13,7 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Gaul FM",
   slug: "gaulfm-mobile",
-  version: "0.0.4",
+  version: "0.0.5",
   icon: "./assets/icon.png",
   orientation: "portrait",
   scheme: "gaulfm",
@@ -33,6 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: "com.gaulfm.app",
+    versionCode: 5,
     userInterfaceStyle: "automatic",
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
