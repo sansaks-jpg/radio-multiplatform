@@ -148,9 +148,21 @@ export async function youtubeRequest<T>(pathname: string, init?: RequestInit): P
     cache: "no-store",
     signal: AbortSignal.timeout(12_000),
   });
-  const data = await response.json() as T & { error?: { message?: string } };
-  if (!response.ok) throw new Error(data.error?.message || `YouTube API error ${response.status}.`);
-  return data;
+  if (response.status === 204 || response.headers.get("content-length") === "0") {
+    return {} as T;
+  }
+  const text = await response.text();
+  let data: Record<string, unknown> | null = null;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = {};
+  }
+  if (!response.ok) {
+    const errorMsg = (data?.error as { message?: string } | undefined)?.message;
+    throw new Error(errorMsg || `YouTube API error ${response.status}.`);
+  }
+  return (data || {}) as unknown as T;
 }
 
 export async function hasStoredYouTubeAccount() {

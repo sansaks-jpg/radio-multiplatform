@@ -76,3 +76,38 @@ export async function PATCH(request: Request) {
     return Response.json({ error: error instanceof Error ? error.message : "Gagal memperbarui judul." }, { status: 502 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const idFromQuery = url.searchParams.get("id");
+    let id = idFromQuery;
+    let cleanup = url.searchParams.get("cleanup") === "true";
+
+    if (!id && !cleanup) {
+      try {
+        const body = await request.json();
+        if (typeof body.id === "string") id = body.id;
+        if (body.cleanup === true) cleanup = true;
+      } catch {
+        // Abaikan
+      }
+    }
+
+    if (cleanup || id === "all") {
+      const { cleanupDanglingYouTubeBroadcasts } = await import("@/lib/youtube-live");
+      const result = await cleanupDanglingYouTubeBroadcasts({ onlyGaulFm: true });
+      return Response.json({ ok: true, ...result });
+    }
+
+    if (!id) {
+      return Response.json({ error: "ID siaran diperlukan untuk menghapus." }, { status: 400 });
+    }
+
+    const { deleteYouTubeBroadcast } = await import("@/lib/youtube-live");
+    await deleteYouTubeBroadcast(id);
+    return Response.json({ ok: true, deletedId: id });
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : "Gagal menghapus siaran YouTube." }, { status: 502 });
+  }
+}

@@ -211,13 +211,90 @@ export async function ensureActiveYouTubeBroadcast(preferredStreamId?: string) {
 }
 
 /**
- * Mengakhiri siaran aktif di YouTube saat operator mematikan tombol siaran di admin
+ * Menghapus spesifik siaran YouTube berdasarkan broadcast ID
+ */
+export async function deleteYouTubeBroadcast(broadcastId: string) {
+  if (!isYouTubeOAuthConfigured() || !(await hasStoredYouTubeAccount())) {
+    throw new Error("OAuth YouTube belum terhubung.");
+  }
+  return await youtubeRequest(`/liveBroadcasts?id=${encodeURIComponent(broadcastId)}`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Membersihkan siaran yang nyangkut di YouTube Studio.
+ * - Menghapus (DELETE) broadcast upcoming yang belum sempat tayang
+ * - Mengakhiri (transition complete) broadcast yang sedang active/testing
+ */
+export async function cleanupDanglingYouTubeBroadcasts(options?: { onlyGaulFm?: boolean }) {
+  if (!isYouTubeOAuthConfigured() || !(await hasStoredYouTubeAccount())) return { cleaned: 0 };
+  const onlyGaul = options?.onlyGaulFm ?? true;
+  let cleanedCount = 0;
+
+  try {
+    // 1. Ambil broadcast upcoming (jadwal siaran yang nyangkut)
+    const upcomingRes = await youtubeRequest<ListResponse<Broadcast>>(
+      "/liveBroadcasts?part=id,snippet,status&broadcastStatus=upcoming&broadcastType=all&maxResults=25"
+    );
+    const upcomingList = upcomingRes.items || [];
+    for (const b of upcomingList) {
+      const title = b.snippet?.title || "";
+      if (
+        !onlyGaul ||
+        title.includes("Gaul FM") ||
+        title.includes("Visual Radio Station") ||
+        title.includes("Gaul Morning Show") ||
+        title.includes("Asupan Gaul") ||
+        title.includes("Gaul Waktu Setempat")
+      ) {
+        try {
+          await youtubeRequest(`/liveBroadcasts?id=${encodeURIComponent(b.id)}`, {
+            method: "DELETE",
+          });
+          cleanedCount++;
+        } catch {
+          // Abaikan error per item
+        }
+      }
+    }
+
+    // 2. Ambil broadcast active yang mungkin masih tertinggal
+    const activeRes = await youtubeRequest<ListResponse<Broadcast>>(
+      "/liveBroadcasts?part=id,snippet,status&broadcastStatus=active&broadcastType=all&maxResults=10"
+    );
+    const activeList = activeRes.items || [];
+    for (const b of activeList) {
+      const title = b.snippet?.title || "";
+      if (!onlyGaul || title.includes("Gaul FM") || title.includes("Visual Radio Station")) {
+        try {
+          await youtubeRequest(
+            `/liveBroadcasts/transition?part=id,status&broadcastStatus=complete&id=${encodeURIComponent(b.id)}`,
+            { method: "POST" }
+          );
+          cleanedCount++;
+        } catch {
+          // Abaikan jika sudah diakhiri
+        }
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  return { cleaned: cleanedCount };
+}
+
+/**
+ * Mengakhiri siaran aktif di YouTube saat operator mematikan tombol siaran di admin,
+ * sekaligus membersihkan broadcast upcoming yang belum sempat live agar tidak jadi jadwal nyangkut.
  */
 export async function stopActiveYouTubeBroadcasts() {
   if (!isYouTubeOAuthConfigured() || !(await hasStoredYouTubeAccount())) return;
   try {
+    // 1. Transisi broadcast active ke complete
     const activeRes = await youtubeRequest<ListResponse<Broadcast>>(
-      "/liveBroadcasts?part=id,status&broadcastStatus=active&broadcastType=all&maxResults=5"
+      "/liveBroadcasts?part=id,status&broadcastStatus=active&broadcastType=all&maxResults=10"
     );
     const activeList = activeRes.items || [];
     for (const b of activeList) {
@@ -229,6 +306,24 @@ export async function stopActiveYouTubeBroadcasts() {
           );
         } catch {
           // Abaikan jika sudah diakhiri oleh YouTube
+        }
+      }
+    }
+
+    // 2. Hapus broadcast upcoming Gaul FM yang belum sempat live agar tidak meninggalkan jadwal nyangkut
+    const upcomingRes = await youtubeRequest<ListResponse<Broadcast>>(
+      "/liveBroadcasts?part=id,snippet,status&broadcastStatus=upcoming&broadcastType=all&maxResults=15"
+    );
+    const upcomingList = upcomingRes.items || [];
+    for (const b of upcomingList) {
+      const title = b.snippet?.title || "";
+      if (title.includes("Gaul FM") || title.includes("Visual Radio Station")) {
+        try {
+          await youtubeRequest(`/liveBroadcasts?id=${encodeURIComponent(b.id)}`, {
+            method: "DELETE",
+          });
+        } catch {
+          // Abaikan jika sudah terhapus
         }
       }
     }

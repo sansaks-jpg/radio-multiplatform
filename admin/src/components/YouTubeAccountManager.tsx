@@ -14,6 +14,7 @@ import {
   Radio,
   RefreshCw,
   Save,
+  Trash2,
   Unplug,
   Video,
 } from "lucide-react";
@@ -269,13 +270,39 @@ export function YouTubeAccountManager({
     } finally { setTransitioning(null); }
   };
 
+  const deleteBroadcast = async (id: string, title: string) => {
+    if (!window.confirm(`Hapus siaran "${title}" secara permanen dari channel YouTube?`)) return;
+    try {
+      const res = await fetch(`/api/youtube/broadcasts?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menghapus siaran.");
+      toast.push("Siaran berhasil dihapus dari YouTube.");
+      await refresh();
+    } catch (err) {
+      toast.push(err instanceof Error ? err.message : "Gagal menghapus siaran", "error");
+    }
+  };
+
+  const cleanupBroadcasts = async () => {
+    if (!window.confirm("Bersihkan semua jadwal siaran studio yang menggantung di channel YouTube Anda?")) return;
+    try {
+      const res = await fetch("/api/youtube/broadcasts?cleanup=true", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal membersihkan siaran.");
+      toast.push(`${data.cleaned || 0} jadwal siaran studio berhasil dibersihkan dari YouTube.`);
+      await refresh();
+    } catch (err) {
+      toast.push(err instanceof Error ? err.message : "Gagal membersihkan siaran", "error");
+    }
+  };
+
   const disconnect = async () => {
-    if (!window.confirm("Putuskan akun YouTube dari panel ini? Token server akan dihapus dan akses Google akan dicabut.")) return;
+    if (!window.confirm("Putuskan akun YouTube dari panel ini? Jadwal siaran studio yang menggantung akan dibersihkan, token server dihapus, dan akses Google dicabut.")) return;
     const response = await fetch("/api/youtube/oauth/disconnect", { method: "DELETE" });
     const data = await response.json();
     if (!response.ok) return toast.push(data.error || "Gagal memutuskan akun YouTube.", "error");
     setStatus({ configured: true, connected: false });
-    toast.push(data.revoked ? "Akun YouTube diputus dan akses Google dicabut." : "Token lokal dihapus. Periksa akses aplikasi di akun Google bila perlu.");
+    toast.push(data.revoked ? "Akun YouTube diputus dan jadwal siaran telah dibersihkan." : "Token lokal dihapus.");
   };
 
   if (!status) return <div className="text-xs text-muted-foreground p-4">Memeriksa koneksi akun YouTube...</div>;
@@ -366,10 +393,23 @@ export function YouTubeAccountManager({
               Judul, jadwal, privasi, sumber video, dan status live dikelola dari sini.
             </p>
           </div>
-          <Button variant="primary" size="sm" onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-1" />
-            Buat Siaran
-          </Button>
+          <div className="flex items-center gap-2">
+            {status.broadcasts && status.broadcasts.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                onClick={() => void cleanupBroadcasts()}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Bersihkan Jadwal Nyangkut
+              </Button>
+            )}
+            <Button variant="primary" size="sm" onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-1" />
+              Buat Siaran
+            </Button>
+          </div>
         </div>
 
         {!status.broadcasts?.length && (
@@ -451,6 +491,17 @@ export function YouTubeAccountManager({
                       >
                         <CircleStop className="h-3.5 w-3.5 mr-1" />
                         Akhiri
+                      </Button>
+                    )}
+                    {broadcast.lifeCycleStatus !== "live" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                        onClick={() => void deleteBroadcast(broadcast.id, broadcast.title)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Hapus
                       </Button>
                     )}
                     <a
