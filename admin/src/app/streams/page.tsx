@@ -57,8 +57,10 @@ export default function StreamsPage() {
     connected: boolean;
     channelTitle?: string;
     streams: Array<{ id: string; title: string; streamKey?: string | null; streamStatus?: string }>;
+    broadcasts?: Array<{ id: string; title: string; lifeCycleStatus?: string }>;
   } | null>(null);
   const [selectedStreamId, setSelectedStreamId] = useState<string>("");
+  const [activeWatchUrl, setActiveWatchUrl] = useState<string | null>(null);
 
   // Monitor State
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -183,9 +185,41 @@ export default function StreamsPage() {
       dirty.current = false;
       setYtKey("");
       applyStreamData(data);
+
+      // Otomatis buat / hidupkan Live Broadcast di channel YouTube jika OAuth terhubung
+      if (nextState && ytOAuth?.connected) {
+        try {
+          const autoRes = await fetch("/api/youtube/auto-live", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "start",
+              streamId: selectedStreamId || ytOAuth.streams[0]?.id,
+            }),
+          });
+          const autoData = await autoRes.json();
+          if (autoData.watchUrl) {
+            setActiveWatchUrl(autoData.watchUrl);
+          }
+        } catch {
+          // Non-fatal
+        }
+      } else if (!nextState && ytOAuth?.connected) {
+        try {
+          await fetch("/api/youtube/auto-live", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "stop" }),
+          });
+          setActiveWatchUrl(null);
+        } catch {
+          // Non-fatal
+        }
+      }
+
       toast.push(
         nextState
-          ? "Siaran YouTube diaktifkan! Server mulai meneruskan video vMix ke YouTube."
+          ? "Siaran YouTube diaktifkan! Video studio disiarkan langsung ke channel YouTube."
           : "Siaran YouTube dinonaktifkan."
       );
     } catch (error) {
@@ -263,8 +297,15 @@ export default function StreamsPage() {
     connected: boolean;
     channelTitle?: string;
     streams: Array<{ id: string; title: string; streamKey?: string | null; streamStatus?: string }>;
+    broadcasts?: Array<{ id: string; title: string; lifeCycleStatus?: string }>;
   }) => {
     setYtOAuth(data);
+    const liveItem = data.broadcasts?.find(b => b.lifeCycleStatus === "live" || b.lifeCycleStatus === "testing" || b.lifeCycleStatus === "ready");
+    if (liveItem) {
+      setActiveWatchUrl(`https://www.youtube.com/watch?v=${liveItem.id}`);
+    } else {
+      setActiveWatchUrl(null);
+    }
     if (data.connected && data.streams.length > 0) {
       const defaultStream = data.streams.find(s => s.title.toLowerCase().includes("default")) || data.streams[0];
       if (defaultStream) {
@@ -618,6 +659,24 @@ export default function StreamsPage() {
                       )}
                     </div>
                   ) : null}
+
+                  {/* Banner Tautan Tayangan Langsung YouTube */}
+                  {activeWatchUrl && (
+                    <a
+                      href={activeWatchUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between p-3 rounded-lg bg-live/15 border border-live/30 text-live hover:bg-live/25 transition-all text-xs font-semibold shadow-xs"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-live animate-ping" />
+                        Tayangan Siaran Aktif di YouTube
+                      </span>
+                      <span className="inline-flex items-center gap-1 underline text-[11px]">
+                        Tonton Video <ExternalLink className="h-3 w-3" />
+                      </span>
+                    </a>
+                  )}
 
                   {/* Tombol Utama: Mulai / Hentikan Siaran ke YouTube */}
                   <div className="pt-2 border-t border-border/40">

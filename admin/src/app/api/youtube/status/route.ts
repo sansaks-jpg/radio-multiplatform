@@ -66,10 +66,43 @@ export async function GET() {
       }
     }
 
+    // Otomatis buatkan Live Broadcast jika server sudah mengirim video (stream active) tapi belum ada tayangan
+    let broadcastItems = [...(active.items || []), ...(upcoming.items || [])];
+    const activeStream = mappedStreams.find(s => s.streamStatus === "active");
+    if (activeStream && broadcastItems.length === 0) {
+      try {
+        const { ensureActiveYouTubeBroadcast } = await import("@/lib/youtube-live");
+        const auto = await ensureActiveYouTubeBroadcast(activeStream.id);
+        if ("broadcastId" in auto && auto.broadcastId) {
+          broadcastItems.push({
+            id: auto.broadcastId,
+            snippet: {
+              title: auto.title,
+              description: "Siaran Langsung Gaul FM Semarang.",
+              scheduledStartTime: new Date().toISOString(),
+            },
+            status: {
+              lifeCycleStatus: auto.status || "live",
+              privacyStatus: "public",
+            },
+            contentDetails: {
+              boundStreamId: activeStream.id,
+              enableAutoStart: true,
+              enableAutoStop: true,
+              enableDvr: true,
+              recordFromStart: true,
+            },
+          });
+        }
+      } catch {
+        // Non-fatal fallback
+      }
+    }
+
     return Response.json({ configured: true, connected: true,
       channel: channels.items?.[0] ? { id: channels.items[0].id, title: channels.items[0].snippet?.title,
         thumbnail: channels.items[0].snippet?.thumbnails?.default?.url } : null,
-      broadcasts: [...(active.items || []), ...(upcoming.items || [])].map(publicBroadcast),
+      broadcasts: broadcastItems.map(publicBroadcast),
       streams: mappedStreams,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

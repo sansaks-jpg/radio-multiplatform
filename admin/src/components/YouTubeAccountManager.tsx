@@ -180,6 +180,7 @@ export function YouTubeAccountManager({
     connected: boolean;
     channelTitle?: string;
     streams: Stream[];
+    broadcasts?: Broadcast[];
   }) => void;
   onSelectStreamKey?: (streamKey: string, streamTitle: string) => void;
 } = {}) {
@@ -203,6 +204,7 @@ export function YouTubeAccountManager({
           connected: data.connected,
           channelTitle: data.channel?.title,
           streams: data.streams || [],
+          broadcasts: data.broadcasts || [],
         });
       }
       if (!response.ok) throw new Error(data.error || "Status YouTube gagal dimuat.");
